@@ -1,0 +1,530 @@
+# Agent Instructions for Bolokono
+
+This document provides instructions for AI agents working on the Bolokono codebase. Read this before making any changes.
+
+---
+
+## Project Overview
+
+**Bolokono** analyzes git history to reveal developer craftsmanship patterns. The stack is:
+
+- **Frontend:** Next.js 14+ (App Router), TypeScript, Tailwind CSS, shadcn/ui
+- **Backend:** Next.js Route Handlers (Vercel)
+- **Auth:** Supabase Auth with GitHub OAuth
+- **Database:** Supabase Postgres with Row Level Security
+- **Background Jobs:** Supabase Edge Functions
+- **LLM:** Claude API (server-side only)
+
+See `docs/PRD.md` for full product requirements.
+
+---
+
+## Development Environment
+
+### Prerequisites
+
+- Node.js 18+
+- Docker (for local Supabase)
+- Supabase CLI (`npm install -g supabase`)
+- GitHub OAuth App credentials
+
+### Starting the Dev Environment
+
+**IMPORTANT:** Do not start the dev server automatically. The user typically runs it themselves in a separate terminal.
+
+Before running any server commands, check if the server is already running:
+
+```bash
+# Check if Next.js dev server is running
+lsof -i :3000
+
+# Check if Supabase is running
+npx supabase status
+```
+
+**If Supabase is not running:**
+```bash
+npx supabase start
+```
+
+**If Next.js is not running and user asks you to start it:**
+```bash
+npm run dev
+```
+
+### Environment Variables
+
+Copy the example env file and fill in values:
+
+```bash
+cp .env.example .env.local
+```
+
+Required variables:
+```bash
+# Supabase (from `npx supabase status` for local)
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<from supabase status>
+SUPABASE_SERVICE_ROLE_KEY=<from supabase status>
+
+# GitHub OAuth (create at https://github.com/settings/developers)
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+
+# Claude API
+ANTHROPIC_API_KEY=
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+---
+
+## Database Access
+
+### Local Dev Database
+
+The local Supabase runs in Docker. Always develop against local first.
+
+**1. Get the database URL:**
+```bash
+npx supabase status
+# Look for "DB URL: postgresql://postgres:postgres@127.0.0.1:XXXXX/postgres"
+```
+
+**2. Run SQL using psql:**
+```bash
+psql "postgresql://postgres:postgres@127.0.0.1:XXXXX/postgres" -c "YOUR SQL HERE"
+```
+
+**CRITICAL for AI Agents:**
+- Do NOT use MCP Supabase tools for local dev operations—they connect to remote projects
+- Always use `psql` with the local DB URL from `npx supabase status`
+- The MCP Supabase tools are for remote database operations only
+
+### Supabase Project References
+
+| Environment | Project Ref | Dashboard URL | Branch |
+|-------------|-------------|---------------|--------|
+| Development | `TBD` | TBD | `develop` |
+| Production | `TBD` | TBD | `main` |
+
+> **Note:** Project refs will be added once Supabase projects are created.
+
+### Switching Between Environments
+
+By default, the Supabase CLI points to the **development** remote. You only need to explicitly link when switching to production.
+
+```bash
+# Check which environment is currently linked
+npm run supabase:which
+
+# Link to production (CAUTION: only for production deployments)
+npm run supabase:link:prod
+
+# Link back to development (restore default)
+npm run supabase:link:dev
+```
+
+Add these scripts to `package.json`:
+```json
+{
+  "scripts": {
+    "supabase:which": "npx supabase projects list",
+    "supabase:link:dev": "npx supabase link --project-ref <DEV_PROJECT_REF>",
+    "supabase:link:prod": "npx supabase link --project-ref <PROD_PROJECT_REF>"
+  }
+}
+```
+
+**When to use each:**
+- **Local:** Default for all development work
+- **Development remote (default):** Testing against shared dev data, deploying previews, pushing migrations
+- **Production remote:** Only for production deployments or critical debugging
+
+---
+
+## Database Migrations
+
+### Golden Rules
+
+1. **Never modify existing migration files** that have been applied
+2. **Never reset the database** unless absolutely necessary
+3. **Always create new migration files** for schema changes
+4. **Test locally first** before pushing to remote
+
+### Creating a New Migration
+
+```bash
+# Create a new migration file
+npx supabase migration new <migration_name>
+
+# This creates: supabase/migrations/<timestamp>_<migration_name>.sql
+```
+
+### Applying Migrations
+
+**Local (default approach):**
+```bash
+# Apply pending migrations (preserves data)
+npx supabase migration up
+
+# Check migration status
+npx supabase migration list
+```
+
+**Remote:**
+```bash
+# Push migrations to linked remote project
+npx supabase db push
+```
+
+### When to Use `db reset`
+
+Only use `npx supabase db reset` when:
+- You need to completely rebuild the schema from scratch
+- There are migration conflicts that cannot be resolved
+- Explicitly requested by the user
+
+**WARNING:** `db reset` destroys all local data including test users and analysis results.
+
+### Migration Best Practices
+
+```sql
+-- Use gen_random_uuid() for UUID defaults (built-in)
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+
+-- NOT uuid_generate_v4() which requires uuid-ossp extension
+
+-- Always include IF NOT EXISTS for safety
+CREATE TABLE IF NOT EXISTS users (...);
+
+-- Use explicit schema references
+CREATE TABLE public.users (...);
+
+-- Add RLS policies in the same migration as the table
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY users_select ON public.users
+  FOR SELECT USING (auth.uid() = id);
+```
+
+### Checking Migration Status
+
+```bash
+# Local
+npx supabase migration list
+
+# Remote (after linking)
+npx supabase migration list --linked
+```
+
+---
+
+## Test Credentials
+
+### Local Dev Test User
+
+For testing authenticated flows locally, create this test user:
+
+| Field | Value |
+|-------|-------|
+| Email | `testuser@bolokono.dev` |
+| Password | `TestPass123!` |
+
+**To create the test user:**
+
+1. Start local Supabase: `npx supabase start`
+2. Go to local Supabase Studio: `http://127.0.0.1:54323`
+3. Navigate to Authentication → Users
+4. Click "Add User" and enter the credentials above
+
+**Alternative via SQL:**
+```bash
+# Get DB URL first
+npx supabase status
+
+# Create user (replace XXXXX with actual port)
+psql "postgresql://postgres:postgres@127.0.0.1:XXXXX/postgres" -c "
+INSERT INTO auth.users (
+  id,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  created_at,
+  updated_at
+) VALUES (
+  gen_random_uuid(),
+  'testuser@bolokono.dev',
+  crypt('TestPass123!', gen_salt('bf')),
+  now(),
+  now(),
+  now()
+);
+"
+```
+
+### GitHub OAuth Testing
+
+For GitHub OAuth testing locally:
+1. Create a GitHub OAuth App at https://github.com/settings/developers
+2. Set callback URL to `http://localhost:3000/auth/callback`
+3. Add credentials to `.env.local`
+
+---
+
+## Coding Conventions
+
+### TypeScript
+
+- No `any` types—use proper typing or `unknown` with type guards
+- Use interfaces for object shapes, types for unions/primitives
+- Export types from dedicated `types.ts` files
+
+### Date/Time Handling
+
+- Store all timestamps as `TIMESTAMPTZ` in Postgres (UTC)
+- Use `date-fns` for date manipulation
+- Convert to user's timezone only for display
+
+```typescript
+import { format, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+
+// Formatting for display
+const displayDate = formatInTimeZone(
+  parseISO(commit.author_date),
+  userTimezone,
+  'MMM d, yyyy HH:mm'
+);
+```
+
+### Component Structure
+
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── (auth)/            # Auth-related routes (grouped)
+│   ├── (dashboard)/       # Authenticated routes (grouped)
+│   └── api/               # Route handlers
+├── components/
+│   ├── ui/                # shadcn/ui components
+│   └── [feature]/         # Feature-specific components
+├── lib/
+│   ├── supabase/          # Supabase client utilities
+│   ├── github/            # GitHub API client
+│   ├── analysis/          # Analysis logic
+│   └── utils/             # Shared utilities
+└── types/                 # TypeScript type definitions
+```
+
+### Imports
+
+```typescript
+// External imports first
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+// Internal imports (absolute paths)
+import { Button } from '@/components/ui/button';
+import { analyzeCommits } from '@/lib/analysis';
+import type { CommitEvent } from '@/types';
+```
+
+### Error Handling
+
+```typescript
+// API routes: return proper error responses
+export async function POST(request: Request) {
+  try {
+    // ... logic
+  } catch (error) {
+    console.error('Analysis failed:', error);
+    return Response.json(
+      { error: 'Analysis failed' },
+      { status: 500 }
+    );
+  }
+}
+
+// Client: use error boundaries and loading states
+```
+
+---
+
+## AI Agent Workflow
+
+### Execution Order (Critical)
+
+```
+1. PRD → 2. Implementation Tracker → 3. Database → 4. Backend → 5. UI → 6. Test → 7. Document
+```
+
+**Database migrations MUST be applied before any other implementation.**
+
+### Before Starting Any Task
+
+1. Read `docs/PRD.md` for product context
+2. Check `docs/implementation-trackers/` for current progress
+3. Verify local Supabase is running: `npx supabase status`
+4. Check for pending migrations: `npx supabase migration list`
+
+### Task Specification Format
+
+When creating implementation tasks, use this format:
+
+```markdown
+### F1. Database Schema
+**Task:** Create users and repos tables with RLS policies
+**Deliverables:**
+- [ ] Migration file created
+- [ ] Tables created with all columns
+- [ ] RLS policies applied
+- [ ] Indexes added
+**Files:** `supabase/migrations/XXXXXX_create_users_repos.sql`
+**Success Criteria:** `npx supabase migration up` succeeds, RLS tests pass
+**Dependencies:** None
+**Blocks:** F2, P1, P2
+```
+
+### Phasing Standard
+
+#### Foundational Phases (Sequential)
+
+Work that must complete before parallel work can begin:
+- Database migrations
+- Shared types and utilities
+- Auth guards and middleware
+
+Each task must declare what it **blocks** and what it **depends on**.
+
+#### Independent Phases (Parallel)
+
+After foundation, work can proceed in parallel:
+- Each phase is self-contained
+- Clear inputs/outputs defined
+- Minimal shared dependencies
+
+---
+
+## Commits
+
+### Commit Conventions
+
+- Use conventional commit format: `type(scope): description`
+- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+- Keep commits focused—one logical change per commit
+
+```bash
+# Good
+feat(auth): implement GitHub OAuth flow
+fix(analysis): handle repos with no commits
+chore(deps): update supabase-js to 2.39.0
+
+# Bad
+update stuff
+fix bugs
+WIP
+```
+
+### Before Committing
+
+1. Only commit files you directly worked on for the current task
+2. Verify staged files:
+   ```bash
+   git status --short
+   git diff --stat --cached
+   ```
+3. Run type check: `npm run type-check`
+4. Run lint: `npm run lint`
+
+### Co-Author Attribution
+
+When AI assists with code, include co-author:
+```
+feat(analysis): implement commit classification
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+---
+
+## Quality Checklist
+
+Before marking any task complete:
+
+- [ ] TypeScript compiles without errors (`npm run type-check`)
+- [ ] ESLint passes (`npm run lint`)
+- [ ] Migrations apply cleanly (`npx supabase migration up`)
+- [ ] RLS policies tested (query as different users)
+- [ ] Loading states implemented
+- [ ] Error states handled
+- [ ] No `console.log` left in production code
+- [ ] No hardcoded secrets or credentials
+
+---
+
+## Troubleshooting
+
+### Supabase Won't Start
+
+```bash
+# Check Docker is running
+docker ps
+
+# Reset Supabase (destroys local data)
+npx supabase stop
+npx supabase start
+```
+
+### Migration Conflicts
+
+```bash
+# Check current state
+npx supabase migration list
+
+# If stuck, repair migration history (careful!)
+npx supabase migration repair --status applied <version>
+```
+
+### GitHub OAuth Not Working
+
+1. Check callback URL matches exactly: `http://localhost:3000/auth/callback`
+2. Verify client ID and secret in `.env.local`
+3. Check Supabase Auth settings in dashboard
+
+### MCP Tools Not Connecting
+
+MCP Supabase tools connect to remote projects, not local. For local development:
+- Use `psql` with local DB URL
+- Use Supabase Studio at `http://127.0.0.1:54323`
+
+---
+
+## Quick Reference
+
+| Command | Purpose |
+|---------|---------|
+| `npx supabase start` | Start local Supabase |
+| `npx supabase stop` | Stop local Supabase |
+| `npx supabase status` | Show local URLs and keys |
+| `npx supabase migration new <name>` | Create migration |
+| `npx supabase migration up` | Apply migrations |
+| `npx supabase migration list` | List migration status |
+| `npx supabase db reset` | Reset database (destroys data) |
+| `npm run dev` | Start Next.js dev server |
+| `npm run type-check` | TypeScript check |
+| `npm run lint` | ESLint check |
+
+---
+
+## Documentation Policy
+
+- **Minimize new docs**—update existing files instead
+- **Update implementation tracker** when completing tasks
+- **Keep PRD.md current** if requirements change
+- **This file (Agents.md)** is the source of truth for agent behavior
+
+---
+
+*Last updated: Phase 0 initialization*
