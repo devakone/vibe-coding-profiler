@@ -2,7 +2,7 @@
 
 **Product name:** Bolokono
 **Author:** Abou Kone
-**Status:** Draft v3 (Implementation-ready)
+**Status:** Draft v4 (Monorepo architecture)
 **Audience:** Product, Engineering (human + AI agents)
 
 ---
@@ -180,55 +180,229 @@ They summarize computed facts and cite evidence.
 
 ## 8. Technical Architecture
 
+### Architecture Principles
+
+The key constraint shaping this architecture: **don't do repo cloning or heavy git analysis in Vercel serverless functions**. Git cloning exceeds Vercel's memory limits, timeouts, and cold start budget.
+
+Instead:
+1. **Vercel Web App**: UI + auth + lightweight API routes (job creation, not execution)
+2. **Supabase**: Source of truth + security boundary via RLS
+3. **External Worker**: Heavy analysis runs outside the request/response path
+
+### Monorepo Structure
+
+```
+bolokono/
+├── apps/
+│   ├── web/                 # Next.js web app (Vercel)
+│   │   ├── src/
+│   │   │   ├── app/         # App Router pages
+│   │   │   ├── components/  # React components
+│   │   │   └── lib/         # Utilities, Supabase client
+│   │   └── package.json
+│   │
+│   └── worker/              # Background job processor (Fly.io/Render)
+│       ├── src/
+│       │   ├── index.ts     # Job polling loop
+│       │   ├── analyzer.ts  # Commit analysis logic
+│       │   └── github.ts    # GitHub API client
+│       └── package.json
+│
+├── packages/
+│   ├── core/                # Shared analysis logic
+│   │   └── src/
+│   │       ├── types.ts     # CommitEvent, AnalysisMetrics, etc.
+│   │       ├── classify.ts  # Commit classification
+│   │       └── metrics.ts   # Metrics computation
+│   │
+│   └── db/                  # Database utilities
+│       └── src/
+│           ├── client.ts    # Supabase client factory
+│           └── types.ts     # Generated database types
+│
+├── supabase/
+│   ├── migrations/          # SQL migrations
+│   ├── functions/           # Edge Functions (optional)
+│   └── config.toml
+│
+└── docs/
+    ├── PRD.md
+    ├── Agents.md
+    └── Workflow.md
+```
+
 ### Stack
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | Next.js 14+ (App Router), TypeScript, Tailwind CSS, shadcn/ui |
-| Backend API | Next.js Route Handlers (deployed on Vercel) |
-| Authentication | Supabase Auth with GitHub OAuth provider |
-| Database | Supabase Postgres with Row Level Security |
-| Background Jobs | Supabase Edge Functions (Phase 0-1), external worker (Phase 2+) |
-| Realtime | Supabase Realtime (job status subscriptions) |
-| LLM | Claude API (server-side only, structured output) |
+| Layer | Technology | Location |
+|-------|------------|----------|
+| Frontend | Next.js 14+ (App Router), TypeScript, Tailwind CSS, shadcn/ui | `apps/web` |
+| Backend API | Next.js Route Handlers | `apps/web` |
+| Authentication | Supabase Auth with GitHub OAuth provider | Supabase |
+| Database | Supabase Postgres with Row Level Security | Supabase |
+| Worker | Node.js/TypeScript job processor | `apps/worker` |
+| Worker Hosting | Fly.io, Render, or Railway | External |
+| Realtime | Supabase Realtime (job status subscriptions) | Supabase |
+| LLM | Claude API (server-side only) | `apps/worker` |
+| Shared Code | TypeScript packages | `packages/*` |
 
 ### System Diagram
 
 ```
-┌─────────────┐
-│   Browser   │
-└──────┬──────┘
-       │ HTTPS
-       ▼
-┌─────────────────────────────────┐
-│         Next.js App             │
-│  ┌───────────┐  ┌────────────┐  │
-│  │   Pages   │  │   Route    │  │
-│  │   (UI)    │  │  Handlers  │  │
-│  └───────────┘  └─────┬──────┘  │
-└───────────────────────┼─────────┘
-                        │
-       ┌────────────────┼────────────────┐
-       │                │                │
-       ▼                ▼                ▼
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│  Supabase   │  │  Supabase   │  │   GitHub    │
-│    Auth     │  │  Postgres   │  │    API      │
-└─────────────┘  └──────┬──────┘  └──────┬──────┘
-                        │                │
-                        ▼                │
-                ┌─────────────┐          │
-                │  Supabase   │◄─────────┘
-                │   Edge Fn   │ (fetches commits)
-                │  (Analyzer) │
-                └──────┬──────┘
-                       │
-                       ▼
-                ┌─────────────┐
-                │   Claude    │
-                │    API      │ (narrative generation)
-                └─────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                              BROWSER                                 │
+└───────────────────────────────────┬─────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         apps/web (Vercel)                            │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │                      Next.js App Router                      │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐   │    │
+│  │  │    Pages     │  │    Route     │  │   Supabase SSR   │   │    │
+│  │  │  (React UI)  │  │   Handlers   │  │     Client       │   │    │
+│  │  └──────────────┘  └───────┬──────┘  └────────┬─────────┘   │    │
+│  └────────────────────────────┼──────────────────┼─────────────┘    │
+└───────────────────────────────┼──────────────────┼──────────────────┘
+                                │                  │
+          ┌─────────────────────┼──────────────────┼─────────────────┐
+          │                     │                  │                 │
+          ▼                     ▼                  ▼                 │
+┌──────────────┐    ┌──────────────────────────────────┐             │
+│   GitHub     │    │           Supabase               │             │
+│    API       │    │  ┌────────┐  ┌───────────────┐   │             │
+│  (list repos)│    │  │  Auth  │  │   Postgres    │   │             │
+└──────────────┘    │  │        │  │   (+ RLS)     │   │             │
+                    │  └────────┘  └───────┬───────┘   │             │
+                    │                      │           │             │
+                    │              ┌───────▼───────┐   │             │
+                    │              │   Realtime    │   │◄────────────┘
+                    │              │ (job status)  │   │   (subscribes)
+                    └──────────────┴───────────────┴───┘
+                                          │
+                                          │ polls jobs
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     apps/worker (Fly.io/Render)                      │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │                      Job Processor                            │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐   │   │
+│  │  │  Job Loop   │  │  Analyzer   │  │  Narrative Generator │   │   │
+│  │  │ (poll/claim)│─▶│ (metrics)   │─▶│     (Claude API)     │   │   │
+│  │  └─────────────┘  └──────┬──────┘  └─────────────────────┘   │   │
+│  └──────────────────────────┼───────────────────────────────────┘   │
+└─────────────────────────────┼───────────────────────────────────────┘
+                              │
+                              ▼
+                      ┌─────────────┐
+                      │   GitHub    │
+                      │    API      │
+                      │(fetch commits)
+                      └─────────────┘
 ```
+
+### Data Flow
+
+**1. User connects a repo:**
+```
+Browser → POST /api/repos/connect → Supabase (insert user_repos)
+```
+
+**2. User starts analysis:**
+```
+Browser → POST /api/analysis/start → Supabase (insert analysis_jobs as 'queued')
+```
+
+**3. Worker processes job:**
+```
+Worker polls analysis_jobs WHERE status = 'queued'
+    → Claims job with FOR UPDATE SKIP LOCKED
+    → Sets status = 'running'
+    → Fetches commits from GitHub API
+    → Computes metrics (packages/core)
+    → Generates narrative (Claude API)
+    → Writes analysis_metrics + analysis_reports
+    → Sets status = 'done'
+```
+
+**4. UI shows progress:**
+```
+Browser subscribes to Supabase Realtime on analysis_jobs
+    → Sees status change: queued → running → done
+    → Fetches report when done
+```
+
+### GitHub Token Handling
+
+**Pattern A (MVP - Simple):**
+- Store encrypted GitHub token in `github_accounts` table
+- RLS: only owner can access
+- Encrypt server-side before insert
+
+```sql
+CREATE TABLE github_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id),
+  github_user_id BIGINT NOT NULL,
+  encrypted_token TEXT NOT NULL,  -- Encrypted with server-side key
+  scopes TEXT[] NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- RLS: only owner can access
+CREATE POLICY github_accounts_select ON github_accounts
+  FOR SELECT USING (user_id = auth.uid());
+```
+
+**Pattern B (More Secure - Future):**
+- Don't store long-lived tokens
+- Use GitHub OAuth with refresh tokens
+- Mint short-lived access tokens on demand
+
+### Worker Job Claiming
+
+Safe concurrent job claiming using PostgreSQL advisory locks:
+
+```sql
+-- Function to claim a job atomically
+CREATE OR REPLACE FUNCTION claim_analysis_job(p_analyzer_version TEXT)
+RETURNS UUID AS $$
+DECLARE
+  v_job_id UUID;
+BEGIN
+  SELECT id INTO v_job_id
+  FROM analysis_jobs
+  WHERE status = 'queued'
+  ORDER BY created_at ASC
+  FOR UPDATE SKIP LOCKED
+  LIMIT 1;
+
+  IF v_job_id IS NOT NULL THEN
+    UPDATE analysis_jobs
+    SET status = 'running',
+        started_at = now(),
+        analyzer_version = p_analyzer_version
+    WHERE id = v_job_id;
+  END IF;
+
+  RETURN v_job_id;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Analysis Phases
+
+**Phase 0-1: GitHub API Only (No Cloning)**
+- Fetch commit metadata via GitHub REST API
+- Analyze: messages, timestamps, file counts, line stats
+- Good for repos up to ~5,000 commits
+- Worker is lightweight Node.js
+
+**Phase 2+: Git Cloning (Deep Analysis)**
+- Clone repo to ephemeral storage
+- Use git log for full history
+- Analyze: file paths, churn patterns, hotspots
+- Worker needs more resources (Fly.io with volumes)
 
 ### API Rate Limiting Strategy
 
@@ -248,6 +422,26 @@ They summarize computed facts and cite evidence.
 - Max 20 repos connected per user (Phase 0)
 - Max 1 analysis request per repo per 10 minutes
 
+### Next.js Route Map
+
+**Pages:**
+- `/` - Landing page
+- `/login` - Sign in with GitHub
+- `/repos` - Repository picker
+- `/repo/[id]` - Repo dashboard
+- `/analysis/[jobId]` - Analysis report
+- `/profile` - Multi-repo aggregation
+
+**API Routes (server-only):**
+- `POST /api/github/sync-repos` - Pull repo list from GitHub, upsert into repos
+- `POST /api/analysis/start` - Create analysis_jobs row
+- `GET /api/analysis/[id]` - Get job status (can also use Supabase client directly)
+
+**Client reads via Supabase:**
+- analysis_jobs status (with Realtime subscription)
+- metrics + report JSON
+- All protected by RLS
+
 ---
 
 ## 9. Data Model
@@ -259,31 +453,31 @@ They summarize computed facts and cite evidence.
 │    users     │       │  user_repos  │       │    repos     │
 ├──────────────┤       ├──────────────┤       ├──────────────┤
 │ id (PK)      │──────<│ user_id (FK) │       │ id (PK)      │
-│ github_id    │       │ repo_id (FK) │>──────│ github_id    │
-│ github_user  │       │ connected_at │       │ owner        │
-│ avatar_url   │       │ disconnected │       │ name         │
-│ email        │       │ settings     │       │ is_private   │
-│ created_at   │       └──────────────┘       │ default_br   │
-│ updated_at   │                              │ created_at   │
-└──────────────┘                              └──────┬───────┘
-                                                     │
-       ┌─────────────────────────────────────────────┘
-       │
-       ▼
-┌──────────────┐       ┌──────────────┐       ┌──────────────┐
-│ analysis_job │       │analysis_metrics      │analysis_report
-├──────────────┤       ├──────────────┤       ├──────────────┤
-│ id (PK)      │──────<│ job_id (FK)  │       │ job_id (FK)  │>─┐
-│ user_id (FK) │       │ metrics      │       │ bolokono_type│  │
-│ repo_id (FK) │       │ events       │       │ narrative    │  │
-│ status       │       │ computed_at  │       │ evidence     │  │
-│ commit_count │       └──────────────┘       │ llm_model    │  │
-│ analyzer_ver │                              │ generated_at │  │
-│ error_message│                              └──────────────┘  │
-│ started_at   │                                                │
-│ completed_at │                                                │
-│ created_at   │◄───────────────────────────────────────────────┘
-└──────────────┘
+│ github_id    │   │   │ repo_id (FK) │>──────│ github_id    │
+│ github_user  │   │   │ connected_at │       │ owner        │
+│ avatar_url   │   │   │ disconnected │       │ name         │
+│ email        │   │   │ settings     │       │ is_private   │
+│ created_at   │   │   └──────────────┘       │ default_br   │
+│ updated_at   │   │                          │ created_at   │
+└──────────────┘   │                          └──────┬───────┘
+       │           │                                 │
+       │           │   ┌─────────────────────────────┘
+       ▼           │   │
+┌──────────────┐   │   ▼
+│github_account│   │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+├──────────────┤   │  │ analysis_job │  │analysis_metric│  │analysis_report
+│ id (PK)      │   │  ├──────────────┤  ├──────────────┤  ├──────────────┤
+│ user_id (FK) │<──┘  │ id (PK)      │─<│ job_id (FK)  │  │ job_id (FK)  │>─┐
+│ github_user  │      │ user_id (FK) │  │ metrics      │  │ bolokono_type│  │
+│ encrypted_tok│      │ repo_id (FK) │  │ events       │  │ narrative    │  │
+│ scopes       │      │ status       │  │ computed_at  │  │ evidence     │  │
+│ created_at   │      │ commit_count │  └──────────────┘  │ llm_model    │  │
+│ updated_at   │      │ analyzer_ver │                    │ generated_at │  │
+└──────────────┘      │ error_message│                    └──────────────┘  │
+                      │ started_at   │                                      │
+                      │ completed_at │                                      │
+                      │ created_at   │◄─────────────────────────────────────┘
+                      └──────────────┘
 ```
 
 ### Table Definitions
@@ -299,6 +493,24 @@ They summarize computed facts and cite evidence.
 | `email` | `text` | | Email (from GitHub, may be null) |
 | `created_at` | `timestamptz` | default `now()` | |
 | `updated_at` | `timestamptz` | default `now()` | |
+
+#### `github_accounts`
+
+Stores encrypted GitHub tokens for accessing private repos.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | `uuid` | PK, default `gen_random_uuid()` | |
+| `user_id` | `uuid` | FK → users.id, NOT NULL | |
+| `github_user_id` | `bigint` | NOT NULL | GitHub user ID |
+| `encrypted_token` | `text` | NOT NULL | Encrypted with server-side key |
+| `scopes` | `text[]` | NOT NULL | OAuth scopes granted |
+| `created_at` | `timestamptz` | default `now()` | |
+| `updated_at` | `timestamptz` | default `now()` | |
+
+**Unique constraint:** `(user_id)` — one GitHub account per user.
+
+**Security:** RLS ensures only the owner can access their token. Token is encrypted at rest using a server-side key (stored in environment variable).
 
 #### `repos`
 
@@ -408,6 +620,12 @@ Users can only access their own data. Repos are accessible if the user has a con
 CREATE POLICY users_select ON users FOR SELECT USING (auth.uid() = id);
 CREATE POLICY users_update ON users FOR UPDATE USING (auth.uid() = id);
 
+-- github_accounts: users can only access their own GitHub credentials
+CREATE POLICY github_accounts_select ON github_accounts FOR SELECT USING (user_id = auth.uid());
+CREATE POLICY github_accounts_insert ON github_accounts FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY github_accounts_update ON github_accounts FOR UPDATE USING (user_id = auth.uid());
+CREATE POLICY github_accounts_delete ON github_accounts FOR DELETE USING (user_id = auth.uid());
+
 -- repos: users can see repos they've connected
 CREATE POLICY repos_select ON repos FOR SELECT USING (
   EXISTS (
@@ -448,11 +666,12 @@ CREATE POLICY reports_select ON analysis_reports FOR SELECT USING (
 
 ### Service Role Access
 
-Edge Functions use the service role key to:
-- Update job status
+The worker (`apps/worker`) uses the service role key to:
+- Claim and update job status
 - Insert metrics and reports
+- Read GitHub tokens for fetching commits
 
-This bypasses RLS intentionally for background processing.
+This bypasses RLS intentionally for background processing. The worker validates job ownership before processing.
 
 ---
 
@@ -1141,90 +1360,91 @@ User can delete their entire account:
 
 Each task depends on the previous.
 
-#### Task 0.1: Project Setup
+#### Task 0.1: Project Setup ✓
 
-- [ ] Initialize Next.js project with TypeScript
-- [ ] Configure Tailwind CSS and shadcn/ui
-- [ ] Set up ESLint and Prettier
-- [ ] Create basic project structure
-- [ ] Set up environment variables pattern
+- [x] Initialize monorepo with Turborepo
+- [x] Set up `apps/web` (Next.js with TypeScript, Tailwind)
+- [x] Set up `apps/worker` scaffold
+- [x] Set up `packages/core` (shared types and analysis logic)
+- [x] Set up `packages/db` (Supabase client and types)
+- [x] Configure environment variables pattern
 
-**Output:** Empty Next.js app that builds and runs.
+**Output:** Monorepo structure with apps and packages.
 
 #### Task 0.2: Supabase Setup
 
-- [ ] Create Supabase project
-- [ ] Configure GitHub OAuth provider
-- [ ] Set up local development with Supabase CLI
-- [ ] Create initial migration with schema
+- [x] Create Supabase project (production)
+- [x] Set up local development with Supabase CLI
+- [ ] Create initial migration with full schema
 - [ ] Implement RLS policies
+- [ ] Create `claim_analysis_job` function
 - [ ] Test RLS policies with different user contexts
 
-**Output:** Database with schema and working RLS.
+**Output:** Database with schema, RLS, and job claiming function.
 
 #### Task 0.3: Authentication
 
-- [ ] Implement Supabase Auth in Next.js
+- [ ] Configure GitHub OAuth provider in Supabase
+- [ ] Create GitHub OAuth app (for additional scopes)
+- [ ] Implement Supabase Auth in `apps/web`
 - [ ] Create sign-in page
 - [ ] Create auth callback handler
-- [ ] Implement session management
+- [ ] Store GitHub token in `github_accounts` (encrypted)
 - [ ] Create protected route middleware
-- [ ] Handle token refresh
 
-**Output:** User can sign in with GitHub and maintain session.
+**Output:** User can sign in with GitHub, token stored securely.
 
 #### Task 0.4: Repository Sync
 
-- [ ] Create GitHub API client
-- [ ] Implement repo listing endpoint
+- [ ] Create GitHub API client in `apps/web`
+- [ ] Implement `POST /api/github/sync-repos` endpoint
 - [ ] Create repo selection UI
-- [ ] Implement repo connection flow
-- [ ] Store connected repos in database
-- [ ] Implement repo disconnection
+- [ ] Implement repo connection flow (`user_repos`)
+- [ ] Implement repo disconnection with data cleanup
 
 **Output:** User can see their repos and connect/disconnect them.
 
 #### Task 0.5: Analysis Job System
 
-- [ ] Create job creation endpoint
-- [ ] Implement job queue table
-- [ ] Create Supabase Edge Function for processing
-- [ ] Implement job status updates
-- [ ] Set up Realtime subscription for job status
-- [ ] Create job status UI component
+- [ ] Create `POST /api/analysis/start` endpoint
+- [ ] Set up Supabase Realtime subscription for job status
+- [ ] Create job status UI component with live updates
+- [ ] Implement basic worker loop in `apps/worker`
+- [ ] Test job claiming with `FOR UPDATE SKIP LOCKED`
 
-**Output:** Jobs can be queued and their status tracked.
+**Output:** Jobs can be queued and status tracked in real-time.
 
-#### Task 0.6: Commit Analysis
+#### Task 0.6: Commit Analysis (Worker)
 
-- [ ] Implement commit fetching (paginated)
-- [ ] Implement commit classification
-- [ ] Implement metrics computation
-- [ ] Store metrics in database
+- [ ] Implement GitHub API client in `apps/worker`
+- [ ] Implement commit fetching (paginated, batched)
+- [ ] Implement commit classification (`packages/core`)
+- [ ] Implement metrics computation (`packages/core`)
+- [ ] Store metrics in `analysis_metrics`
 - [ ] Handle rate limits gracefully
-- [ ] Handle large repos (> 5000 commits)
+- [ ] Handle large repos (> 5000 commits notice)
 
-**Output:** Commits are fetched and metrics computed.
+**Output:** Worker fetches commits and computes metrics.
 
-#### Task 0.7: Report Generation
+#### Task 0.7: Report Generation (Worker)
 
-- [ ] Implement Bolokono type matching
-- [ ] Create LLM prompt template
-- [ ] Implement narrative generation
-- [ ] Implement narrative validation
-- [ ] Store reports in database
-- [ ] Handle generation failures
+- [ ] Implement Bolokono type matching (`packages/core`)
+- [ ] Create Claude API client in `apps/worker`
+- [ ] Implement narrative generation with structured output
+- [ ] Implement narrative validation (banned phrases, SHA checks)
+- [ ] Store reports in `analysis_reports`
+- [ ] Handle generation failures gracefully
 
-**Output:** Reports are generated and stored.
+**Output:** Worker generates and stores reports.
 
 #### Task 0.8: Report UI
 
-- [ ] Create report page layout
-- [ ] Implement Bolokono type display
-- [ ] Implement metrics cards
-- [ ] Implement narrative sections
-- [ ] Implement evidence citations
+- [ ] Create report page layout in `apps/web`
+- [ ] Implement Bolokono type display with badge
+- [ ] Implement metrics cards (key stats)
+- [ ] Implement narrative sections with evidence
 - [ ] Create build timeline visualization
+- [ ] Handle loading/error/insufficient-data states
 
 **Output:** User can view their Bolokono profile.
 
@@ -1232,6 +1452,7 @@ Each task depends on the previous.
 
 - [ ] End-to-end flow works for private repo
 - [ ] All RLS policies enforced
+- [ ] Worker processes jobs correctly
 - [ ] Analysis completes in < 60s for < 1000 commits
 - [ ] Report displays type, metrics, and narrative
 - [ ] User can disconnect repo and data is deleted
