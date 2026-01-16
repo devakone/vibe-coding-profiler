@@ -1,0 +1,30 @@
+{
+  "name": "bolokono",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "clean": "turbo clean && rm -rf node_modules",
+    "dev:web": "turbo dev --filter=@bolokono/web",
+    "dev:worker": "turbo dev --filter=@bolokono/worker",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:status": "npx supabase status",
+    "supabase:reset": "npx supabase db reset",
+    "supabase:migration:new": "npx supabase migration new",
+    "supabase:migration:up": "npx supabase migration up",
+    "supabase:link:prod": "npx supabase link --project-ref idjewtwnfrufbxoxulmq",
+    "supabase:gen-types": "npx supabase gen types typescript --local > packages/db/src/database.types.ts"
+  },
+  "devDependencies": {
+    "turbo": "^2"
+  },
+  "packageManager": "npm@10.2.0"
+}

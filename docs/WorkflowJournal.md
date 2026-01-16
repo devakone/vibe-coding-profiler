@@ -90,6 +90,28 @@ Format:
 
 ---
 
+### 2025-01-16 - [DECISION] Monorepo structure with Turborepo
+**Context:** Needed to support web app + worker + shared packages
+**Action:** Restructured project as Turborepo monorepo:
+- `apps/web` - Next.js web app (Vercel)
+- `apps/worker` - Background job processor (Fly.io/Render)
+- `packages/core` - Shared analysis logic and types
+- `packages/db` - Supabase client and generated types
+**Time spent:** 15 minutes
+**Automation opportunity:** High - This structure could be a project template
+**Notes:** Key insight from architecture review: don't do heavy git analysis in Vercel functions. Use external worker for cloning and compute. Supabase Edge Functions only for lightweight GitHub API-based analysis.
+
+---
+
+### 2025-01-16 - [REPETITIVE] Created shared package structure
+**Context:** Need shared types and utilities across web and worker
+**Action:** Created @bolokono/core with analysis types, classification logic, and utilities. Created @bolokono/db with Supabase client and type exports.
+**Time spent:** 10 minutes
+**Automation opportunity:** High - Package templates with standard structure
+**Notes:** Same pattern used in other monorepos. Could be a generator script.
+
+---
+
 ## Pending Entries
 
 *Add items here during development, then format them properly:*
