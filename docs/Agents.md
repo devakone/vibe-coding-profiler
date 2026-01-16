@@ -106,10 +106,11 @@ psql "postgresql://postgres:postgres@127.0.0.1:XXXXX/postgres" -c "YOUR SQL HERE
 
 | Environment | Project Ref | Dashboard URL | Branch |
 |-------------|-------------|---------------|--------|
-| Development | `TBD` | TBD | `develop` |
-| Production | `TBD` | TBD | `main` |
+| Local | N/A | `npx supabase start` → http://127.0.0.1:54423 | - |
+| Development | `ptcrkzfkubtcjgqiaowt` | https://supabase.com/dashboard/project/ptcrkzfkubtcjgqiaowt | `develop` |
+| Production | `idjewtwnfrufbxoxulmq` | https://supabase.com/dashboard/project/idjewtwnfrufbxoxulmq | `main` |
 
-> **Note:** Project refs will be added once Supabase projects are created.
+**Default remote:** Development (`ptcrkzfkubtcjgqiaowt`)
 
 ### Switching Between Environments
 

@@ -1,13 +1,19 @@
 # Dependencies
 node_modules/
-.pnp
-.pnp.js
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
 # Build outputs
 .next/
 out/
 build/
 dist/
+.turbo/
 
 # Environment files
 .env
@@ -15,6 +21,8 @@ dist/
 .env.development.local
 .env.test.local
 .env.production.local
+.env*
+!.env.example
 
 # Supabase
 supabase/.branches/
@@ -45,10 +53,11 @@ next-env.d.ts
 .vercel
 
 # Testing
-coverage/
+/coverage/
 .nyc_output/
 
 # Misc
 *.log
 *.pid
 *.seed
+*.pem
