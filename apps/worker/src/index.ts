@@ -22,9 +22,72 @@ import {
   type JobStatus,
 } from "@bolokono/core";
 import { fetchCommitDetail, fetchCommitList, mapWithConcurrency } from "./github";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createServer } from "node:http";
 
 const POLL_INTERVAL_MS = 5000;
 const ANALYZER_VERSION = "0.1.0";
+
+function loadDotEnvFile(filePath: string) {
+  if (!fs.existsSync(filePath)) return;
+
+  const contents = fs.readFileSync(filePath, "utf8");
+  const lines = contents.split(/\r?\n/);
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const equalsIndex = trimmed.indexOf("=");
+    if (equalsIndex === -1) continue;
+
+    const key = trimmed.slice(0, equalsIndex).trim();
+    let value = trimmed.slice(equalsIndex + 1).trim();
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    if (key && process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
+}
+
+const workerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+loadDotEnvFile(path.join(workerDir, ".env.local"));
+loadDotEnvFile(path.join(workerDir, ".env"));
+
+function startHealthServer() {
+  const port = Number(process.env.WORKER_PORT ?? "8109");
+  const host = process.env.WORKER_HOST ?? "0.0.0.0";
+
+  if (!Number.isFinite(port) || port <= 0) {
+    throw new Error("Invalid WORKER_PORT");
+  }
+
+  const server = createServer((req, res) => {
+    if (req.url === "/health") {
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    res.statusCode = 404;
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.end(JSON.stringify({ error: "not_found" }));
+  });
+
+  server.listen(port, host, () => {
+    console.log(`Worker health server listening on http://${host}:${port}`);
+  });
+}
 
 interface WorkerConfig {
   supabaseUrl: string;
@@ -224,6 +287,8 @@ async function runWorker(config: WorkerConfig): Promise<void> {
   console.log("Bolokono Worker starting...");
   console.log(`Polling interval: ${POLL_INTERVAL_MS}ms`);
   console.log(`Analyzer version: ${ANALYZER_VERSION}`);
+
+  startHealthServer();
 
   while (true) {
     try {

@@ -7,8 +7,8 @@ This document summarizes what you need to do before you can authenticate via Git
 1. Open GitHub → Settings → Developer settings → OAuth Apps → **New OAuth App**.
 2. Fill in the required URLs for local development:
    - **Application name:** e.g., `Bolokono Local`
-   - **Homepage URL:** `http://localhost:3000`
-   - **Authorization callback URL:** `http://localhost:3000/auth/callback`
+   - **Homepage URL:** `http://localhost:8108`
+   - **Authorization callback URL:** `http://localhost:8108/auth/callback`
 3. Save the Client ID and Client Secret; you will store both in your local environment file (`.env.local`).
 
 ## 2. Enable GitHub as a Supabase Auth Provider
@@ -30,7 +30,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<from `npx supabase status`>
 SUPABASE_SERVICE_ROLE_KEY=<from `npx supabase status`>
 GITHUB_CLIENT_ID=<from GitHub OAuth app>
 GITHUB_CLIENT_SECRET=<from GitHub OAuth app>
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:8108
 ```
 
 Add `ANTHROPIC_API_KEY` only when you intend to run the worker that generates narratives.
@@ -50,12 +50,12 @@ When you create a new OAuth app or Supabase account (GitHub, Supabase service cr
 | Integration | Field | Suggested value / tip |
 |-------------|-------|-----------------------|
 | GitHub OAuth App | Application name | “Bolokono Local” or “Bolokono Dev” |
-|  | Homepage URL | `http://localhost:3000` (local) / production URL when ready |
-|  | Authorization callback URL | `http://localhost:3000/auth/callback` |
+|  | Homepage URL | `http://localhost:8108` (local) / production URL when ready |
+|  | Authorization callback URL | `http://localhost:8108/auth/callback` |
 |  | Client ID / Client Secret | Store securely (env file, vault) |
 | Supabase Auth provider | Client ID / Secret | Same values as above |
 |  | Scopes | `repo`, `read:user`, `user:email` (minimum for repo access) |
-| Supabase Service Role | Project ref | `ptcrkzfkubtcjgqiaowt` for dev, `idjewtwnfrufbxoxulmq` for prod |
+| Supabase Service Role | Project ref | `ljxvzqjkwwwsgdnvgpgm` for dev/preview, `idjewtwnfrufbxoxulmq` for prod |
 |  | Key name | e.g., `service_role_key` (copy to `SUPABASE_SERVICE_ROLE_KEY`) |
 | Claude / Anthropic | API key | Store securely; only worker needs access |
 | GitHub Repository | Name / slug | Record `owner/name` when connecting (match Supabase `repos.full_name`) |

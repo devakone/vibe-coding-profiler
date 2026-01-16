@@ -36,7 +36,7 @@ Before running any server commands, check if the server is already running:
 
 ```bash
 # Check if Next.js dev server is running
-lsof -i :3000
+lsof -i :8108
 
 # Check if Supabase is running
 npx supabase status
@@ -75,7 +75,7 @@ GITHUB_CLIENT_SECRET=
 ANTHROPIC_API_KEY=
 
 # App
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:8108
 ```
 
 ---
@@ -107,10 +107,10 @@ psql "postgresql://postgres:postgres@127.0.0.1:XXXXX/postgres" -c "YOUR SQL HERE
 | Environment | Project Ref | Dashboard URL | Branch |
 |-------------|-------------|---------------|--------|
 | Local | N/A | `npx supabase start` → http://127.0.0.1:54423 | - |
-| Development | `ptcrkzfkubtcjgqiaowt` | https://supabase.com/dashboard/project/ptcrkzfkubtcjgqiaowt | `develop` |
+| Development | `ljxvzqjkwwwsgdnvgpgm` | https://supabase.com/dashboard/project/ljxvzqjkwwwsgdnvgpgm | `develop` |
 | Production | `idjewtwnfrufbxoxulmq` | https://supabase.com/dashboard/project/idjewtwnfrufbxoxulmq | `main` |
 
-**Default remote:** Development (`ptcrkzfkubtcjgqiaowt`)
+**Default remote:** Development (`ljxvzqjkwwwsgdnvgpgm`)
 
 ### Switching Between Environments
 
@@ -269,7 +269,7 @@ INSERT INTO auth.users (
 
 For GitHub OAuth testing locally:
 1. Create a GitHub OAuth App at https://github.com/settings/developers
-2. Set callback URL to `http://localhost:3000/auth/callback`
+2. Set callback URL to `http://localhost:8108/auth/callback`
 3. Add credentials to `.env.local`
 
 ---
@@ -490,7 +490,7 @@ npx supabase migration repair --status applied <version>
 
 ### GitHub OAuth Not Working
 
-1. Check callback URL matches exactly: `http://localhost:3000/auth/callback`
+1. Check callback URL matches exactly: `http://localhost:8108/auth/callback`
 2. Verify client ID and secret in `.env.local`
 3. Check Supabase Auth settings in dashboard
 
