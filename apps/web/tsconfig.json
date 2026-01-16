@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
@@ -19,7 +20,11 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@bolokono/core": ["../../packages/core/src/index.ts"],
+      "@bolokono/core/*": ["../../packages/core/src/*"],
+      "@bolokono/db": ["../../packages/db/src/index.ts"],
+      "@bolokono/db/*": ["../../packages/db/src/*"]
     }
   },
   "include": [

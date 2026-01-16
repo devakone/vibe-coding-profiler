@@ -16,6 +16,38 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+type GenericRelationship = {
+  foreignKeyName: string;
+  columns: string[];
+  isOneToOne?: boolean;
+  referencedRelation: string;
+  referencedColumns: string[];
+};
+
+type GenericTable = {
+  Row: Record<string, unknown>;
+  Insert: Record<string, unknown>;
+  Update: Record<string, unknown>;
+  Relationships: GenericRelationship[];
+};
+
+type GenericView =
+  | {
+      Row: Record<string, unknown>;
+      Insert: Record<string, unknown>;
+      Update: Record<string, unknown>;
+      Relationships: GenericRelationship[];
+    }
+  | {
+      Row: Record<string, unknown>;
+      Relationships: GenericRelationship[];
+    };
+
+type GenericFunction = {
+  Args: Record<string, unknown> | never;
+  Returns: unknown;
+};
+
 export interface Database {
   public: {
     Tables: {
@@ -47,6 +79,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       repos: {
         Row: {
@@ -79,6 +112,7 @@ export interface Database {
           default_branch?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       user_repos: {
         Row: {
@@ -105,6 +139,7 @@ export interface Database {
           disconnected_at?: string | null;
           settings_json?: Json;
         };
+        Relationships: [];
       };
       analysis_jobs: {
         Row: {
@@ -143,6 +178,7 @@ export interface Database {
           completed_at?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       analysis_metrics: {
         Row: {
@@ -166,6 +202,7 @@ export interface Database {
           events_json?: Json;
           computed_at?: string;
         };
+        Relationships: [];
       };
       analysis_reports: {
         Row: {
@@ -195,10 +232,49 @@ export interface Database {
           llm_model?: string;
           generated_at?: string;
         };
+        Relationships: [];
       };
+      github_accounts: {
+        Row: {
+          id: string;
+          user_id: string;
+          github_user_id: number;
+          encrypted_token: string;
+          scopes: string[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          github_user_id: number;
+          encrypted_token: string;
+          scopes?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          github_user_id?: number;
+          encrypted_token?: string;
+          scopes?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      [key: string]: GenericTable;
     };
-    Views: {};
-    Functions: {};
+    Views: { [key: string]: GenericView };
+    Functions: {
+      claim_analysis_job: {
+        Args: { p_analyzer_version: string };
+        Returns: string;
+      };
+      [key: string]: GenericFunction;
+    };
     Enums: {};
+    CompositeTypes: {};
   };
 }

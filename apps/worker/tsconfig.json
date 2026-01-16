@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -9,7 +10,13 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "../..",
+    "paths": {
+      "@bolokono/core": ["../../packages/core/src/index.ts"],
+      "@bolokono/core/*": ["../../packages/core/src/*"],
+      "@bolokono/db": ["../../packages/db/src/index.ts"],
+      "@bolokono/db/*": ["../../packages/db/src/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

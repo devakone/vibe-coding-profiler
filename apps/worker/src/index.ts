@@ -12,8 +12,16 @@
  * 6. Writes results back to database
  */
 
-import { createServerClient } from "@bolokono/db";
-import type { JobStatus } from "@bolokono/core";
+import { createServerClient, type Json } from "@bolokono/db";
+import {
+  assignBolokonoType,
+  computeAnalysisMetrics,
+  decryptString,
+  type AnalysisReport,
+  type CommitEvent,
+  type JobStatus,
+} from "@bolokono/core";
+import { fetchCommitDetail, fetchCommitList, mapWithConcurrency } from "./github";
 
 const POLL_INTERVAL_MS = 5000;
 const ANALYZER_VERSION = "0.1.0";
@@ -21,7 +29,7 @@ const ANALYZER_VERSION = "0.1.0";
 interface WorkerConfig {
   supabaseUrl: string;
   supabaseServiceKey: string;
-  githubToken?: string;
+  githubTokenEncryptionKey?: string;
   anthropicApiKey?: string;
 }
 
@@ -53,10 +61,9 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
   );
 
   try {
-    // Get job details
     const { data: job, error: jobError } = await supabase
       .from("analysis_jobs")
-      .select("*, repos(*)")
+      .select("id, user_id, repo_id")
       .eq("id", jobId)
       .single();
 
@@ -64,25 +71,140 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
       throw new Error(`Job not found: ${jobId}`);
     }
 
-    // TODO: Implement actual analysis logic
-    // 1. Fetch commits from GitHub API
-    // 2. Classify commits using @bolokono/core
-    // 3. Compute metrics
-    // 4. Generate narrative (optional)
-    // 5. Write results
+    const { data: repo, error: repoError } = await supabase
+      .from("repos")
+      .select("id, owner, name, full_name")
+      .eq("id", job.repo_id)
+      .single();
 
-    console.log(`Job ${jobId} would analyze repo: ${job.repos?.full_name}`);
+    if (repoError || !repo) throw new Error("Job repo not found");
 
-    // Mark job as done (placeholder)
+    if (!config.githubTokenEncryptionKey) {
+      throw new Error("Missing GITHUB_TOKEN_ENCRYPTION_KEY");
+    }
+
+    const { data: ghAccount, error: ghError } = await supabase
+      .from("github_accounts")
+      .select("encrypted_token")
+      .eq("user_id", job.user_id)
+      .single();
+
+    if (ghError || !ghAccount) throw new Error("GitHub account not connected");
+
+    const githubToken = decryptString(
+      ghAccount.encrypted_token,
+      config.githubTokenEncryptionKey
+    );
+
+    const maxCommits = 200;
+    const list = await fetchCommitList({
+      owner: repo.owner,
+      repo: repo.name,
+      token: githubToken,
+      maxCommits,
+    });
+
+    const details = await mapWithConcurrency(list, 5, async (item) => {
+      const detail = await fetchCommitDetail({
+        owner: repo.owner,
+        repo: repo.name,
+        sha: item.sha,
+        token: githubToken,
+      });
+      return detail;
+    });
+
+    const events: CommitEvent[] = details.map((c) => ({
+      sha: c.sha,
+      message: c.commit.message,
+      author_date: c.commit.author.date,
+      committer_date: c.commit.committer.date,
+      author_email: c.commit.author.email ?? "",
+      files_changed: Array.isArray(c.files) ? c.files.length : 0,
+      additions: c.stats?.additions ?? 0,
+      deletions: c.stats?.deletions ?? 0,
+      parents: c.parents?.map((p) => p.sha) ?? [],
+    }));
+
+    const metrics = computeAnalysisMetrics(events);
+    const assignment = assignBolokonoType(metrics);
+
+    const report: AnalysisReport = {
+      bolokono_type: assignment.bolokono_type,
+      confidence: assignment.confidence,
+      matched_criteria: assignment.matched_criteria,
+      narrative: {
+        summary: `Analyzed ${metrics.total_commits} commits over ${metrics.active_days} active days across ${metrics.span_days} days.`,
+        sections: [
+          {
+            title: "Build rhythm",
+            content: `Median gap between commits: ${metrics.hours_between_commits_p50.toFixed(
+              1
+            )}h. Burstiness score: ${metrics.burstiness_score.toFixed(2)}.`,
+            evidence: events.slice(0, 3).map((e) => e.sha),
+          },
+          {
+            title: "Iteration",
+            content: `Fix ratio: ${(metrics.fix_commit_ratio * 100).toFixed(
+              0
+            )}%. Fix-after-feature sequences: ${metrics.fixup_sequence_count}.`,
+            evidence: events.slice(0, 3).map((e) => e.sha),
+          },
+        ],
+        highlights: [
+          {
+            metric: "commits",
+            value: String(metrics.total_commits),
+            interpretation: "Total commits included in this analysis.",
+          },
+          {
+            metric: "active_days",
+            value: String(metrics.active_days),
+            interpretation: "Days with at least one commit.",
+          },
+          {
+            metric: "commit_size_p50",
+            value: String(metrics.commit_size_p50.toFixed(0)),
+            interpretation: "Median commit size (additions + deletions).",
+          },
+        ],
+      },
+    };
+
+    await supabase.from("analysis_metrics").upsert(
+      [
+        {
+          job_id: jobId,
+          metrics_json: metrics as unknown as Json,
+          events_json: events as unknown as Json,
+        },
+      ],
+      { onConflict: "job_id" }
+    );
+
+    await supabase.from("analysis_reports").upsert(
+      [
+        {
+          job_id: jobId,
+          bolokono_type: report.bolokono_type,
+          narrative_json: report.narrative as unknown as Json,
+          evidence_json: report.matched_criteria as unknown as Json,
+          llm_model: "none",
+        },
+      ],
+      { onConflict: "job_id" }
+    );
+
     await supabase
       .from("analysis_jobs")
       .update({
         status: "done" as JobStatus,
+        commit_count: events.length,
         completed_at: new Date().toISOString(),
       })
       .eq("id", jobId);
 
-    console.log(`Job ${jobId} completed.`);
+    console.log(`Job ${jobId} completed. (${events.length} commits)`);
   } catch (error) {
     console.error(`Job ${jobId} failed:`, error);
 
@@ -123,7 +245,7 @@ async function runWorker(config: WorkerConfig): Promise<void> {
 const config: WorkerConfig = {
   supabaseUrl: process.env.SUPABASE_URL || "",
   supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-  githubToken: process.env.GITHUB_TOKEN,
+  githubTokenEncryptionKey: process.env.GITHUB_TOKEN_ENCRYPTION_KEY,
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
 };
 
