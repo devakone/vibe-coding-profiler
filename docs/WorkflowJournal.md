@@ -81,6 +81,15 @@ Format:
 
 ---
 
+### 2025-01-16 - [INSIGHT] Workflow templates should be portable
+**Context:** Realized the workflow capture system could help other projects
+**Action:** Created `templates/` directory with generic versions of Workflow.md, WorkflowJournal.md, and Agents.md that can be copied to any repo
+**Time spent:** 10 minutes
+**Automation opportunity:** High - Could be a `kickstart` CLI command or GitHub template repo
+**Notes:** Each project using these templates contributes learnings. This is the start of a personal development automation toolkit.
+
+---
+
 ## Pending Entries
 
 *Add items here during development, then format them properly:*
