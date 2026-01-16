@@ -95,7 +95,7 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-60"
+          className="rounded-md border border-white/15 bg-white/10 px-4 py-2 text-white disabled:opacity-60"
           onClick={loadRepos}
           disabled={isLoading}
         >
@@ -106,17 +106,17 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-zinc-900">Connected</h2>
+        <h2 className="text-lg font-semibold text-white">Connected</h2>
         {initialConnected.length === 0 ? (
-          <p className="text-sm text-zinc-600">No repos connected yet.</p>
+          <p className="text-sm text-zinc-300">No repos connected yet.</p>
         ) : (
-          <ul className="divide-y divide-zinc-200 rounded-md border border-zinc-200">
+          <ul className="divide-y divide-white/10 rounded-md border border-white/10 bg-white/5">
             {initialConnected.map((r) => (
               <li key={r.repo_id} className="flex items-center justify-between gap-4 p-3">
-                <span className="text-sm text-zinc-900">{r.full_name}</span>
+                <span className="text-sm text-white/90">{r.full_name}</span>
                 <button
                   type="button"
-                  className="rounded-md border border-zinc-300 px-3 py-1 text-sm text-zinc-900 disabled:opacity-60"
+                  className="rounded-md border border-white/20 px-3 py-1 text-sm text-white disabled:opacity-60"
                   onClick={() => startAnalysis(r.repo_id)}
                   disabled={isLoading}
                 >
@@ -129,27 +129,27 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-zinc-900">GitHub</h2>
+        <h2 className="text-lg font-semibold text-white">GitHub</h2>
         {repos === null ? (
-          <p className="text-sm text-zinc-600">Load your repositories to connect.</p>
+          <p className="text-sm text-zinc-300">Load your repositories to connect.</p>
         ) : repos.length === 0 ? (
-          <p className="text-sm text-zinc-600">No repositories found.</p>
+          <p className="text-sm text-zinc-300">No repositories found.</p>
         ) : (
-          <ul className="divide-y divide-zinc-200 rounded-md border border-zinc-200">
+          <ul className="divide-y divide-white/10 rounded-md border border-white/10 bg-white/5">
             {repos.map((r) => {
               const connectedRepoId = connectedByFullName.get(r.full_name);
               return (
                 <li key={r.id} className="flex items-center justify-between gap-4 p-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm text-zinc-900">{r.full_name}</p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="truncate text-sm text-white/90">{r.full_name}</p>
+                    <p className="text-xs text-white/60">
                       {r.private ? "Private" : "Public"} · {r.default_branch}
                     </p>
                   </div>
                   {connectedRepoId ? (
                     <button
                       type="button"
-                      className="rounded-md border border-zinc-300 px-3 py-1 text-sm text-zinc-900 disabled:opacity-60"
+                      className="rounded-md border border-white/20 px-3 py-1 text-sm text-white disabled:opacity-60"
                       onClick={() => startAnalysis(connectedRepoId)}
                       disabled={isLoading}
                     >
@@ -158,7 +158,7 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
                   ) : (
                     <button
                       type="button"
-                      className="rounded-md bg-zinc-900 px-3 py-1 text-sm text-white disabled:opacity-60"
+                      className="rounded-md bg-white px-3 py-1 text-sm font-semibold text-zinc-900 disabled:opacity-60"
                       onClick={() => connectRepo(r)}
                       disabled={isLoading}
                     >
@@ -174,4 +174,3 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
     </div>
   );
 }
-

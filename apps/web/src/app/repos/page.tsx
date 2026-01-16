@@ -29,10 +29,10 @@ export default async function ReposPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+      <h1 className="text-2xl font-semibold tracking-tight text-white">
         Repositories
       </h1>
-      <p className="mt-2 text-sm text-zinc-600">
+      <p className="mt-2 text-sm text-zinc-300">
         Connect a repo, then start an analysis job.
       </p>
       <ReposClient initialConnected={initialConnected} />

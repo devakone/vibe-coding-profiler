@@ -19,14 +19,11 @@ export default async function AnalysisPage({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-        Analysis
-      </h1>
-      <p className="mt-2 text-sm text-zinc-600">
+      <h1 className="text-2xl font-semibold tracking-tight text-white">Analysis</h1>
+      <p className="mt-2 text-sm text-zinc-300">
         Job <span className="font-mono">{jobId}</span>
       </p>
       <AnalysisClient jobId={jobId} />
     </div>
   );
 }
-

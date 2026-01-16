@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,15 +13,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bolokono · Understand your coding vibe",
+  title: "Bolokono · Understand your vibe coding profile",
   description:
-    "Bolokono analyzes your GitHub history to reveal commit rhythm, build categories, and narratives that describe how you build software without exposing raw files.",
-  themeColor: "#050505",
+    "Bolokono analyzes your GitHub history to reveal your vibe coding profile—commit rhythm, build categories, and narratives that explain how you build without exposing raw files.",
   metadataBase: new URL("http://localhost:8108"),
   openGraph: {
-    title: "Bolokono · Coding craftsmanship, surfaced",
+    title: "Bolokono · Vibe coding profile, surfaced",
     description:
-      "Metrics-first insight into your solo building patterns. Bolokono computes rhythm, categories, and narratives from commit history.",
+      "Metrics-first insight into your vibe coding profile. Bolokono computes rhythms, categories, and narratives from commit history.",
     url: "https://www.bolokonon.app",
     locale: "en_US",
     type: "website",
@@ -32,6 +31,10 @@ export const metadata: Metadata = {
     description:
       "Solo-focused analytics that turn commits into a narrative of how you build software.",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#050505",
 };
 
 export default function RootLayout({
