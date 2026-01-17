@@ -10,10 +10,11 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@vibed/core": "*",
-    "@vibed/db": "*",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.14",
+    "@vibed/core": "*",
+    "@vibed/db": "*",
+    "inngest": "^3.49.3",
     "next": "16.1.2",
     "react": "19.2.3",
     "react-dom": "19.2.3"

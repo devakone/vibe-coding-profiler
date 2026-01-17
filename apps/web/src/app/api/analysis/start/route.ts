@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { inngest } from "@/inngest/client";
 
 export const runtime = "nodejs";
 
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
       {
         user_id: user.id,
         repo_id: body.repo_id,
-        analyzer_version: "0.1.0",
+        analyzer_version: "0.2.0-inngest",
         status: "queued",
       },
     ])
@@ -41,6 +42,22 @@ export async function POST(request: Request) {
 
   if (error || !row) {
     return NextResponse.json({ error: "job_create_failed" }, { status: 500 });
+  }
+
+  // Trigger Inngest function to process the job
+  // This runs async - the job will be picked up by Inngest
+  try {
+    await inngest.send({
+      name: "repo/analyze.requested",
+      data: {
+        jobId: row.id,
+        userId: user.id,
+        repoId: body.repo_id,
+      },
+    });
+  } catch (inngestError) {
+    console.error("Failed to trigger Inngest:", inngestError);
+    // Don't fail the request - job is created, worker can pick it up as fallback
   }
 
   return NextResponse.json({ job_id: row.id });

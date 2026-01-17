@@ -327,32 +327,6 @@ function weekdayName(dow: number): string {
   return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dow] ?? "—";
 }
 
-function InsightCard(props: {
-  eyebrow: string;
-  title: string;
-  value: string;
-  detail?: string;
-  accent: "pink" | "indigo" | "amber" | "emerald" | "cyan";
-}) {
-  const accent = {
-    pink: "from-fuchsia-500 to-pink-500",
-    indigo: "from-indigo-600 to-violet-600",
-    amber: "from-amber-500 to-orange-500",
-    emerald: "from-emerald-500 to-teal-500",
-    cyan: "from-cyan-500 to-sky-500",
-  }[props.accent];
-
-  return (
-    <div className="relative overflow-hidden rounded-3xl border border-black/5 bg-white p-5 shadow-sm">
-      <div className={`absolute -right-10 -top-10 h-36 w-36 rounded-full bg-gradient-to-br ${accent} opacity-20 blur-2xl`} />
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">{props.eyebrow}</p>
-      <p className="mt-2 text-lg font-semibold text-zinc-900">{props.title}</p>
-      <p className="mt-3 text-4xl font-semibold tracking-tight text-zinc-950">{props.value}</p>
-      {props.detail ? <p className="mt-3 text-sm text-zinc-600">{props.detail}</p> : null}
-    </div>
-  );
-} 
-
 export default function AnalysisClient({ jobId }: { jobId: string }) {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -490,239 +464,143 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
   const { job } = data;
 
+  // Show minimal status for non-complete states
+  if (job.status === "queued" || job.status === "running") {
+    return (
+      <div className="mt-6 flex flex-col items-center justify-center gap-4 py-16">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-fuchsia-500" />
+        <p className="text-sm text-zinc-600">
+          {job.status === "queued" ? "Waiting to analyze…" : "Analyzing your commits…"}
+        </p>
+      </div>
+    );
+  }
+
+  if (job.status === "error") {
+    return (
+      <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6">
+        <p className="font-semibold text-red-800">Analysis failed</p>
+        <p className="mt-2 text-sm text-red-600">{job.error_message ?? "Unknown error"}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-6 flex flex-col gap-6">
-      <div className="rounded-3xl border border-black/5 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Job status</p>
-            <p className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">{job.status}</p>
-          </div>
-          <div className="text-xs text-zinc-500">
-            <p>Created: <span className="font-mono">{fmtDate(job.created_at)}</span></p>
-            <p>Started: <span className="font-mono">{fmtDate(job.started_at)}</span></p>
-            <p>Completed: <span className="font-mono">{fmtDate(job.completed_at)}</span></p>
-          </div>
-        </div>
-        {job.error_message ? <p className="mt-4 text-sm text-red-600">{job.error_message}</p> : null}
-      </div>
-
       {job.status === "done" && events.length > 0 ? (
         <>
-          <div className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-white p-6 shadow-sm">
+          {/* Main Vibe Card - Hero Section */}
+          <div className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-white shadow-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-500/10 via-transparent to-cyan-500/10" />
-            <div className="relative">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Your Coding Wrapped</p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950">
-                {parsedReport?.vibe_type ? parsedReport.vibe_type : "Your profile"}
+            <div className="relative p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Your Vibe</p>
+              <h2 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-950">
+                {persona.label}
               </h2>
-              <p className="mt-3 max-w-2xl text-sm text-zinc-600">
-                {narrative?.summary ??
-                  "High-level habits derived from commit timestamps, messages, and basic stats. No file contents are used."}
+              <p className="mt-3 max-w-2xl text-base text-zinc-600">
+                {persona.description}
               </p>
-              {parsedReport?.generated_at ? (
-                <p className="mt-2 text-xs text-zinc-500">Generated {fmtDate(parsedReport.generated_at)}</p>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <InsightCard
-              accent="pink"
-              eyebrow="Streak"
-              title="Longest coding streak"
-              value={`${wrapped.streak.longest_days} day${wrapped.streak.longest_days === 1 ? "" : "s"}`}
-              detail={
-                wrapped.streak.start_day && wrapped.streak.end_day
-                  ? `${wrapped.streak.start_day} → ${wrapped.streak.end_day}`
-                  : undefined
-              }
-            />
-            <InsightCard
-              accent="cyan"
-              eyebrow="Timing"
-              title="You code most on"
-              value={wrapped.timing.peak_weekday !== null ? weekdayName(wrapped.timing.peak_weekday) : "—"}
-              detail={
-                wrapped.timing.peak_window !== null ? `Mostly in the ${wrapped.timing.peak_window} (UTC)` : "—"
-              }
-            />
-            <InsightCard
-              accent="amber"
-              eyebrow="Focus"
-              title="Most common commits"
-              value={wrapped.commits.top_category ?? "—"}
-              detail={
-                wrapped.commits.top_category
-                  ? `${wrapped.commits.category_counts[wrapped.commits.top_category] ?? 0} of ${wrapped.totals.commits}`
-                  : undefined
-              }
-            />
-            <InsightCard
-              accent="indigo"
-              eyebrow="Ratio"
-              title="Features vs fixes"
-              value={
-                wrapped.commits.features_per_fix !== null
-                  ? `${wrapped.commits.features_per_fix.toFixed(1)} : 1`
-                  : wrapped.commits.fixes_per_feature !== null
-                    ? `1 : ${wrapped.commits.fixes_per_feature.toFixed(1)}`
-                    : "—"
-              }
-              detail={
-                wrapped.commits.features_per_fix !== null
-                  ? "Features per fix"
-                  : wrapped.commits.fixes_per_feature !== null
-                    ? "Fixes per feature"
-                    : "Not enough signal"
-              }
-            />
-            <InsightCard
-              accent="emerald"
-              eyebrow="Size"
-              title="Commit “chunkiness”"
-              value={
-                wrapped.chunkiness.avg_files_changed !== null
-                  ? `${wrapped.chunkiness.avg_files_changed.toFixed(1)} files`
-                  : "—"
-              }
-              detail={
-                wrapped.chunkiness.label === "chunker"
-                  ? "Chunker: commits tend to touch many files"
-                  : wrapped.chunkiness.label === "mixer"
-                    ? "Mixer: a few files per commit"
-                    : wrapped.chunkiness.label === "slicer"
-                      ? "Slicer: tight, focused commits"
-                      : undefined
-              }
-            />
-            <InsightCard
-              accent="pink"
-              eyebrow="Starter"
-              title="How you start projects"
-              value={
-                wrapped.patterns.auth_then_roles === null
-                  ? "—"
-                  : wrapped.patterns.auth_then_roles
-                    ? "Auth → Roles"
-                    : "Varies"
-              }
-              detail={
-                wrapped.patterns.auth_then_roles === null
-                  ? "Not enough signal"
-                  : wrapped.patterns.auth_then_roles
-                  ? "Roles/permissions commits show up soon after auth."
-                  : "No consistent auth→roles sequence detected."
-              }
-            />
-          </div>
-
-          <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Tech signals</p>
-            <h3 className="mt-2 text-xl font-semibold tracking-tight text-zinc-950">Favorite technologies (best-effort)</h3>
-            {wrapped.tech.top_terms.length > 0 ? (
               <div className="mt-4 flex flex-wrap gap-2">
-                {wrapped.tech.top_terms.map((t) => (
+                {persona.archetypes.map((arch) => (
                   <span
-                    key={t.term}
-                    className="rounded-full border border-black/10 bg-zinc-50 px-3 py-1 text-sm font-medium text-zinc-800"
+                    key={arch}
+                    className="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-medium text-zinc-700"
                   >
-                    {t.term} <span className="text-zinc-500">({t.count})</span>
+                    {arch}
                   </span>
                 ))}
               </div>
-            ) : (
-              <p className="mt-3 text-sm text-zinc-600">
-                Not enough strong keywords in commit messages to infer tech. For real “favorite technologies”, we should
-                enrich data with GitHub repo languages or file-extension sampling (still without storing file contents).
-              </p>
-            )}
+
+              {/* Insights Grid - Inside the main card */}
+              <div className="mt-8 grid gap-4 border-t border-zinc-100 pt-8 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="text-center">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Streak</p>
+                  <p className="mt-1 text-2xl font-semibold text-zinc-900">
+                    {wrapped.streak.longest_days} day{wrapped.streak.longest_days === 1 ? "" : "s"}
+                  </p>
+                  {wrapped.streak.start_day && wrapped.streak.end_day ? (
+                    <p className="mt-1 text-xs text-zinc-500">{wrapped.streak.start_day} → {wrapped.streak.end_day}</p>
+                  ) : null}
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Peak day</p>
+                  <p className="mt-1 text-2xl font-semibold text-zinc-900">
+                    {wrapped.timing.peak_weekday !== null ? weekdayName(wrapped.timing.peak_weekday) : "—"}
+                  </p>
+                  {wrapped.timing.peak_window ? (
+                    <p className="mt-1 text-xs text-zinc-500">{wrapped.timing.peak_window} (UTC)</p>
+                  ) : null}
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Focus</p>
+                  <p className="mt-1 text-2xl font-semibold capitalize text-zinc-900">
+                    {wrapped.commits.top_category ?? "—"}
+                  </p>
+                  {wrapped.commits.top_category ? (
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {wrapped.commits.category_counts[wrapped.commits.top_category] ?? 0} of {wrapped.totals.commits} commits
+                    </p>
+                  ) : null}
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Build vs Fix</p>
+                  <p className="mt-1 text-2xl font-semibold text-zinc-900">
+                    {wrapped.commits.features_per_fix !== null
+                      ? `${wrapped.commits.features_per_fix.toFixed(1)} : 1`
+                      : wrapped.commits.fixes_per_feature !== null
+                        ? `1 : ${wrapped.commits.fixes_per_feature.toFixed(1)}`
+                        : "—"}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {wrapped.commits.features_per_fix !== null
+                      ? "features per fix"
+                      : wrapped.commits.fixes_per_feature !== null
+                        ? "fixes per feature"
+                        : "balanced"}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Scope</p>
+                  <p className="mt-1 text-2xl font-semibold text-zinc-900">
+                    {wrapped.chunkiness.avg_files_changed !== null
+                      ? `${wrapped.chunkiness.avg_files_changed.toFixed(1)}`
+                      : "—"}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {wrapped.chunkiness.label === "chunker"
+                      ? "files/commit (wide)"
+                      : wrapped.chunkiness.label === "mixer"
+                        ? "files/commit (balanced)"
+                        : wrapped.chunkiness.label === "slicer"
+                          ? "files/commit (focused)"
+                          : "files/commit"}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
+          {/* Share Card - Centered */}
           {shareTemplate ? (
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Persona snapshot</p>
-                <h3 className="mt-2 text-2xl font-semibold text-zinc-900">{persona.label}</h3>
-                <p className="mt-2 text-sm text-zinc-600">{persona.description}</p>
-                <p className="mt-3 text-xs uppercase tracking-[0.3em] text-zinc-400">
-                  Confidence: {persona.confidence}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {persona.archetypes.map((arch) => (
-                    <span
-                      key={arch}
-                      className="rounded-full border border-black/10 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-700"
-                    >
-                      {arch}
-                    </span>
-                  ))}
-                </div>
-                {persona.evidence_shas.length > 0 ? (
-                  <div className="mt-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
-                      Evidence SHAs
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {persona.evidence_shas.map((sha) => (
-                        <span
-                          key={sha}
-                          className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-zinc-700"
-                        >
-                          {sha.slice(0, 10)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                {personaDelta.length > 0 ? (
-                  <div className="mt-4 rounded-2xl border border-dashed border-zinc-200 p-3 text-sm text-zinc-700">
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
-                      Evolution notes
-                    </p>
-                    <ul className="mt-2 space-y-2">
-                      {personaDelta.map((delta, idx) => (
-                        <li key={`${delta.to}-${idx}`}>
-                          <p>
-                            {delta.from ? `${delta.from} → ` : ""} {delta.to}
-                          </p>
-                          <p className="text-xs text-zinc-500">{delta.note}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
+            <div className="flex justify-center">
               <div
-                className="rounded-3xl border border-black/5 p-6 shadow-sm"
+                className="w-full max-w-xl rounded-3xl border border-black/5 p-6 shadow-sm"
                 style={{
                   background: `linear-gradient(135deg, ${shareTemplate.colors.primary}, ${shareTemplate.colors.accent})`,
                 }}
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/80">Share card</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/80">Share your vibe</p>
                 <h3 className="mt-3 text-3xl font-semibold text-white">{shareTemplate.headline}</h3>
                 <p className="mt-2 text-sm text-white/80">{shareTemplate.subhead}</p>
-                <div className="mt-6 space-y-2">
+                <div className="mt-6 flex flex-wrap justify-center gap-4">
                   {shareTemplate.metrics.map((metric) => (
-                    <p key={metric.label} className="text-sm font-semibold text-white">
-                      {metric.label}: <span className="font-normal">{metric.value}</span>
-                    </p>
+                    <div key={metric.label} className="text-center">
+                      <p className="text-xs uppercase tracking-wider text-white/70">{metric.label}</p>
+                      <p className="text-lg font-semibold text-white">{metric.value}</p>
+                    </div>
                   ))}
                 </div>
-                <div className="mt-4 text-xs uppercase tracking-[0.3em] text-white/70">
-                  {shareTemplate.persona_archetype.label}
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {shareTemplate.persona_archetype.archetypes.map((arch) => (
-                    <span
-                      key={arch}
-                      className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white"
-                    >
-                      {arch}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-4 flex gap-3">
+                <div className="mt-6 flex justify-center gap-3">
                   <button
                     type="button"
                     className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
@@ -742,20 +620,21 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
             </div>
           ) : null}
 
-          <div className="mt-6 rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
-                  Persona history
-                </p>
-                <h3 className="text-2xl font-semibold text-zinc-950">Your Vibed timeline</h3>
+          {/* Timeline - Only show if there's history */}
+          {history.length > 1 ? (
+            <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
+                    Your journey
+                  </p>
+                  <h3 className="text-xl font-semibold text-zinc-950">Vibe timeline</h3>
+                </div>
+                <div className="text-xs text-zinc-500">
+                  {historyLoading && "Loading…"}
+                  {historyError ? historyError : null}
+                </div>
               </div>
-              <div className="text-xs text-zinc-500">
-                {historyLoading && "Loading history…"}
-                {historyError ? historyError : null}
-              </div>
-            </div>
-            {history.length > 0 ? (
               <div className="mt-4 flex flex-col gap-3">
                 {history.slice(0, 6).map((entry) => (
                   <div
@@ -763,27 +642,21 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                     className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-black/5 bg-zinc-50 px-4 py-3"
                   >
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
-                        {fmtDate(entry.created_at)} · {entry.status}
+                      <p className="text-xs text-zinc-400">
+                        {fmtDate(entry.created_at)}
                       </p>
-                      <p className="text-base font-semibold text-zinc-900">{entry.persona_label ?? "No profile"}</p>
-                      {entry.persona_confidence ? (
-                        <p className="text-xs text-zinc-500">Confidence: {entry.persona_confidence}</p>
-                      ) : null}
+                      <p className="text-base font-semibold text-zinc-900">{entry.persona_label ?? "—"}</p>
                     </div>
-                    <div className="text-right text-xs text-zinc-500">
-                      <p>Job {entry.job_id.slice(0, 6)}</p>
-                      {entry.generated_at ? <p>refresh {fmtDate(entry.generated_at)}</p> : null}
-                    </div>
+                    {entry.persona_confidence ? (
+                      <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-600">
+                        {entry.persona_confidence}
+                      </span>
+                    ) : null}
                   </div>
                 ))}
               </div>
-            ) : historyError ? (
-              <p className="mt-4 text-sm text-red-600">{historyError}</p>
-            ) : (
-              <p className="mt-4 text-sm text-zinc-500">No historical insights yet.</p>
-            )}
-          </div>
+            </div>
+          ) : null}
 
           <details className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
             <summary className="cursor-pointer text-sm font-semibold text-zinc-900">Deep dive (for the curious)</summary>

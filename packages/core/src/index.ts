@@ -18,6 +18,12 @@ export interface CommitEvent {
   additions: number;
   deletions: number;
   parents: string[];
+  /**
+   * List of file paths changed in this commit.
+   * Optional for backwards compatibility - older data may not have this.
+   * Used for subsystem detection, episode breadth, and first-touch metrics.
+   */
+  file_paths?: string[];
 }
 
 export type BuildCategory =
@@ -434,10 +440,19 @@ function buildShareTemplate(
   const streakValue =
     streak.days > 0 ? `${streak.days} day${streak.days === 1 ? "" : "s"}` : "No streak yet";
 
+  const scopeLabel =
+    chunkLabel === "chunker"
+      ? "Wide scope"
+      : chunkLabel === "mixer"
+        ? "Balanced"
+        : chunkLabel === "slicer"
+          ? "Focused"
+          : "Steady";
+
   const metrics = [
     { label: "Longest streak", value: streakValue },
     { label: "Peak window", value: formatWindowLabel(peakWindow) },
-    { label: "Chunkiness", value: chunkLabel ?? "steady" },
+    { label: "Commit scope", value: scopeLabel },
   ];
 
   if (featuresPerFix !== null) {
@@ -578,6 +593,64 @@ export const HIGH_CONFIDENCE_THRESHOLD = 50;
 // Utilities
 // =============================================================================
 
+/**
+ * Detects if a commit is from automation/bots (release-please, dependabot, renovate, etc.)
+ */
+export function isAutomationCommit(event: CommitEvent): boolean {
+  const subject = event.message.split("\n")[0].trim().toLowerCase();
+  const email = event.author_email.toLowerCase();
+
+  // Common bot email patterns
+  const botEmails = [
+    "release-please",
+    "dependabot",
+    "renovate",
+    "github-actions",
+    "semantic-release",
+    "greenkeeper",
+    "snyk-bot",
+    "imgbot",
+    "allcontributors",
+    "kodiak",
+    "mergify",
+    "bot@",
+    "noreply@github.com",
+    "[bot]",
+  ];
+
+  if (botEmails.some((pattern) => email.includes(pattern))) {
+    return true;
+  }
+
+  // Common automation commit message patterns
+  const automationPatterns = [
+    /^chore\(main\): release/i,
+    /^chore\(release\):/i,
+    /^release:/i,
+    /^bump version/i,
+    /^bump .* from .* to/i,
+    /^\[bot\]/i,
+    /^\[automated\]/i,
+    /^auto-generated/i,
+    /^update dependencies/i,
+    /^chore\(deps\):/i,
+    /^chore\(deps-dev\):/i,
+    /^build\(deps\):/i,
+    /^build\(deps-dev\):/i,
+    /^merge pull request #\d+ from dependabot/i,
+    /^merge pull request #\d+ from renovate/i,
+  ];
+
+  return automationPatterns.some((pattern) => pattern.test(subject));
+}
+
+/**
+ * Filters out automation/bot commits from an array of commit events
+ */
+export function filterAutomationCommits(events: CommitEvent[]): CommitEvent[] {
+  return events.filter((e) => !isAutomationCommit(e));
+}
+
 export function classifyCommit(message: string): BuildCategory {
   const subject = message.split("\n")[0].trim().toLowerCase();
 
@@ -646,6 +719,7 @@ export function percentile(arr: number[], p: number): number {
 }
 
 export * from "./crypto";
+export * from "./vibe";
 
 function mean(arr: number[]): number {
   if (arr.length === 0) return 0;
@@ -928,7 +1002,10 @@ function confidenceFromCommits(totalCommits: number): AnalysisInsightConfidence 
 }
 
 export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights {
-  const byTimeAsc = [...events].sort(
+  // Filter out automation/bot commits for cleaner insights
+  const humanCommits = filterAutomationCommits(events);
+
+  const byTimeAsc = [...humanCommits].sort(
     (a, b) => new Date(a.committer_date).getTime() - new Date(b.committer_date).getTime()
   );
 
