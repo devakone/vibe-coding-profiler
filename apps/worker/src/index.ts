@@ -235,7 +235,7 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
       },
     };
 
-    await supabase.from("analysis_metrics").upsert(
+    const { error: metricsError } = await supabase.from("analysis_metrics").upsert(
       [
         {
           job_id: jobId,
@@ -245,8 +245,9 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
       ],
       { onConflict: "job_id" }
     );
+    if (metricsError) throw new Error(`Failed to upsert metrics: ${metricsError.message}`);
 
-    await supabase.from("analysis_reports").upsert(
+    const { error: reportError } = await supabase.from("analysis_reports").upsert(
       [
         {
           job_id: jobId,
@@ -258,8 +259,9 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
       ],
       { onConflict: "job_id" }
     );
+    if (reportError) throw new Error(`Failed to upsert report: ${reportError.message}`);
 
-    await supabase.from("analysis_insights").upsert(
+    const { error: insightsError } = await supabase.from("analysis_insights").upsert(
       [
         {
           job_id: jobId,
@@ -276,8 +278,9 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
       ],
       { onConflict: "job_id" }
     );
+    if (insightsError) throw new Error(`Failed to upsert insights: ${insightsError.message}`);
 
-    await supabase
+    const { error: finalizeError } = await supabase
       .from("analysis_jobs")
       .update({
         status: "done" as JobStatus,
@@ -285,6 +288,7 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
         completed_at: new Date().toISOString(),
       })
       .eq("id", jobId);
+    if (finalizeError) throw new Error(`Failed to finalize job: ${finalizeError.message}`);
 
     console.log(`Job ${jobId} completed. (${events.length} commits)`);
   } catch (error) {
