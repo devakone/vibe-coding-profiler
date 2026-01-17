@@ -21,6 +21,8 @@ type AuthStats = {
   connectedRepos: number;
   completedJobs: number;
   queuedJobs: number;
+  analyzedRepos: number;
+  analyzedCommits: number;
   latestJob?: {
     status: string;
     repoName: string | null;
@@ -31,6 +33,13 @@ type AuthStats = {
     confidence: string | null;
     repoName: string | null;
     generatedAt: string | null;
+  };
+  userProfile?: {
+    personaName: string;
+    personaTagline: string | null;
+    personaConfidence: string;
+    totalRepos: number;
+    totalCommits: number;
   };
 };
 
@@ -66,13 +75,21 @@ export default async function Home() {
   if (!user) return <MarketingLanding />;
 
   const [
+    connectedRepoIdsResult,
     connectedReposResult,
     completedJobsResult,
     queuedJobsResult,
+    completedJobsRowsResult,
     latestJobResult,
     latestInsightResult,
+    userProfileResult,
   ] =
     await Promise.all([
+      supabase
+        .from("user_repos")
+        .select("repo_id")
+        .eq("user_id", user.id)
+        .is("disconnected_at", null),
       supabase
         .from("user_repos")
         .select("id", { count: "exact", head: true })
@@ -90,6 +107,11 @@ export default async function Home() {
         .in("status", ["queued", "running"]),
       supabase
         .from("analysis_jobs")
+        .select("repo_id, commit_count")
+        .eq("user_id", user.id)
+        .eq("status", "done"),
+      supabase
+        .from("analysis_jobs")
         .select("status,created_at,started_at,completed_at,repo_id")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
@@ -104,10 +126,22 @@ export default async function Home() {
         .order("analysis_jobs.created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from("user_profiles")
+        .select("persona_name, persona_tagline, persona_confidence, total_repos, total_commits")
+        .eq("user_id", user.id)
+        .maybeSingle(),
     ]);
 
   const latestJob = (latestJobResult.data ?? null) as unknown as LatestJobRow | null;
   const latestInsight = (latestInsightResult.data ?? null) as unknown as LatestInsightRow | null;
+  const userProfileData = userProfileResult.data as {
+    persona_name: string;
+    persona_tagline: string | null;
+    persona_confidence: string;
+    total_repos: number;
+    total_commits: number;
+  } | null;
 
   const repoNameResult = latestJob?.repo_id
     ? await supabase
@@ -130,10 +164,35 @@ export default async function Home() {
   const latestInsightRepoName = (latestInsightRepoNameResult?.data ??
     null) as unknown as RepoNameRow | null;
 
+  const connectedRepoIdRows = (connectedRepoIdsResult.data ?? []) as Array<{
+    repo_id: string | null;
+  }>;
+  const connectedRepoIds = new Set(
+    connectedRepoIdRows
+      .map((r) => r.repo_id)
+      .filter((id): id is string => Boolean(id))
+  );
+
+  const completedJobsRows = (completedJobsRowsResult.data ?? []) as Array<{
+    repo_id: string | null;
+    commit_count: number | null;
+  }>;
+
+  const analyzedJobs = completedJobsRows.filter(
+    (j) => j.repo_id && connectedRepoIds.has(j.repo_id)
+  );
+  const analyzedRepos = new Set(analyzedJobs.map((j) => j.repo_id)).size;
+  const analyzedCommits = analyzedJobs.reduce(
+    (sum, j) => sum + (j.commit_count ?? 0),
+    0
+  );
+
   const stats: AuthStats = {
     connectedRepos: connectedReposResult.count ?? 0,
     completedJobs: completedJobsResult.count ?? 0,
     queuedJobs: queuedJobsResult.count ?? 0,
+    analyzedRepos: userProfileData?.total_repos ?? analyzedRepos,
+    analyzedCommits: userProfileData?.total_commits ?? analyzedCommits,
     latestJob: latestJob
       ? {
           status: latestJob.status,
@@ -151,6 +210,15 @@ export default async function Home() {
           confidence: latestInsight.persona_confidence,
           repoName: latestInsightRepoName?.full_name ?? null,
           generatedAt: latestInsight.generated_at,
+        }
+      : undefined,
+    userProfile: userProfileData
+      ? {
+          personaName: userProfileData.persona_name,
+          personaTagline: userProfileData.persona_tagline,
+          personaConfidence: userProfileData.persona_confidence,
+          totalRepos: userProfileData.total_repos,
+          totalCommits: userProfileData.total_commits,
         }
       : undefined,
   };
@@ -314,14 +382,19 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
 
   const cards = [
     {
-      label: "Repos in profile",
+      label: "Repos connected",
       value: stats.connectedRepos,
       helper: "Repos you've connected",
     },
     {
-      label: "Stories generated",
+      label: "Repos analyzed",
+      value: stats.analyzedRepos,
+      helper: "Repos included in your profile",
+    },
+    {
+      label: "Reports generated",
       value: stats.completedJobs,
-      helper: "Vibed moments",
+      helper: "Completed vibe checks",
     },
     {
       label: "In progress",
@@ -352,12 +425,42 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
                 Primary vibe
               </p>
               <p className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950">
-                {stats.latestPersona?.label ?? "Still forming"}
+                {stats.userProfile?.personaName ?? stats.latestPersona?.label ?? "Still forming"}
               </p>
               <p className="mt-2 text-sm text-zinc-700">
-                {stats.latestPersona?.confidence ?? "Run a vibe check to get your first read."}
-                {stats.latestPersona?.repoName ? ` · Based on ${stats.latestPersona.repoName}` : ""}
+                {stats.userProfile ? (
+                  <>
+                    {stats.userProfile.personaConfidence} confidence · Based on{" "}
+                    {stats.userProfile.totalRepos} repos · {stats.userProfile.totalCommits.toLocaleString()} commits
+                  </>
+                ) : stats.analyzedRepos > 0 ? (
+                  <>
+                    Based on {stats.analyzedRepos} repos · {stats.analyzedCommits.toLocaleString()} commits · Profile still forming
+                  </>
+                ) : stats.latestPersona ? (
+                  <>
+                    {stats.latestPersona.confidence}
+                    {stats.latestPersona.repoName ? ` · Based on ${stats.latestPersona.repoName}` : ""}
+                  </>
+                ) : (
+                  "Run a vibe check to get your first read."
+                )}
               </p>
+              {stats.userProfile ? (
+                <Link
+                  href="/profile"
+                  className="mt-3 inline-block text-sm font-semibold text-zinc-950 transition hover:text-zinc-700"
+                >
+                  View full profile →
+                </Link>
+              ) : stats.analyzedRepos > 0 ? (
+                <Link
+                  href="/profile"
+                  className="mt-3 inline-block text-sm font-semibold text-zinc-950 transition hover:text-zinc-700"
+                >
+                  Build profile →
+                </Link>
+              ) : null}
             </div>
 
             <div className="w-full max-w-md rounded-3xl border border-black/5 bg-white/70 p-6 backdrop-blur">
@@ -388,11 +491,14 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
             </div>
           ) : (
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/analysis" className={wrappedTheme.primaryButton}>
-                View stories
+              <Link href="/profile" className={wrappedTheme.primaryButton}>
+                View profile
               </Link>
               <Link href="/repos" className={wrappedTheme.secondaryButton}>
                 Add a repo
+              </Link>
+              <Link href="/analysis" className={wrappedTheme.secondaryButton}>
+                View reports
               </Link>
             </div>
           )}

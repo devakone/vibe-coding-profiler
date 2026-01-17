@@ -580,6 +580,24 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
             </div>
           </div>
 
+          {/* Profile contribution banner */}
+          <div className="rounded-2xl border border-indigo-200/50 bg-gradient-to-r from-fuchsia-50 via-indigo-50 to-cyan-50 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-2 w-2 rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600" />
+                <p className="text-sm text-zinc-700">
+                  This repo contributes to your aggregated profile
+                </p>
+              </div>
+              <a
+                href="/profile"
+                className="text-sm font-semibold text-zinc-950 transition hover:text-zinc-700"
+              >
+                View profile →
+              </a>
+            </div>
+          </div>
+
           {/* Share Card - Centered */}
           {shareTemplate ? (
             <div className="flex justify-center">

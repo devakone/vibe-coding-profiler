@@ -1477,9 +1477,154 @@ Each task depends on the previous.
 - Trend narratives
 
 ### Phase 1D: Multi-Repo Aggregation
-- Cross-repo patterns
-- Consistency scoring
-- Portfolio view
+#### Summary
+
+**Goal:** A single **Vibed Coding Profile** per user that becomes more accurate as more repos are analyzed.
+
+**Non-goal:** A “persona per repository” product. Repo-level personas can exist as *facets*, but the primary experience is the **user-level aggregate profile**.
+
+#### Current State (As Built)
+
+- We run one `analysis_job` per repo run.
+- We persist outputs per job (`analysis_metrics`, `analysis_reports`, `analysis_insights`).
+- The UI primarily surfaces job-level results (reports/stories), and the “profile” experience is effectively “latest job insight”.
+
+This makes it easy to drill into a repo/run, but it does not deliver the core promise: a single profile that is refined across repos and over time.
+
+#### Target Experience (User Journey)
+
+1. User lands on **Profile** (default destination after login).
+2. Profile shows:
+   - Current primary persona (label + confidence)
+   - “Why” highlights (top signals) + evidence
+   - “Profile evolution” timeline (persona changes over time)
+   - Repo facets (“In this repo you skewed Architect; in that repo you skewed Validator”)
+3. User connects/analyses more repos → profile updates and evolution timeline records the shift.
+4. User can deep-dive:
+   - Repo-level story (a specific `analysis_job`)
+   - Cross-repo comparisons and consistency patterns
+
+#### Definitions
+
+- **Repo Run (Job):** One analysis execution against one repository (existing `analysis_jobs`).
+- **Repo Facet Persona:** Persona detected from a single job (existing `analysis_insights.persona_*`).
+- **User Profile Persona:** Persona computed from aggregated signals across selected repos/runs (new).
+- **Profile Snapshot:** A persisted representation of the user profile at a point in time, with inputs + outputs (new).
+
+#### Functional Requirements
+
+**Profile computation**
+- The system computes a **single user profile persona** using deterministic aggregation of job metrics/insights.
+- Profile is recomputed when:
+  - A job reaches `done` with all required outputs written
+  - The user changes which repos are included in their profile (future: toggle include/exclude)
+
+**Profile history**
+- The system records changes over time (“persona evolution”).
+- The system can show a timeline of snapshots (and optionally a diff explanation).
+
+**Repo facets**
+- The user can see per-repo facets (latest successful run per connected repo).
+
+**Privacy**
+- Profile is only visible to the owning user by default (RLS).
+- Disconnecting a repo removes it from future profile snapshots and optionally triggers recompute.
+
+#### Aggregation Approach (Metrics First)
+
+We preserve the principle: **metrics first, narrative second**.
+
+**V1 (deterministic, recommended):**
+- Aggregate *signals* across jobs:
+  - Sum/merge the counts that drive persona detection (feature/test/docs/setup/fix/etc.)
+  - Weight by job `commit_count` (or analyzed commits) so tiny repos don’t dominate
+  - Incorporate confidence weighting (e.g., high=1.0, medium=0.66, low=0.33)
+- Run persona classification over the aggregated totals to get:
+  - `persona_id`, `persona_label`, `persona_confidence`
+  - evidence rollups (top SHAs across repos)
+
+**V0 (MVP bridge, acceptable as a stepping stone):**
+- Compute user profile as a weighted vote across the latest facet per repo:
+  - weight = `commit_count × confidence_weight`
+  - pick persona with highest total weight
+- This delivers “single persona” quickly, but does not yet surface deep cross-repo patterns.
+
+#### Data Model Changes (Proposed)
+
+Add new tables for user-level aggregation:
+
+- `profile_snapshots`
+  - `id` UUID PK
+  - `user_id` UUID FK → `users.id`
+  - `computed_at` TIMESTAMPTZ
+  - `persona_id` TEXT
+  - `persona_label` TEXT
+  - `persona_confidence` TEXT
+  - `inputs_json` JSONB (selected repos, job ids, weighting params, versions)
+  - `profile_json` JSONB (aggregated signals, highlights, evidence pointers)
+  - `generator_version` TEXT
+
+- `profile_snapshot_repos`
+  - `profile_snapshot_id` UUID FK → `profile_snapshots.id`
+  - `repo_id` UUID FK → `repos.id`
+  - `job_id` UUID FK → `analysis_jobs.id` (the facet run used)
+  - Unique (`profile_snapshot_id`, `repo_id`)
+
+RLS:
+- Only the owning user can select/insert/update their snapshots.
+
+#### Backend Changes (Proposed)
+
+- Add a “profile recompute” step triggered after a job completes:
+  - Worker (or server-side job) computes next `profile_snapshot`
+  - Ensures “Profile is always up to date” without client-side recompute
+
+APIs:
+- `GET /api/profile` → current snapshot + included repos facets
+- `GET /api/profile/history` → list snapshots for timeline
+
+#### UI Changes (Proposed)
+
+- Make `/` the Profile page (already partially aligned in current UI copy).
+- Add explicit navigation item “Profile”.
+- Adjust `/analysis` to be “Stories” (job history) with filtering by repo.
+- Keep `/repos` as “Sources/Chapters” (connect repos, run analyses) but it should clearly explain how it updates Profile.
+
+#### Gaps From Where We Are Now
+
+**Product/UX gaps**
+- No first-class “Profile” screen that aggregates across repos (the current dashboard uses latest persona/run, not an aggregate).
+- Repos and Reports/Stories are not explicitly framed as “inputs” vs “outputs” of the Profile.
+- No “persona evolution timeline” surfaced to the user.
+
+**Data/compute gaps**
+- No persisted user-level profile entity (no `profile_snapshots`).
+- No aggregation algorithm implemented (only per-job persona detection).
+- No canonical selection rule for “which jobs count” (latest per repo, time window, exclude repos, etc.).
+
+**Reliability gaps**
+- Job “done” status can be decoupled from downstream outputs unless enforced (must guarantee profile recompute runs only when outputs exist).
+
+#### Delivery Plan (Phased)
+
+**Milestone 1: Profile v0 (Derived, no new tables)**
+- Compute user profile at request time from latest job per repo (weighted vote).
+- UI: Profile page shows “Current persona” + per-repo facets.
+
+**Milestone 2: Profile v1 (Persisted snapshots)**
+- Add `profile_snapshots` (+ memberships) with RLS.
+- Recompute snapshot on each completed job.
+- UI: Profile shows timeline of snapshots.
+
+**Milestone 3: Cross-repo patterns**
+- Add “consistency scoring” and “cross-repo highlights” to `profile_json`.
+- Expand receipts + evidence views across repos.
+
+#### Success Criteria
+
+- After analyzing N repos, user sees exactly one “Current Vibed Profile persona” reflecting aggregate signals.
+- Adding a new repo analysis updates the profile and appends to the history timeline.
+- User can still open any specific repo run and see the repo facet/persona without losing the main profile thread.
 
 ### Phase 1E: Privacy and Trust
 - Granular privacy controls

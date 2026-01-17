@@ -1,6 +1,7 @@
 import { inngest } from "../client";
 import { createClient } from "@supabase/supabase-js";
 import {
+  aggregateUserProfile,
   assignVibeType,
   computeAnalysisInsights,
   computeAnalysisMetrics,
@@ -9,7 +10,10 @@ import {
   type AnalysisReport,
   type CommitEvent,
   type JobStatus,
+  type RepoInsightSummary,
+  type VibeAxes,
   type VibeCommitEvent,
+  type VibePersona,
 } from "@vibed/core";
 
 const ANALYZER_VERSION = "0.2.0-inngest";
@@ -169,7 +173,7 @@ export const analyzeRepo = inngest.createFunction(
     );
 
     // Step 1: Load job and repo details
-    const { job, repo, githubToken } = await step.run("load-job-context", async () => {
+    const { repo, githubToken } = await step.run("load-job-context", async () => {
       const { data: job, error: jobError } = await supabase
         .from("analysis_jobs")
         .select("id, user_id, repo_id")
@@ -247,7 +251,7 @@ export const analyzeRepo = inngest.createFunction(
           baseSha: `${firstSha}^`, // Parent of first commit
           headSha: lastSha,
         });
-      } catch (compareError) {
+      } catch {
         // Fall back to individual fetches (slower but more reliable)
         console.log("Compare endpoint failed, falling back to individual fetches");
 
@@ -426,6 +430,232 @@ export const analyzeRepo = inngest.createFunction(
         })
         .eq("id", jobId);
       if (finalizeError) throw new Error(`Failed to finalize job: ${finalizeError.message}`);
+    });
+
+    // Step 6: Update user's aggregated profile
+    await step.run("update-user-profile", async () => {
+      const { data: connectedUserRepos, error: connectedReposError } = await supabase
+        .from("user_repos")
+        .select("repo_id")
+        .eq("user_id", userId)
+        .is("disconnected_at", null);
+
+      if (connectedReposError) {
+        throw new Error(`Failed to load connected repos: ${connectedReposError.message}`);
+      }
+
+      const connectedRepoIds = (connectedUserRepos ?? [])
+        .map((r) => r.repo_id)
+        .filter((id): id is string => Boolean(id));
+
+      if (connectedRepoIds.length === 0) {
+        return;
+      }
+
+      // Fetch all completed jobs for this user
+      const { data: completedJobs, error: jobsError } = await supabase
+        .from("analysis_jobs")
+        .select("id, repo_id, commit_count, completed_at")
+        .eq("user_id", userId)
+        .eq("status", "done")
+        .in("repo_id", connectedRepoIds);
+
+      if (jobsError || !completedJobs || completedJobs.length === 0) {
+        console.log("No completed jobs to aggregate");
+        return;
+      }
+
+      const jobsMissingCommitCount = completedJobs.filter((j) => j.commit_count == null).map((j) => j.id);
+      const { data: metricsData } =
+        jobsMissingCommitCount.length > 0
+          ? await supabase
+              .from("analysis_metrics")
+              .select("job_id, metrics_json")
+              .in("job_id", jobsMissingCommitCount)
+          : { data: [] as Array<{ job_id: string; metrics_json: unknown }> };
+
+      const commitCountByJobId = new Map<string, number>();
+      for (const row of metricsData ?? []) {
+        const jobId = (row as { job_id: string }).job_id;
+        const metricsJson = (row as { metrics_json: unknown }).metrics_json;
+        if (typeof metricsJson !== "object" || metricsJson === null) continue;
+
+        const totalCommits = (metricsJson as { total_commits?: unknown }).total_commits;
+        if (typeof totalCommits === "number") {
+          commitCountByJobId.set(jobId, totalCommits);
+        }
+      }
+
+      // Fetch repo names
+      const repoIds = completedJobs.map((j) => j.repo_id).filter(Boolean);
+      const { data: repos } = await supabase
+        .from("repos")
+        .select("id, full_name")
+        .in("id", repoIds);
+
+      const repoNameById = new Map<string, string>();
+      for (const r of repos ?? []) {
+        repoNameById.set(r.id, r.full_name);
+      }
+
+      // Fetch vibe insights for each job (prefer vibe_insights, fall back to analysis_insights)
+      const jobIds = completedJobs.map((j) => j.id);
+
+      // Try vibe_insights first
+      const { data: vibeInsightsData } = await supabase
+        .from("vibe_insights")
+        .select("job_id, axes_json, persona_id, persona_name, persona_tagline, persona_confidence, persona_score")
+        .in("job_id", jobIds);
+
+      type VibeInsightsRow = {
+        job_id: string;
+        axes_json: unknown;
+        persona_id: string;
+        persona_name: string;
+        persona_tagline: string | null;
+        persona_confidence: string;
+        persona_score: number | null;
+      };
+
+      const vibeInsights = (vibeInsightsData ?? []) as VibeInsightsRow[];
+
+      // Fall back to analysis_insights for jobs without vibe_insights
+      const vibeJobIds = new Set(vibeInsights.map((v) => v.job_id));
+      const missingJobIds = jobIds.filter((id) => !vibeJobIds.has(id));
+
+      const { data: legacyInsightsData } = missingJobIds.length > 0
+        ? await supabase
+            .from("analysis_insights")
+            .select("job_id, persona_id, persona_label, persona_confidence")
+            .in("job_id", missingJobIds)
+        : { data: [] };
+
+      type LegacyInsightsRow = {
+        job_id: string;
+        persona_id: string | null;
+        persona_label: string | null;
+        persona_confidence: string | null;
+      };
+
+      const legacyInsights = (legacyInsightsData ?? []) as LegacyInsightsRow[];
+
+      const vibeInsightByJobId = new Map<string, VibeInsightsRow>();
+      for (const insight of vibeInsights) {
+        vibeInsightByJobId.set(insight.job_id, insight);
+      }
+
+      const legacyInsightByJobId = new Map<string, LegacyInsightsRow>();
+      for (const insight of legacyInsights) {
+        legacyInsightByJobId.set(insight.job_id, insight);
+      }
+
+      // Build RepoInsightSummary array
+      const repoInsights: RepoInsightSummary[] = [];
+
+      for (const job of completedJobs) {
+        const repoName = repoNameById.get(job.repo_id) ?? "Unknown";
+        const commitCount = job.commit_count ?? commitCountByJobId.get(job.id) ?? 0;
+
+        // Check vibe_insights first
+        const vibeInsight = vibeInsightByJobId.get(job.id);
+        if (vibeInsight) {
+          repoInsights.push({
+            jobId: job.id,
+            repoName,
+            commitCount,
+            axes: vibeInsight.axes_json as VibeAxes,
+            persona: {
+              id: vibeInsight.persona_id,
+              name: vibeInsight.persona_name,
+              tagline: vibeInsight.persona_tagline ?? "",
+              confidence: vibeInsight.persona_confidence as "high" | "medium" | "low",
+              score: vibeInsight.persona_score ?? 0,
+              matched_rules: [],
+              why: [],
+              caveats: [],
+            } as VibePersona,
+            analyzedAt: job.completed_at ?? new Date().toISOString(),
+          });
+          continue;
+        }
+
+        // Fall back to legacy insights (create default axes)
+        const legacyInsight = legacyInsightByJobId.get(job.id);
+        if (legacyInsight) {
+          // Create default axes for legacy insights (AxisValue type: score, level, why)
+          const defaultAxis = { score: 50, level: "medium" as const, why: ["Legacy insight - no detailed axis data available"] };
+          repoInsights.push({
+            jobId: job.id,
+            repoName,
+            commitCount,
+            axes: {
+              automation_heaviness: defaultAxis,
+              guardrail_strength: defaultAxis,
+              iteration_loop_intensity: defaultAxis,
+              planning_signal: defaultAxis,
+              surface_area_per_change: defaultAxis,
+              shipping_rhythm: defaultAxis,
+            },
+            persona: {
+              id: legacyInsight.persona_id ?? "balanced_builder",
+              name: legacyInsight.persona_label ?? "Balanced Builder",
+              tagline: "",
+              confidence: (legacyInsight.persona_confidence as "high" | "medium" | "low") ?? "low",
+              score: 50,
+              matched_rules: [],
+              why: [],
+              caveats: [],
+            } as VibePersona,
+            analyzedAt: job.completed_at ?? new Date().toISOString(),
+          });
+        }
+      }
+
+      if (repoInsights.length === 0) {
+        console.log("No insights to aggregate");
+        return;
+      }
+
+      // Aggregate profile
+      const profile = aggregateUserProfile(repoInsights);
+
+      // Upsert user_profiles
+      const { error: profileError } = await supabase.from("user_profiles").upsert(
+        {
+          user_id: userId,
+          total_commits: profile.totalCommits,
+          total_repos: profile.totalRepos,
+          job_ids: profile.jobIds,
+          axes_json: profile.axes,
+          persona_id: profile.persona.id,
+          persona_name: profile.persona.name,
+          persona_tagline: profile.persona.tagline,
+          persona_confidence: profile.persona.confidence,
+          persona_score: profile.persona.score,
+          repo_personas_json: profile.repoBreakdown,
+          cards_json: profile.cards,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+
+      // Don't fail if user_profiles table doesn't exist yet
+      if (profileError && !profileError.message.includes("does not exist")) {
+        console.warn("Failed to save user profile:", profileError.message);
+      }
+
+      // Save profile history snapshot
+      const { error: historyError } = await supabase.from("user_profile_history").insert({
+        user_id: userId,
+        profile_snapshot: profile,
+        trigger_job_id: jobId,
+      });
+
+      if (historyError && !historyError.message.includes("does not exist")) {
+        console.warn("Failed to save profile history:", historyError.message);
+      }
+
+      console.log(`Updated profile for user ${userId}: ${profile.persona.name} (${profile.totalRepos} repos, ${profile.totalCommits} commits)`);
     });
 
     return {

@@ -282,6 +282,107 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profile_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          profile_snapshot: Json
+          trigger_job_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          profile_snapshot: Json
+          trigger_job_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          profile_snapshot?: Json
+          trigger_job_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profile_history_trigger_job_id_fkey"
+            columns: ["trigger_job_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_profile_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          axes_json: Json
+          cards_json: Json | null
+          created_at: string | null
+          id: string
+          job_ids: string[]
+          persona_confidence: string
+          persona_id: string
+          persona_name: string
+          persona_score: number
+          persona_tagline: string | null
+          repo_personas_json: Json
+          total_commits: number
+          total_repos: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          axes_json?: Json
+          cards_json?: Json | null
+          created_at?: string | null
+          id?: string
+          job_ids?: string[]
+          persona_confidence: string
+          persona_id: string
+          persona_name: string
+          persona_score?: number
+          persona_tagline?: string | null
+          repo_personas_json?: Json
+          total_commits?: number
+          total_repos?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          axes_json?: Json
+          cards_json?: Json | null
+          created_at?: string | null
+          id?: string
+          job_ids?: string[]
+          persona_confidence?: string
+          persona_id?: string
+          persona_name?: string
+          persona_score?: number
+          persona_tagline?: string | null
+          repo_personas_json?: Json
+          total_commits?: number
+          total_repos?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_repos: {
         Row: {
           connected_at: string
@@ -353,6 +454,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      vibe_insights: {
+        Row: {
+          axes_json: Json
+          cards_json: Json | null
+          evidence_json: Json | null
+          generated_at: string
+          id: string
+          job_id: string
+          persona_confidence: string
+          persona_id: string
+          persona_name: string
+          persona_score: number
+          persona_tagline: string | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          axes_json?: Json
+          cards_json?: Json | null
+          evidence_json?: Json | null
+          generated_at?: string
+          id?: string
+          job_id: string
+          persona_confidence: string
+          persona_id: string
+          persona_name: string
+          persona_score?: number
+          persona_tagline?: string | null
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          axes_json?: Json
+          cards_json?: Json | null
+          evidence_json?: Json | null
+          generated_at?: string
+          id?: string
+          job_id?: string
+          persona_confidence?: string
+          persona_id?: string
+          persona_name?: string
+          persona_score?: number
+          persona_tagline?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibe_insights_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "analysis_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

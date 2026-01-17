@@ -1253,3 +1253,274 @@ function computeBurstiness(timestamps: Date[]): number {
   if (stddev + mean === 0) return 0;
   return (stddev - mean) / (stddev + mean);
 }
+
+// =============================================================================
+// Profile Aggregation: One Persona Per User
+// =============================================================================
+
+/**
+ * Summary of a single repo's vibe insights, used for aggregation.
+ */
+export interface RepoInsightSummary {
+  jobId: string;
+  repoName: string;
+  commitCount: number;
+  axes: VibeAxes;
+  persona: VibePersona;
+  analyzedAt: string;
+}
+
+/**
+ * A repo's contribution to the aggregated profile.
+ */
+export interface RepoBreakdown {
+  jobId: string;
+  repoName: string;
+  personaId: VibePersonaId;
+  personaName: string;
+  commitCount: number;
+  /** Percentage of total commits this repo contributes */
+  weight: number;
+  axes: VibeAxes;
+}
+
+/**
+ * The user's aggregated profile across all analyzed repos.
+ */
+export interface AggregatedProfile {
+  /** Total commits across all repos */
+  totalCommits: number;
+  /** Number of repos analyzed */
+  totalRepos: number;
+  /** Job IDs that contributed to this profile */
+  jobIds: string[];
+
+  /** Weighted average of axes across all repos */
+  axes: VibeAxes;
+
+  /** Persona detected from aggregated axes */
+  persona: VibePersona;
+
+  /** Per-repo breakdown showing individual contributions */
+  repoBreakdown: RepoBreakdown[];
+
+  /** Profile-level insight cards */
+  cards: InsightCard[];
+
+  /** When this profile was last updated */
+  updatedAt: string;
+}
+
+/**
+ * Aggregate multiple repo insights into a single user profile.
+ *
+ * The aggregation strategy:
+ * - Axes are weighted by commit count (repos with more commits have more influence)
+ * - Persona is detected from the aggregated axes
+ * - Cards highlight cross-repo patterns
+ */
+export function aggregateUserProfile(
+  repoInsights: RepoInsightSummary[]
+): AggregatedProfile {
+  if (repoInsights.length === 0) {
+    throw new Error("Cannot aggregate empty insights");
+  }
+
+  const totalCommits = repoInsights.reduce((s, r) => s + r.commitCount, 0);
+  const totalRepos = repoInsights.length;
+  const jobIds = repoInsights.map((r) => r.jobId);
+
+  // Compute weighted average of axes
+  const aggregatedAxes = computeWeightedAxes(repoInsights, totalCommits);
+
+  // Detect persona from aggregated axes
+  const persona = detectVibePersona(aggregatedAxes, {
+    commitCount: totalCommits,
+    prCount: 0, // TODO: aggregate PR counts when available
+    dataQualityScore: computeAggregatedDataQuality(repoInsights),
+  });
+
+  // Build repo breakdown
+  const repoBreakdown: RepoBreakdown[] = repoInsights.map((r) => ({
+    jobId: r.jobId,
+    repoName: r.repoName,
+    personaId: r.persona.id,
+    personaName: r.persona.name,
+    commitCount: r.commitCount,
+    weight: totalCommits > 0 ? r.commitCount / totalCommits : 1 / totalRepos,
+    axes: r.axes,
+  }));
+
+  // Build profile-level insight cards
+  const cards = buildProfileCards(persona, aggregatedAxes, repoInsights);
+
+  return {
+    totalCommits,
+    totalRepos,
+    jobIds,
+    axes: aggregatedAxes,
+    persona,
+    repoBreakdown,
+    cards,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Compute weighted average of axes across repos.
+ * Weight is determined by commit count.
+ */
+function computeWeightedAxes(
+  insights: RepoInsightSummary[],
+  totalCommits: number
+): VibeAxes {
+  const axisKeys = [
+    "automation_heaviness",
+    "guardrail_strength",
+    "iteration_loop_intensity",
+    "planning_signal",
+    "surface_area_per_change",
+    "shipping_rhythm",
+  ] as const;
+
+  const result: Partial<VibeAxes> = {};
+
+  for (const key of axisKeys) {
+    let weightedSum = 0;
+    const allWhy: string[] = [];
+
+    for (const insight of insights) {
+      const weight =
+        totalCommits > 0
+          ? insight.commitCount / totalCommits
+          : 1 / insights.length;
+      const axis = insight.axes[key];
+      weightedSum += axis.score * weight;
+      allWhy.push(...axis.why);
+    }
+
+    const score = Math.round(weightedSum);
+    result[key] = {
+      score,
+      level: scoreToLevel(score),
+      why: [...new Set(allWhy)].slice(0, 5), // Dedupe and limit
+    };
+  }
+
+  return result as VibeAxes;
+}
+
+function scoreToLevel(score: number): Level {
+  if (score >= 70) return "high";
+  if (score >= 40) return "medium";
+  return "low";
+}
+
+/**
+ * Compute aggregated data quality score.
+ */
+function computeAggregatedDataQuality(insights: RepoInsightSummary[]): number {
+  const totalCommits = insights.reduce((s, r) => s + r.commitCount, 0);
+
+  // More repos and more commits = higher quality
+  const repoFactor = Math.min(1, insights.length / 5); // Max out at 5 repos
+  const commitFactor = Math.min(1, totalCommits / 500); // Max out at 500 commits
+
+  return Math.round(100 * (0.4 * repoFactor + 0.6 * commitFactor));
+}
+
+/**
+ * Build profile-level insight cards that span multiple repos.
+ */
+function buildProfileCards(
+  persona: VibePersona,
+  axes: VibeAxes,
+  insights: RepoInsightSummary[]
+): InsightCard[] {
+  const cards: InsightCard[] = [];
+
+  // Card 1: Primary persona
+  cards.push({
+    id: "profile-persona",
+    type: "persona",
+    title: persona.name,
+    value: `${persona.score}%`,
+    subtitle: persona.tagline,
+    evidence: [],
+  });
+
+  // Card 2: Profile coverage (use rhythm type as closest match)
+  const totalCommits = insights.reduce((s, r) => s + r.commitCount, 0);
+  cards.push({
+    id: "profile-coverage",
+    type: "rhythm",
+    title: "Profile Coverage",
+    value: `${insights.length} repos`,
+    subtitle: `${totalCommits.toLocaleString()} commits analyzed`,
+    evidence: [],
+  });
+
+  // Card 3: Strongest axis
+  const axisEntries = Object.entries(axes) as [keyof VibeAxes, AxisValue][];
+  const strongest = axisEntries.reduce((a, b) => (b[1].score > a[1].score ? b : a));
+  const axisTypeMap: Record<string, InsightCardType> = {
+    automation_heaviness: "axis",
+    guardrail_strength: "guardrails",
+    iteration_loop_intensity: "loops",
+    planning_signal: "planning",
+    surface_area_per_change: "surface_area",
+    shipping_rhythm: "rhythm",
+  };
+  const axisLabels: Record<string, string> = {
+    automation_heaviness: "Automation",
+    guardrail_strength: "Guardrails",
+    iteration_loop_intensity: "Iteration",
+    planning_signal: "Planning",
+    surface_area_per_change: "Surface Area",
+    shipping_rhythm: "Rhythm",
+  };
+  cards.push({
+    id: "profile-strongest-axis",
+    type: axisTypeMap[strongest[0]] ?? "axis",
+    title: "Strongest Signal",
+    value: axisLabels[strongest[0]] ?? strongest[0],
+    subtitle: `Score: ${strongest[1].score}`,
+    evidence: [],
+  });
+
+  // Card 4: Cross-repo pattern (if multiple personas)
+  const uniquePersonas = new Set(insights.map((r) => r.persona.id));
+  if (uniquePersonas.size > 1 && insights.length > 1) {
+    const personaCounts: Record<string, number> = {};
+    for (const insight of insights) {
+      personaCounts[insight.persona.name] =
+        (personaCounts[insight.persona.name] ?? 0) + 1;
+    }
+    const personaList = Object.entries(personaCounts)
+      .map(([name, count]) => `${name} (${count})`)
+      .join(", ");
+
+    cards.push({
+      id: "profile-cross-repo",
+      type: "persona",
+      title: "Cross-Repo Pattern",
+      value: `${uniquePersonas.size} different vibes`,
+      subtitle: personaList,
+      evidence: [],
+    });
+  }
+
+  // Card 5: Consistency insight
+  if (uniquePersonas.size === 1 && insights.length > 1) {
+    cards.push({
+      id: "profile-consistency",
+      type: "persona",
+      title: "Consistent Style",
+      value: insights[0].persona.name,
+      subtitle: `Same vibe across ${insights.length} repos`,
+      evidence: [],
+    });
+  }
+
+  return cards;
+}

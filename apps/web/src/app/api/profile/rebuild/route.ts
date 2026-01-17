@@ -1,0 +1,324 @@
+import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { aggregateUserProfile, type RepoInsightSummary, type VibeAxes, type VibePersona } from "@vibed/core";
+import type { Insertable, Json } from "@vibed/db";
+
+export const runtime = "nodejs";
+
+type AnalysisJobRow = {
+  id: string;
+  repo_id: string | null;
+  commit_count: number | null;
+  completed_at: string | null;
+};
+
+type RateLimitRpcLike = {
+  rpc: (
+    fn: string,
+    args: {
+      p_user_id: string;
+      p_action: string;
+      p_window_seconds: number;
+      p_max_count: number;
+    }
+  ) => Promise<{ data: unknown; error: unknown }>;
+};
+
+export async function POST(request: Request) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const requestUrl = new URL(request.url);
+  const requestOrigin = requestUrl.origin;
+  const originHeader = request.headers.get("origin");
+  const refererHeader = request.headers.get("referer");
+
+  if (originHeader && originHeader !== requestOrigin) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  if (!originHeader && refererHeader) {
+    const refererOrigin = new URL(refererHeader).origin;
+    if (refererOrigin !== requestOrigin) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+  }
+
+  const service = createSupabaseServiceClient();
+  const redirectUrl = new URL("/profile", requestUrl);
+
+  const { data: allowedData, error: rateLimitError } = await (
+    service as unknown as RateLimitRpcLike
+  ).rpc("consume_user_action_rate_limit", {
+    p_user_id: user.id,
+    p_action: "profile_rebuild",
+    p_window_seconds: 300,
+    p_max_count: 2,
+  });
+
+  if (rateLimitError) {
+    return NextResponse.json({ error: "rate_limit_failed" }, { status: 500 });
+  }
+
+  if (allowedData !== true && allowedData !== false) {
+    return NextResponse.json({ error: "rate_limit_failed" }, { status: 500 });
+  }
+
+  if (allowedData === false) {
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  const { data: connectedUserRepos, error: connectedReposError } = await service
+    .from("user_repos")
+    .select("repo_id")
+    .eq("user_id", user.id)
+    .is("disconnected_at", null);
+
+  if (connectedReposError) {
+    return NextResponse.json({ error: "failed_to_load_repos" }, { status: 500 });
+  }
+
+  const connectedRepoIds = (connectedUserRepos ?? [])
+    .map((r) => r.repo_id)
+    .filter((id): id is string => Boolean(id));
+
+  if (connectedRepoIds.length === 0) {
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  const { data: completedJobsData, error: jobsError } = await service
+    .from("analysis_jobs")
+    .select("id, repo_id, commit_count, completed_at")
+    .eq("user_id", user.id)
+    .eq("status", "done")
+    .in("repo_id", connectedRepoIds);
+
+  if (jobsError) {
+    return NextResponse.json({ error: "failed_to_load_jobs" }, { status: 500 });
+  }
+
+  const completedJobs = (completedJobsData ?? []) as AnalysisJobRow[];
+  if (completedJobs.length === 0) {
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  const jobsMissingCommitCount = completedJobs
+    .filter((j) => j.commit_count == null)
+    .map((j) => j.id);
+
+  const { data: metricsData, error: metricsError } =
+    jobsMissingCommitCount.length > 0
+      ? await service
+          .from("analysis_metrics")
+          .select("job_id, metrics_json")
+          .in("job_id", jobsMissingCommitCount)
+      : { data: [] as Array<{ job_id: string; metrics_json: unknown }>, error: null };
+
+  if (metricsError) {
+    return NextResponse.json({ error: "failed_to_load_metrics" }, { status: 500 });
+  }
+
+  const commitCountByJobId = new Map<string, number>();
+  for (const row of metricsData ?? []) {
+    const metricsJson = (row as { metrics_json: unknown }).metrics_json;
+    if (typeof metricsJson !== "object" || metricsJson === null) continue;
+
+    const totalCommits = (metricsJson as { total_commits?: unknown }).total_commits;
+    if (typeof totalCommits === "number") {
+      commitCountByJobId.set(row.job_id, totalCommits);
+    }
+  }
+
+  const repoIds = completedJobs
+    .map((j) => j.repo_id)
+    .filter((id): id is string => Boolean(id));
+  const { data: reposData, error: reposError } = await service
+    .from("repos")
+    .select("id, full_name")
+    .in("id", repoIds);
+
+  if (reposError) {
+    return NextResponse.json({ error: "failed_to_load_repo_names" }, { status: 500 });
+  }
+
+  const repoNameById = new Map<string, string>();
+  for (const r of reposData ?? []) {
+    repoNameById.set(r.id, r.full_name);
+  }
+
+  const jobIds = completedJobs.map((j) => j.id);
+
+  const { data: vibeInsightsData, error: vibeInsightsError } = await service
+    .from("vibe_insights")
+    .select(
+      "job_id, axes_json, persona_id, persona_name, persona_tagline, persona_confidence, persona_score"
+    )
+    .in("job_id", jobIds);
+
+  if (vibeInsightsError) {
+    return NextResponse.json({ error: "failed_to_load_vibe_insights" }, { status: 500 });
+  }
+
+  type VibeInsightsRow = {
+    job_id: string;
+    axes_json: unknown;
+    persona_id: string;
+    persona_name: string;
+    persona_tagline: string | null;
+    persona_confidence: string;
+    persona_score: number | null;
+  };
+
+  const vibeInsights = (vibeInsightsData ?? []) as unknown as VibeInsightsRow[];
+
+  const vibeInsightByJobId = new Map<string, VibeInsightsRow>();
+  for (const insight of vibeInsights) {
+    vibeInsightByJobId.set(insight.job_id, insight);
+  }
+
+  const missingJobIds = jobIds.filter((id) => !vibeInsightByJobId.has(id));
+
+  const { data: legacyInsightsData, error: legacyInsightsError } =
+    missingJobIds.length > 0
+      ? await service
+          .from("analysis_insights")
+          .select("job_id, persona_id, persona_label, persona_confidence")
+          .in("job_id", missingJobIds)
+      : { data: [] as Array<unknown>, error: null };
+
+  if (legacyInsightsError) {
+    return NextResponse.json({ error: "failed_to_load_legacy_insights" }, { status: 500 });
+  }
+
+  type LegacyInsightsRow = {
+    job_id: string;
+    persona_id: string | null;
+    persona_label: string | null;
+    persona_confidence: string | null;
+  };
+
+  const legacyInsights = (legacyInsightsData ?? []) as LegacyInsightsRow[];
+  const legacyInsightByJobId = new Map<string, LegacyInsightsRow>();
+  for (const insight of legacyInsights) {
+    legacyInsightByJobId.set(insight.job_id, insight);
+  }
+
+  const repoInsights: RepoInsightSummary[] = [];
+
+  for (const job of completedJobs) {
+    if (!job.repo_id) continue;
+
+    const repoName = repoNameById.get(job.repo_id) ?? "Unknown";
+    const commitCount = job.commit_count ?? commitCountByJobId.get(job.id) ?? 0;
+
+    const vibeInsight = vibeInsightByJobId.get(job.id);
+    if (vibeInsight) {
+      repoInsights.push({
+        jobId: job.id,
+        repoName,
+        commitCount,
+        axes: vibeInsight.axes_json as VibeAxes,
+        persona: {
+          id: vibeInsight.persona_id,
+          name: vibeInsight.persona_name,
+          tagline: vibeInsight.persona_tagline ?? "",
+          confidence: vibeInsight.persona_confidence as "high" | "medium" | "low",
+          score: vibeInsight.persona_score ?? 0,
+          matched_rules: [],
+          why: [],
+          caveats: [],
+        } as VibePersona,
+        analyzedAt: job.completed_at ?? new Date().toISOString(),
+      });
+      continue;
+    }
+
+    const legacyInsight = legacyInsightByJobId.get(job.id);
+    if (legacyInsight) {
+      const defaultAxis = {
+        score: 50,
+        level: "medium" as const,
+        why: ["Legacy insight - no detailed axis data available"],
+      };
+      repoInsights.push({
+        jobId: job.id,
+        repoName,
+        commitCount,
+        axes: {
+          automation_heaviness: defaultAxis,
+          guardrail_strength: defaultAxis,
+          iteration_loop_intensity: defaultAxis,
+          planning_signal: defaultAxis,
+          surface_area_per_change: defaultAxis,
+          shipping_rhythm: defaultAxis,
+        },
+        persona: {
+          id: legacyInsight.persona_id ?? "balanced_builder",
+          name: legacyInsight.persona_label ?? "Balanced Builder",
+          tagline: "",
+          confidence: (legacyInsight.persona_confidence as "high" | "medium" | "low") ?? "low",
+          score: 50,
+          matched_rules: [],
+          why: [],
+          caveats: [],
+        } as VibePersona,
+        analyzedAt: job.completed_at ?? new Date().toISOString(),
+      });
+    }
+  }
+
+  if (repoInsights.length === 0) {
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  const profile = aggregateUserProfile(repoInsights);
+
+  const triggerJobId =
+    completedJobs
+      .slice()
+      .sort((a, b) => (a.completed_at ?? "").localeCompare(b.completed_at ?? ""))
+      .at(-1)?.id ?? null;
+
+  const profileRow: Insertable<"user_profiles"> = {
+    user_id: user.id,
+    total_commits: profile.totalCommits,
+    total_repos: profile.totalRepos,
+    job_ids: profile.jobIds,
+    axes_json: profile.axes as unknown as Json,
+    persona_id: profile.persona.id,
+    persona_name: profile.persona.name,
+    persona_tagline: profile.persona.tagline,
+    persona_confidence: profile.persona.confidence,
+    persona_score: profile.persona.score,
+    repo_personas_json: profile.repoBreakdown as unknown as Json,
+    cards_json: profile.cards as unknown as Json,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error: profileError } = await service
+    .from("user_profiles")
+    .upsert(profileRow, { onConflict: "user_id" });
+
+  if (profileError) {
+    return NextResponse.json({ error: "failed_to_save_profile" }, { status: 500 });
+  }
+
+  const { error: historyError } = await service.from("user_profile_history").insert({
+    user_id: user.id,
+    profile_snapshot: profile as unknown as Json,
+    trigger_job_id: triggerJobId,
+  });
+
+  if (historyError && !historyError.message.toLowerCase().includes("does not exist")) {
+    return NextResponse.json({ error: "failed_to_save_history" }, { status: 500 });
+  }
+
+  return NextResponse.redirect(redirectUrl);
+}
