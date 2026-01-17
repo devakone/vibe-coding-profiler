@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database, DbSchema } from "@bolokono/db";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -24,17 +24,17 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-      setAll(
-        cookiesToSet: Array<{
-          name: string;
-          value: string;
-          options: Parameters<typeof response.cookies.set>[2];
-        }>
-      ) {
-        for (const { name, value, options } of cookiesToSet) {
-          response.cookies.set(name, value, options);
-        }
-      },
+        setAll(
+          cookiesToSet: Array<{
+            name: string;
+            value: string;
+            options: Parameters<typeof response.cookies.set>[2];
+          }>
+        ) {
+          for (const { name, value, options } of cookiesToSet) {
+            response.cookies.set(name, value, options);
+          }
+        },
       },
     }
   );
@@ -52,7 +52,9 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const protectedPrefixes = ["/repos", "/repo", "/analysis", "/profile"];
 
-  const isProtected = protectedPrefixes.some((p) => path === p || path.startsWith(`${p}/`));
+  const isProtected = protectedPrefixes.some(
+    (p) => path === p || path.startsWith(`${p}/`)
+  );
 
   if (isProtected && !user) {
     const redirectUrl = request.nextUrl.clone();
