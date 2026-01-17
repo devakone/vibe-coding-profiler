@@ -47,6 +47,7 @@ export async function GET(
 
   let report = null;
   let metrics = null;
+  let insights = null;
 
   if (job.status === "done") {
     const { data: r } = await (supabase as unknown as SupabaseQueryLike)
@@ -61,9 +62,16 @@ export async function GET(
       .eq("job_id", id)
       .single();
 
+    const { data: i } = await (supabase as unknown as SupabaseQueryLike)
+      .from("analysis_insights")
+      .select("insights_json, generator_version, generated_at")
+      .eq("job_id", id)
+      .single();
+
     report = r ?? null;
     metrics = m ?? null;
+    insights = i ?? null;
   }
 
-  return NextResponse.json({ job, report, metrics });
+  return NextResponse.json({ job, report, metrics, insights });
 }

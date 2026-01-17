@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { AnalysisMetrics, CommitEvent } from "@bolokono/core";
+import { computeAnalysisInsights } from "@bolokono/core";
+import type { AnalysisInsights, AnalysisMetrics, CommitEvent } from "@bolokono/core";
 
 type Job = {
   id: string;
@@ -16,6 +17,7 @@ type ApiResponse = {
   job: Job;
   report: unknown | null;
   metrics: unknown | null;
+  insights: unknown | null;
 };
 
 type NarrativeJson = {
@@ -46,12 +48,30 @@ type MetricsRow = {
   computed_at?: string;
 };
 
+type InsightsRow = {
+  insights_json?: unknown;
+  generator_version?: string;
+  generated_at?: string;
+};
+
 function isRecord(v: unknown): v is Record<string, unknown> {
   return Boolean(v) && typeof v === "object";
 }
 
 function isStringArray(v: unknown): v is string[] {
   return Array.isArray(v) && v.every((item) => typeof item === "string");
+}
+
+function isNumberOrNull(v: unknown): v is number | null {
+  return v === null || typeof v === "number";
+}
+
+function isStringOrNull(v: unknown): v is string | null {
+  return v === null || typeof v === "string";
+}
+
+function isBooleanOrNull(v: unknown): v is boolean | null {
+  return v === null || typeof v === "boolean";
 }
 
 function isNarrativeJson(v: unknown): v is NarrativeJson {
@@ -122,6 +142,89 @@ function isMetricsRow(v: unknown): v is MetricsRow {
   return true;
 }
 
+function isInsightsRow(v: unknown): v is InsightsRow {
+  if (!isRecord(v)) return false;
+  if (v.generator_version !== undefined && typeof v.generator_version !== "string") return false;
+  if (v.generated_at !== undefined && typeof v.generated_at !== "string") return false;
+  return true;
+}
+
+function isTechTerm(v: unknown): v is AnalysisInsights["tech"]["top_terms"][number] {
+  if (!isRecord(v)) return false;
+  return typeof v.term === "string" && typeof v.count === "number";
+}
+
+function isAnalysisInsights(v: unknown): v is AnalysisInsights {
+  if (!isRecord(v)) return false;
+  if (typeof v.version !== "string") return false;
+  if (v.timezone !== "UTC") return false;
+  if (typeof v.generated_at !== "string") return false;
+
+  if (!isRecord(v.totals) || typeof v.totals.commits !== "number") return false;
+
+  if (!isRecord(v.streak)) return false;
+  if (typeof v.streak.longest_days !== "number") return false;
+  if (!isStringOrNull(v.streak.start_day)) return false;
+  if (!isStringOrNull(v.streak.end_day)) return false;
+  if (!isStringArray(v.streak.evidence_shas ?? [])) return false;
+
+  if (!isRecord(v.timing)) return false;
+  if (!Array.isArray(v.timing.top_weekdays)) return false;
+  for (const tw of v.timing.top_weekdays) {
+    if (!isRecord(tw)) return false;
+    if (typeof tw.weekday !== "number") return false;
+    if (typeof tw.count !== "number") return false;
+  }
+  if (!isNumberOrNull(v.timing.peak_weekday)) return false;
+  if (!isNumberOrNull(v.timing.peak_hour)) return false;
+  if (
+    !(
+      v.timing.peak_window === null ||
+      v.timing.peak_window === "mornings" ||
+      v.timing.peak_window === "afternoons" ||
+      v.timing.peak_window === "evenings" ||
+      v.timing.peak_window === "late_nights"
+    )
+  ) {
+    return false;
+  }
+
+  if (!isRecord(v.commits)) return false;
+  if (!(v.commits.top_category === null || typeof v.commits.top_category === "string")) return false;
+  if (!isRecord(v.commits.category_counts)) return false;
+  for (const value of Object.values(v.commits.category_counts)) {
+    if (typeof value !== "number") return false;
+  }
+  if (typeof v.commits.features !== "number") return false;
+  if (typeof v.commits.fixes !== "number") return false;
+  if (!isNumberOrNull(v.commits.features_per_fix)) return false;
+  if (!isNumberOrNull(v.commits.fixes_per_feature)) return false;
+
+  if (!isRecord(v.chunkiness)) return false;
+  if (!isNumberOrNull(v.chunkiness.avg_files_changed)) return false;
+  if (
+    !(
+      v.chunkiness.label === null ||
+      v.chunkiness.label === "slicer" ||
+      v.chunkiness.label === "mixer" ||
+      v.chunkiness.label === "chunker"
+    )
+  ) {
+    return false;
+  }
+
+  if (!isRecord(v.patterns)) return false;
+  if (!isBooleanOrNull(v.patterns.auth_then_roles)) return false;
+
+  if (!isRecord(v.tech)) return false;
+  if (v.tech.source !== "commit_message_keywords") return false;
+  if (!Array.isArray(v.tech.top_terms) || !v.tech.top_terms.every(isTechTerm)) return false;
+
+  if (v.disclaimers !== undefined && !isStringArray(v.disclaimers)) return false;
+
+  return true;
+}
+
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -129,10 +232,34 @@ function fmtDate(iso: string | null): string {
   return d.toLocaleString();
 }
 
-function getNumber(obj: unknown, key: string): number | null {
-  if (!isRecord(obj)) return null;
-  const v = obj[key];
-  return typeof v === "number" ? v : null;
+function weekdayName(dow: number): string {
+  return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dow] ?? "—";
+}
+
+function InsightCard(props: {
+  eyebrow: string;
+  title: string;
+  value: string;
+  detail?: string;
+  accent: "pink" | "indigo" | "amber" | "emerald" | "cyan";
+}) {
+  const accent = {
+    pink: "from-fuchsia-500 to-pink-500",
+    indigo: "from-indigo-600 to-violet-600",
+    amber: "from-amber-500 to-orange-500",
+    emerald: "from-emerald-500 to-teal-500",
+    cyan: "from-cyan-500 to-sky-500",
+  }[props.accent];
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-black/5 bg-white p-5 shadow-sm">
+      <div className={`absolute -right-10 -top-10 h-36 w-36 rounded-full bg-gradient-to-br ${accent} opacity-20 blur-2xl`} />
+      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">{props.eyebrow}</p>
+      <p className="mt-2 text-lg font-semibold text-zinc-900">{props.title}</p>
+      <p className="mt-3 text-4xl font-semibold tracking-tight text-zinc-950">{props.value}</p>
+      {props.detail ? <p className="mt-3 text-sm text-zinc-600">{props.detail}</p> : null}
+    </div>
+  );
 }
 
 export default function AnalysisClient({ jobId }: { jobId: string }) {
@@ -171,12 +298,13 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
     };
   }, [jobId]);
 
-  if (error) return <p className="mt-6 text-sm text-red-400">{error}</p>;
-  if (!data) return <p className="mt-6 text-sm text-zinc-300">Loading...</p>;
+  if (error) return <p className="mt-6 text-sm text-red-600">{error}</p>;
+  if (!data) return <p className="mt-6 text-sm text-zinc-600">Loading…</p>;
 
-  const { job, report, metrics } = data;
+  const { job, report, metrics, insights } = data;
   const parsedReport = isReportRow(report) ? report : null;
   const parsedMetrics = isMetricsRow(metrics) ? metrics : null;
+  const parsedInsightsRow = isInsightsRow(insights) ? insights : null;
 
   const narrative = parsedReport?.narrative_json;
   const sections = narrative?.sections ?? [];
@@ -185,198 +313,243 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
   const metricsJson = parsedMetrics?.metrics_json ?? null;
   const events = parsedMetrics?.events_json ?? [];
 
-  const totalCommits = getNumber(metricsJson, "total_commits");
-  const activeDays = getNumber(metricsJson, "active_days");
-  const spanDays = getNumber(metricsJson, "span_days");
-  const burstiness = getNumber(metricsJson, "burstiness_score");
-  const hoursP50 = getNumber(metricsJson, "hours_between_commits_p50");
-  const fixRatio = getNumber(metricsJson, "fix_commit_ratio");
-  const conventionalRatio = getNumber(metricsJson, "conventional_commit_ratio");
+  const insightsJson = parsedInsightsRow?.insights_json ?? null;
+  const wrapped = isAnalysisInsights(insightsJson) ? insightsJson : computeAnalysisInsights(events);
 
   return (
     <div className="mt-6 flex flex-col gap-6">
-      <div className="rounded-md border border-white/10 bg-white/5 p-4">
-        <p className="text-sm text-white/60">Status</p>
-        <p className="mt-1 text-lg font-semibold text-white">{job.status}</p>
-        <dl className="mt-3 grid gap-2 text-sm text-white/70 sm:grid-cols-3">
+      <div className="rounded-3xl border border-black/5 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <dt className="text-white/50">Created</dt>
-            <dd className="font-mono text-xs">{fmtDate(job.created_at)}</dd>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Job status</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">{job.status}</p>
           </div>
-          <div>
-            <dt className="text-white/50">Started</dt>
-            <dd className="font-mono text-xs">{fmtDate(job.started_at)}</dd>
+          <div className="text-xs text-zinc-500">
+            <p>Created: <span className="font-mono">{fmtDate(job.created_at)}</span></p>
+            <p>Started: <span className="font-mono">{fmtDate(job.started_at)}</span></p>
+            <p>Completed: <span className="font-mono">{fmtDate(job.completed_at)}</span></p>
           </div>
-          <div>
-            <dt className="text-white/50">Completed</dt>
-            <dd className="font-mono text-xs">{fmtDate(job.completed_at)}</dd>
-          </div>
-        </dl>
-        {job.error_message ? (
-          <p className="mt-3 text-sm text-red-400">{job.error_message}</p>
-        ) : null}
+        </div>
+        {job.error_message ? <p className="mt-4 text-sm text-red-600">{job.error_message}</p> : null}
       </div>
 
-      {job.status === "done" ? (
-        parsedReport ? (
-          <div className="flex flex-col gap-6">
-            <div className="rounded-md border border-white/10 bg-white/5 p-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-sm text-white/60">Bolokono type</p>
-                  <p className="mt-1 text-lg font-semibold text-white">
-                    {parsedReport.bolokono_type ?? "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-white/60">Model</p>
-                  <p className="mt-1 text-sm font-medium text-white">
-                    {parsedReport.llm_model ?? "—"}
-                  </p>
-                  <p className="mt-1 text-xs text-white/50">
-                    Generated {parsedReport.generated_at ? fmtDate(parsedReport.generated_at) : "—"}
-                  </p>
-                </div>
-              </div>
+      {job.status === "done" && events.length > 0 ? (
+        <>
+          <div className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-white p-6 shadow-sm">
+            <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-500/10 via-transparent to-cyan-500/10" />
+            <div className="relative">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Your Coding Wrapped</p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950">
+                {parsedReport?.bolokono_type ? parsedReport.bolokono_type : "Your profile"}
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm text-zinc-600">
+                {narrative?.summary ??
+                  "High-level habits derived from commit timestamps, messages, and basic stats. No file contents are used."}
+              </p>
+              {parsedReport?.generated_at ? (
+                <p className="mt-2 text-xs text-zinc-500">Generated {fmtDate(parsedReport.generated_at)}</p>
+              ) : null}
+            </div>
+          </div>
 
-              <p className="mt-6 text-sm font-medium text-white">Summary</p>
-              <p className="mt-1 text-sm text-white/80">{narrative?.summary ?? "—"}</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <InsightCard
+              accent="pink"
+              eyebrow="Streak"
+              title="Longest coding streak"
+              value={`${wrapped.streak.longest_days} day${wrapped.streak.longest_days === 1 ? "" : "s"}`}
+              detail={
+                wrapped.streak.start_day && wrapped.streak.end_day
+                  ? `${wrapped.streak.start_day} → ${wrapped.streak.end_day}`
+                  : undefined
+              }
+            />
+            <InsightCard
+              accent="cyan"
+              eyebrow="Timing"
+              title="You code most on"
+              value={wrapped.timing.peak_weekday !== null ? weekdayName(wrapped.timing.peak_weekday) : "—"}
+              detail={
+                wrapped.timing.peak_window !== null ? `Mostly in the ${wrapped.timing.peak_window} (UTC)` : "—"
+              }
+            />
+            <InsightCard
+              accent="amber"
+              eyebrow="Focus"
+              title="Most common commits"
+              value={wrapped.commits.top_category ?? "—"}
+              detail={
+                wrapped.commits.top_category
+                  ? `${wrapped.commits.category_counts[wrapped.commits.top_category] ?? 0} of ${wrapped.totals.commits}`
+                  : undefined
+              }
+            />
+            <InsightCard
+              accent="indigo"
+              eyebrow="Ratio"
+              title="Features vs fixes"
+              value={
+                wrapped.commits.features_per_fix !== null
+                  ? `${wrapped.commits.features_per_fix.toFixed(1)} : 1`
+                  : wrapped.commits.fixes_per_feature !== null
+                    ? `1 : ${wrapped.commits.fixes_per_feature.toFixed(1)}`
+                    : "—"
+              }
+              detail={
+                wrapped.commits.features_per_fix !== null
+                  ? "Features per fix"
+                  : wrapped.commits.fixes_per_feature !== null
+                    ? "Fixes per feature"
+                    : "Not enough signal"
+              }
+            />
+            <InsightCard
+              accent="emerald"
+              eyebrow="Size"
+              title="Commit “chunkiness”"
+              value={
+                wrapped.chunkiness.avg_files_changed !== null
+                  ? `${wrapped.chunkiness.avg_files_changed.toFixed(1)} files`
+                  : "—"
+              }
+              detail={
+                wrapped.chunkiness.label === "chunker"
+                  ? "Chunker: commits tend to touch many files"
+                  : wrapped.chunkiness.label === "mixer"
+                    ? "Mixer: a few files per commit"
+                    : wrapped.chunkiness.label === "slicer"
+                      ? "Slicer: tight, focused commits"
+                      : undefined
+              }
+            />
+            <InsightCard
+              accent="pink"
+              eyebrow="Starter"
+              title="How you start projects"
+              value={
+                wrapped.patterns.auth_then_roles === null
+                  ? "—"
+                  : wrapped.patterns.auth_then_roles
+                    ? "Auth → Roles"
+                    : "Varies"
+              }
+              detail={
+                wrapped.patterns.auth_then_roles === null
+                  ? "Not enough signal"
+                  : wrapped.patterns.auth_then_roles
+                  ? "Roles/permissions commits show up soon after auth."
+                  : "No consistent auth→roles sequence detected."
+              }
+            />
+          </div>
+
+          <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Tech signals</p>
+            <h3 className="mt-2 text-xl font-semibold tracking-tight text-zinc-950">Favorite technologies (best-effort)</h3>
+            {wrapped.tech.top_terms.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {wrapped.tech.top_terms.map((t) => (
+                  <span
+                    key={t.term}
+                    className="rounded-full border border-black/10 bg-zinc-50 px-3 py-1 text-sm font-medium text-zinc-800"
+                  >
+                    {t.term} <span className="text-zinc-500">({t.count})</span>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-zinc-600">
+                Not enough strong keywords in commit messages to infer tech. For real “favorite technologies”, we should
+                enrich data with GitHub repo languages or file-extension sampling (still without storing file contents).
+              </p>
+            )}
+          </div>
+
+          <details className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+            <summary className="cursor-pointer text-sm font-semibold text-zinc-900">Deep dive (for the curious)</summary>
+            <div className="mt-5 space-y-6">
+              {highlights.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {highlights.map((h, idx) => (
+                    <div key={`${h.metric ?? "metric"}-${idx}`} className="rounded-2xl border border-black/5 bg-zinc-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">{h.metric ?? "Metric"}</p>
+                      <p className="mt-2 text-2xl font-semibold text-zinc-900">{h.value ?? "—"}</p>
+                      <p className="mt-2 text-sm text-zinc-600">{h.interpretation ?? "—"}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {sections.length > 0 ? (
+                <div className="rounded-2xl border border-black/5 bg-zinc-50 p-5">
+                  <p className="text-sm font-semibold text-zinc-900">Narrative</p>
+                  <div className="mt-4 flex flex-col gap-5">
+                    {sections.map((s, idx) => (
+                      <section key={`${s.title ?? "section"}-${idx}`} className="space-y-2">
+                        <h4 className="text-base font-semibold text-zinc-900">{s.title ?? "Untitled"}</h4>
+                        <p className="text-sm text-zinc-700">{s.content ?? "—"}</p>
+                        {Array.isArray(s.evidence) && s.evidence.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {s.evidence.map((sha) => (
+                              <span
+                                key={sha}
+                                className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-zinc-700"
+                              >
+                                {sha.slice(0, 10)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </section>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               {matchedCriteria.length > 0 ? (
-                <>
-                  <p className="mt-6 text-sm font-medium text-white">Matched criteria</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
+                <div className="rounded-2xl border border-black/5 bg-zinc-50 p-5">
+                  <p className="text-sm font-semibold text-zinc-900">Matched criteria</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {matchedCriteria.map((c) => (
                       <span
                         key={c}
-                        className="rounded-md border border-white/15 bg-white/10 px-2 py-1 text-xs font-mono text-white/80"
+                        className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-zinc-700"
                       >
                         {c}
                       </span>
                     ))}
                   </div>
-                </>
+                </div>
               ) : null}
-            </div>
 
-            {highlights.length > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-3">
-                {highlights.map((h, idx) => (
-                  <div key={`${h.metric ?? "metric"}-${idx}`} className="rounded-md border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-wide text-white/50">{h.metric ?? "Metric"}</p>
-                    <p className="mt-2 text-2xl font-semibold text-white">{h.value ?? "—"}</p>
-                    <p className="mt-2 text-sm text-white/70">{h.interpretation ?? "—"}</p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+              <details className="rounded-2xl border border-black/5 bg-zinc-50 p-5">
+                <summary className="cursor-pointer text-sm font-semibold text-zinc-900">Raw metrics JSON</summary>
+                <pre className="mt-3 overflow-auto text-xs text-zinc-700">{JSON.stringify(metricsJson, null, 2)}</pre>
+              </details>
 
-            {sections.length > 0 ? (
-              <div className="rounded-md border border-white/10 bg-white/5 p-4">
-                <p className="text-sm font-medium text-white">Narrative</p>
-                <div className="mt-4 flex flex-col gap-5">
-                  {sections.map((s, idx) => (
-                    <section key={`${s.title ?? "section"}-${idx}`} className="space-y-2">
-                      <h3 className="text-base font-semibold text-white">{s.title ?? "Untitled"}</h3>
-                      <p className="text-sm text-white/80">{s.content ?? "—"}</p>
-                      {Array.isArray(s.evidence) && s.evidence.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {s.evidence.map((sha) => (
-                            <span
-                              key={sha}
-                              className="rounded-md border border-white/15 bg-white/10 px-2 py-1 text-xs font-mono text-white/80"
-                            >
-                              {sha.slice(0, 10)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                    </section>
+              <details className="rounded-2xl border border-black/5 bg-zinc-50 p-5">
+                <summary className="cursor-pointer text-sm font-semibold text-zinc-900">Commit sample ({events.length})</summary>
+                <ul className="mt-4 space-y-3">
+                  {events.slice(0, 20).map((e) => (
+                    <li key={e.sha} className="rounded-2xl border border-black/5 bg-white p-4">
+                      <p className="text-xs font-mono text-zinc-500">{e.sha}</p>
+                      <p className="mt-1 text-sm font-medium text-zinc-900">{e.message.split("\n")[0]}</p>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        {fmtDate(e.committer_date)} · {e.additions}+ / {e.deletions}- · {e.files_changed} files
+                      </p>
+                    </li>
                   ))}
-                </div>
-              </div>
-            ) : null}
-
-            {parsedMetrics ? (
-              <div className="rounded-md border border-white/10 bg-white/5 p-4">
-                <p className="text-sm font-medium text-white">Metrics</p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-md border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-wide text-white/50">Commits</p>
-                    <p className="mt-2 text-2xl font-semibold text-white">{totalCommits ?? "—"}</p>
-                    <p className="mt-2 text-sm text-white/70">
-                      Active days: {activeDays ?? "—"} · Span days: {spanDays ?? "—"}
-                    </p>
-                  </div>
-                  <div className="rounded-md border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-wide text-white/50">Rhythm</p>
-                    <p className="mt-2 text-2xl font-semibold text-white">
-                      {hoursP50 !== null ? `${hoursP50.toFixed(1)}h` : "—"}
-                    </p>
-                    <p className="mt-2 text-sm text-white/70">
-                      Burstiness: {burstiness !== null ? burstiness.toFixed(2) : "—"}
-                    </p>
-                  </div>
-                  <div className="rounded-md border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-wide text-white/50">Iteration</p>
-                    <p className="mt-2 text-2xl font-semibold text-white">
-                      {fixRatio !== null ? `${Math.round(fixRatio * 100)}%` : "—"}
-                    </p>
-                    <p className="mt-2 text-sm text-white/70">Fix commit ratio</p>
-                  </div>
-                  <div className="rounded-md border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-wide text-white/50">Messages</p>
-                    <p className="mt-2 text-2xl font-semibold text-white">
-                      {conventionalRatio !== null ? `${Math.round(conventionalRatio * 100)}%` : "—"}
-                    </p>
-                    <p className="mt-2 text-sm text-white/70">Conventional commits</p>
-                  </div>
-                </div>
-
-                <details className="mt-6 rounded-md border border-white/10 bg-white/5 p-4">
-                  <summary className="cursor-pointer text-sm font-medium text-white">
-                    View raw metrics JSON
-                  </summary>
-                  <pre className="mt-3 overflow-auto text-xs text-white/70">
-                    {JSON.stringify(metricsJson, null, 2)}
-                  </pre>
-                </details>
-
-                {events.length > 0 ? (
-                  <details className="mt-4 rounded-md border border-white/10 bg-white/5 p-4">
-                    <summary className="cursor-pointer text-sm font-medium text-white">
-                      View sample commits ({events.length})
-                    </summary>
-                    <ul className="mt-3 space-y-3">
-                      {events.slice(0, 20).map((e) => (
-                        <li key={e.sha} className="rounded-md border border-white/10 bg-black/20 p-3">
-                          <p className="text-xs font-mono text-white/70">{e.sha}</p>
-                          <p className="mt-1 text-sm text-white">{e.message.split("\n")[0]}</p>
-                          <p className="mt-1 text-xs text-white/50">
-                            {fmtDate(e.committer_date)} · {e.additions}+ / {e.deletions}- · {e.files_changed} files
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                    {events.length > 20 ? (
-                      <p className="mt-3 text-xs text-white/50">Showing first 20 commits.</p>
-                    ) : null}
-                  </details>
-                ) : null}
-              </div>
-            ) : (
-              <div className="rounded-md border border-white/10 bg-white/5 p-4">
-                <p className="text-sm font-medium text-white">Metrics</p>
-                <p className="mt-2 text-sm text-white/70">No metrics found for this job.</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="rounded-md border border-white/10 bg-white/5 p-4">
-            <p className="text-sm font-medium text-white">Report</p>
-            <p className="mt-2 text-sm text-white/70">No report found for this job.</p>
-          </div>
-        )
+                </ul>
+                {events.length > 20 ? <p className="mt-3 text-xs text-zinc-500">Showing first 20 commits.</p> : null}
+              </details>
+            </div>
+          </details>
+        </>
+      ) : job.status === "done" ? (
+        <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+          <p className="text-sm font-semibold text-zinc-900">No analysis data found for this job.</p>
+          <p className="mt-2 text-sm text-zinc-600">The job completed, but no commit events were returned.</p>
+        </div>
       ) : null}
     </div>
   );

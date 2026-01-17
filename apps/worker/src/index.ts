@@ -15,6 +15,7 @@
 import { createServerClient, type Json } from "@bolokono/db";
 import {
   assignBolokonoType,
+  computeAnalysisInsights,
   computeAnalysisMetrics,
   decryptString,
   type AnalysisReport,
@@ -191,6 +192,7 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
 
     const metrics = computeAnalysisMetrics(events);
     const assignment = assignBolokonoType(metrics);
+    const insights = computeAnalysisInsights(events);
 
     const report: AnalysisReport = {
       bolokono_type: assignment.bolokono_type,
@@ -253,6 +255,17 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
           narrative_json: report.narrative as unknown as Json,
           evidence_json: report.matched_criteria as unknown as Json,
           llm_model: "none",
+        },
+      ],
+      { onConflict: "job_id" }
+    );
+
+    await supabase.from("analysis_insights").upsert(
+      [
+        {
+          job_id: jobId,
+          insights_json: insights as unknown as Json,
+          generator_version: ANALYZER_VERSION,
         },
       ],
       { onConflict: "job_id" }

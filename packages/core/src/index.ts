@@ -117,6 +117,63 @@ export interface AnalysisReport {
   matched_criteria: string[];
 }
 
+export type AnalysisInsightConfidence = "high" | "medium" | "low";
+
+export type AnalysisInsightTimeWindow = "mornings" | "afternoons" | "evenings" | "late_nights";
+
+export type AnalysisInsightChunkiness = "slicer" | "mixer" | "chunker";
+
+export interface AnalysisInsights {
+  version: string;
+  timezone: "UTC";
+  generated_at: string;
+  totals: {
+    commits: number;
+  };
+  streak: {
+    longest_days: number;
+    start_day: string | null;
+    end_day: string | null;
+    confidence: AnalysisInsightConfidence;
+    evidence_shas: string[];
+  };
+  timing: {
+    top_weekdays: Array<{ weekday: number; count: number }>;
+    peak_weekday: number | null;
+    peak_hour: number | null;
+    peak_window: AnalysisInsightTimeWindow | null;
+    confidence: AnalysisInsightConfidence;
+    evidence_shas: string[];
+  };
+  commits: {
+    top_category: BuildCategory | null;
+    category_counts: Record<BuildCategory, number>;
+    features: number;
+    fixes: number;
+    features_per_fix: number | null;
+    fixes_per_feature: number | null;
+    confidence: AnalysisInsightConfidence;
+    evidence_shas: string[];
+  };
+  chunkiness: {
+    avg_files_changed: number | null;
+    label: AnalysisInsightChunkiness | null;
+    confidence: AnalysisInsightConfidence;
+    evidence_shas: string[];
+  };
+  patterns: {
+    auth_then_roles: boolean | null;
+    confidence: AnalysisInsightConfidence;
+    evidence_shas: string[];
+  };
+  tech: {
+    source: "commit_message_keywords";
+    top_terms: Array<{ term: string; count: number }>;
+    confidence: AnalysisInsightConfidence;
+  };
+  disclaimers: string[];
+}
+
 export type JobStatus = "queued" | "running" | "done" | "error";
 
 // =============================================================================
@@ -454,4 +511,275 @@ export function assignBolokonoType(metrics: AnalysisMetrics): {
   if (metrics.total_commits >= 50 && metrics.data_quality_score >= 75) confidence = "high";
 
   return { bolokono_type, confidence, matched_criteria };
+}
+
+function utcDayKey(iso: string): string | null {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function utcDayFromKey(key: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+  if (!m) return null;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+function timeWindowUtc(hour: number): AnalysisInsights["timing"]["peak_window"] {
+  if (hour >= 5 && hour <= 11) return "mornings";
+  if (hour >= 12 && hour <= 16) return "afternoons";
+  if (hour >= 17 && hour <= 21) return "evenings";
+  return "late_nights";
+}
+
+function toCountsRecord<K extends string>(all: K[], map: Map<K, number>): Record<K, number> {
+  return Object.fromEntries(all.map((k) => [k, map.get(k) ?? 0])) as Record<K, number>;
+}
+
+function meanNumber(values: number[]): number | null {
+  if (values.length === 0) return null;
+  return values.reduce((s, v) => s + v, 0) / values.length;
+}
+
+function topNFromMap<T extends string | number>(map: Map<T, number>, n: number): Array<{ key: T; count: number }> {
+  return Array.from(map.entries())
+    .map(([key, count]) => ({ key, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, n);
+}
+
+function longestStreakUtc(dayKeys: string[]): { days: number; start: string | null; end: string | null } {
+  const unique = Array.from(new Set(dayKeys));
+  const dates = unique
+    .map((k) => ({ key: k, d: utcDayFromKey(k) }))
+    .filter((x): x is { key: string; d: Date } => Boolean(x.d))
+    .sort((a, b) => a.d.getTime() - b.d.getTime());
+
+  let best = { days: 0, start: null as string | null, end: null as string | null };
+  let current = { days: 0, start: null as string | null, end: null as string | null };
+
+  for (let i = 0; i < dates.length; i++) {
+    const prev = dates[i - 1];
+    const cur = dates[i];
+    if (!prev) {
+      current = { days: 1, start: cur.key, end: cur.key };
+    } else {
+      const deltaDays = Math.round((cur.d.getTime() - prev.d.getTime()) / (1000 * 60 * 60 * 24));
+      if (deltaDays === 1) current = { days: current.days + 1, start: current.start, end: cur.key };
+      else current = { days: 1, start: cur.key, end: cur.key };
+    }
+    if (current.days > best.days) best = { ...current };
+  }
+
+  return best;
+}
+
+function confidenceFromCommits(totalCommits: number): AnalysisInsightConfidence {
+  if (totalCommits >= 50) return "high";
+  if (totalCommits >= 15) return "medium";
+  return "low";
+}
+
+export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights {
+  const byTimeAsc = [...events].sort(
+    (a, b) => new Date(a.committer_date).getTime() - new Date(b.committer_date).getTime()
+  );
+
+  const totalCommits = byTimeAsc.length;
+  const confidence = confidenceFromCommits(totalCommits);
+
+  const dayCounts = new Map<string, number>();
+  const weekdayCounts = new Map<number, number>();
+  const hourCounts = new Map<number, number>();
+  const categoryCounts = new Map<BuildCategory, number>();
+  const filesChanged: number[] = [];
+
+  const evidenceByWeekday = new Map<number, string[]>();
+  const evidenceByWindow = new Map<AnalysisInsights["timing"]["peak_window"], string[]>();
+  const evidenceByCategory = new Map<BuildCategory, string[]>();
+
+  const allCategories: BuildCategory[] = [
+    "setup",
+    "auth",
+    "feature",
+    "test",
+    "infra",
+    "docs",
+    "refactor",
+    "fix",
+    "style",
+    "chore",
+    "unknown",
+  ];
+
+  for (const e of byTimeAsc) {
+    const dayKey = utcDayKey(e.committer_date);
+    if (dayKey) dayCounts.set(dayKey, (dayCounts.get(dayKey) ?? 0) + 1);
+
+    const d = new Date(e.committer_date);
+    if (!Number.isNaN(d.getTime())) {
+      const dow = d.getUTCDay();
+      const hour = d.getUTCHours();
+      weekdayCounts.set(dow, (weekdayCounts.get(dow) ?? 0) + 1);
+      hourCounts.set(hour, (hourCounts.get(hour) ?? 0) + 1);
+      if ((evidenceByWeekday.get(dow) ?? []).length < 5) {
+        evidenceByWeekday.set(dow, [...(evidenceByWeekday.get(dow) ?? []), e.sha]);
+      }
+
+      const w = timeWindowUtc(hour);
+      if ((evidenceByWindow.get(w) ?? []).length < 5) {
+        evidenceByWindow.set(w, [...(evidenceByWindow.get(w) ?? []), e.sha]);
+      }
+    }
+
+    const category = classifyCommit(e.message);
+    categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
+    if ((evidenceByCategory.get(category) ?? []).length < 5) {
+      evidenceByCategory.set(category, [...(evidenceByCategory.get(category) ?? []), e.sha]);
+    }
+
+    if (Number.isFinite(e.files_changed)) filesChanged.push(e.files_changed);
+  }
+
+  const streak = longestStreakUtc(Array.from(dayCounts.keys()));
+  const topWeekdays = topNFromMap(weekdayCounts, 2).map((x) => ({ weekday: x.key, count: x.count }));
+  const peakWeekday = topWeekdays[0]?.weekday ?? null;
+  const peakHour = topNFromMap(hourCounts, 1)[0]?.key ?? null;
+  const peakWindow = peakHour !== null ? timeWindowUtc(peakHour) : null;
+
+  const topCategory = topNFromMap(categoryCounts, 1)[0]?.key ?? null;
+  const features = categoryCounts.get("feature") ?? 0;
+  const fixes = categoryCounts.get("fix") ?? 0;
+
+  const featuresPerFix = fixes > 0 ? features / fixes : null;
+  const fixesPerFeature = features > 0 ? fixes / features : null;
+
+  const avgFiles = meanNumber(filesChanged);
+  const chunkLabel: AnalysisInsights["chunkiness"]["label"] =
+    avgFiles === null ? null : avgFiles >= 6 ? "chunker" : avgFiles >= 3 ? "mixer" : "slicer";
+
+  const authIndex = byTimeAsc.findIndex((e) => classifyCommit(e.message) === "auth");
+  const rolesIndex = byTimeAsc.findIndex((e) =>
+    /(\brole\b|\broles\b|\brbac\b|\bpermission(s)?\b|\bacl\b|\baccess control\b)/i.test(
+      e.message.split("\n")[0] ?? ""
+    )
+  );
+  const authThenRoles =
+    authIndex !== -1 && rolesIndex !== -1 && rolesIndex > authIndex && rolesIndex - authIndex <= 12;
+  const patternsConfidence = totalCommits >= 20 ? "medium" : confidence;
+
+  const techTerms = [
+    "react",
+    "next",
+    "supabase",
+    "postgres",
+    "docker",
+    "kubernetes",
+    "tailwind",
+    "typescript",
+    "node",
+    "python",
+    "go",
+    "rust",
+    "terraform",
+    "aws",
+    "gcp",
+    "azure",
+    "vercel",
+    "prisma",
+  ];
+
+  const techCounts = new Map<string, number>();
+  for (const e of byTimeAsc) {
+    const subject = (e.message.split("\n")[0] ?? "").toLowerCase();
+    for (const t of techTerms) {
+      if (subject.includes(t)) techCounts.set(t, (techCounts.get(t) ?? 0) + 1);
+    }
+  }
+  const topTech = topNFromMap(techCounts, 3)
+    .filter((t) => t.count >= 2)
+    .map((t) => ({ term: String(t.key), count: t.count }));
+
+  const categoryCountsRecord = toCountsRecord(allCategories, categoryCounts);
+  const streakEvidence =
+    streak.start && streak.end
+      ? byTimeAsc
+          .filter((e) => {
+            const k = utcDayKey(e.committer_date);
+            return k !== null && k >= streak.start! && k <= streak.end!;
+          })
+          .slice(0, 10)
+          .map((e) => e.sha)
+      : [];
+
+  const timingEvidence =
+    peakWindow !== null ? [...(evidenceByWindow.get(peakWindow) ?? [])] : [];
+
+  const commitsEvidence = topCategory ? [...(evidenceByCategory.get(topCategory) ?? [])] : [];
+  const patternsEvidence: string[] =
+    authIndex !== -1 && rolesIndex !== -1
+      ? [byTimeAsc[authIndex]?.sha, byTimeAsc[rolesIndex]?.sha].filter(
+          (s): s is string => typeof s === "string"
+        )
+      : [];
+
+  const disclaimers = [
+    "Insights are computed from commit timestamps and messages only (no file contents).",
+    "Time-based insights are computed in UTC for consistency.",
+    "These are observational patterns, not judgments.",
+  ];
+
+  return {
+    version: "0.1.0",
+    timezone: "UTC",
+    generated_at: new Date().toISOString(),
+    totals: { commits: totalCommits },
+    streak: {
+      longest_days: streak.days,
+      start_day: streak.start,
+      end_day: streak.end,
+      confidence,
+      evidence_shas: streakEvidence,
+    },
+    timing: {
+      top_weekdays: topWeekdays,
+      peak_weekday: peakWeekday,
+      peak_hour: peakHour,
+      peak_window: peakWindow,
+      confidence,
+      evidence_shas: timingEvidence,
+    },
+    commits: {
+      top_category: topCategory,
+      category_counts: categoryCountsRecord,
+      features,
+      fixes,
+      features_per_fix: featuresPerFix,
+      fixes_per_feature: fixesPerFeature,
+      confidence,
+      evidence_shas: commitsEvidence,
+    },
+    chunkiness: {
+      avg_files_changed: avgFiles,
+      label: chunkLabel,
+      confidence,
+      evidence_shas: commitsEvidence,
+    },
+    patterns: {
+      auth_then_roles: totalCommits >= 10 ? authThenRoles : null,
+      confidence: patternsConfidence,
+      evidence_shas: patternsEvidence,
+    },
+    tech: {
+      source: "commit_message_keywords",
+      top_terms: topTech,
+      confidence: topTech.length > 0 ? confidence : "low",
+    },
+    disclaimers,
+  };
 }
