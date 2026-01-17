@@ -266,6 +266,13 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
           job_id: jobId,
           insights_json: insights as unknown as Json,
           generator_version: ANALYZER_VERSION,
+          persona_id: insights.persona.id,
+          persona_label: insights.persona.label,
+          persona_confidence: insights.persona.confidence,
+          tech_signals: insights.tech_signals,
+          share_template: insights.share_template,
+          persona_delta: insights.persona_delta,
+          sources: insights.sources,
         },
       ],
       { onConflict: "job_id" }

@@ -123,6 +123,347 @@ export type AnalysisInsightTimeWindow = "mornings" | "afternoons" | "evenings" |
 
 export type AnalysisInsightChunkiness = "slicer" | "mixer" | "chunker";
 
+export type PersonaId =
+  | "spec-architect"
+  | "test-validator"
+  | "vibe-prototyper"
+  | "agent-orchestrator"
+  | "specialist-consultant"
+  | "infra-architect"
+  | "debugger-risk-taker"
+  | "reflective-balancer";
+
+export interface AnalysisInsightPersona {
+  id: PersonaId;
+  label: string;
+  description: string;
+  confidence: AnalysisInsightConfidence;
+  archetypes: string[];
+  evidence_shas: string[];
+}
+
+export interface AnalysisInsightTechSignals {
+  source: "commit_message_keywords";
+  top_terms: Array<{ term: string; count: number }>;
+  confidence: AnalysisInsightConfidence;
+}
+
+export interface AnalysisInsightShareTemplate {
+  colors: {
+    primary: string;
+    accent: string;
+  };
+  headline: string;
+  subhead: string;
+  metrics: Array<{ label: string; value: string }>;
+  persona_archetype: {
+    label: string;
+    archetypes: string[];
+  };
+}
+
+export interface AnalysisInsightPersonaDelta {
+  from: PersonaId | null;
+  to: PersonaId;
+  note: string;
+  evidence_shas: string[];
+}
+
+interface PersonaDescriptor {
+  label: string;
+  description: string;
+  archetypes: string[];
+  color: string;
+  accent: string;
+}
+
+const PERSONA_DESCRIPTORS: Record<PersonaId, PersonaDescriptor> = {
+  "spec-architect": {
+    label: "Spec-Driven Architect",
+    description: "Plans thoroughly before touching code; constraints are part of every decision.",
+    archetypes: ["Shuri", "Nya", "Bix Caleen"],
+    color: "#7C3AED",
+    accent: "#C084FC",
+  },
+  "test-validator": {
+    label: "Test-First Validator",
+    description: "Test suites act as the contract; AI suggests code only after tests exist.",
+    archetypes: ["Hermione Granger", "Shuri (mentor side)", "Kira Yukimura"],
+    color: "#10B981",
+    accent: "#6EE7B7",
+  },
+  "vibe-prototyper": {
+    label: "Vibe Prototyper",
+    description: "Explores ideas by prompt, iterates fast, and adapts on instinct.",
+    archetypes: ["Mirabel Madrigal", "Aisha (Insecure)", "Naru"],
+    color: "#F97316",
+    accent: "#FDBA74",
+  },
+  "agent-orchestrator": {
+    label: "Multi-Agent Orchestrator",
+    description: "Coordinates autonomous agents/worktrees to conquer complex change.",
+    archetypes: ["River Tam", "Chihiro", "Commander Adama"],
+    color: "#0EA5E9",
+    accent: "#7DD3FC",
+  },
+  "specialist-consultant": {
+    label: "Specialist Consultant",
+    description: "Assigns roles, libraries, and review steps with an architect’s precision.",
+    archetypes: ["General Antiope", "Commander Kallus", "Zoe Washburne"],
+    color: "#F472B6",
+    accent: "#F9A8D4",
+  },
+  "infra-architect": {
+    label: "Infrastructure Architect",
+    description: "Enforces governance across services while enabling safe evolution.",
+    archetypes: ["T'Challa", "Korra", "N'Jobu"],
+    color: "#22D3EE",
+    accent: "#7DD3FC",
+  },
+  "debugger-risk-taker": {
+    label: "Rapid Risk-Taker",
+    description: "Dives into hotfixes with urgency; loves hands-on debugging.",
+    archetypes: ["Riri Williams / Ironheart", "Okoye", "Nakoma"],
+    color: "#EF4444",
+    accent: "#FCA5A5",
+  },
+  "reflective-balancer": {
+    label: "Reflective Balancer",
+    description: "Bridges creativity and discipline, reflecting before moving forward.",
+    archetypes: ["Nakia", "Briar Rose", "Capheus"],
+    color: "#0F766E",
+    accent: "#5EEAD4",
+  },
+};
+
+const INSIGHT_SOURCES = [
+  "docs/research/ai-era-coding-personas.md",
+  "docs/research/ai-era-developer-personas-chatgpt.md",
+];
+
+const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function weekdayName(weekday: number | null): string | null {
+  if (weekday === null) return null;
+  return WEEKDAY_NAMES[weekday] ?? null;
+}
+
+function formatWindowLabel(window: AnalysisInsightTimeWindow | null): string {
+  if (!window) return "steady";
+  if (window === "mornings") return "Mornings";
+  if (window === "afternoons") return "Afternoons";
+  if (window === "evenings") return "Evenings";
+  return "Late nights";
+}
+
+function personaConfidenceFromScore(bestScore: number, totalScore: number): AnalysisInsightConfidence {
+  const ratio = bestScore / Math.max(1, totalScore);
+  if (ratio >= 0.4) return "high";
+  if (ratio >= 0.2) return "medium";
+  return "low";
+}
+
+interface PersonaDetectionArgs {
+  totalCommits: number;
+  docEvidence: string[];
+  agentEvidence: string[];
+  testCount: number;
+  featureCount: number;
+  fixCount: number;
+  setupCount: number;
+  docsCount: number;
+  authCount: number;
+  infraCount: number;
+  chunkLabel: AnalysisInsightChunkiness | null;
+  avgFilesChanged: number | null;
+  highFileCommitRatio: number;
+  fixAfterFeatureCount: number;
+  patterns: boolean;
+  evidenceByCategory: Map<BuildCategory, string[]>;
+}
+
+interface PersonaDetectionResult {
+  persona: AnalysisInsightPersona;
+  delta: AnalysisInsightPersonaDelta[];
+}
+
+function detectPersona(args: PersonaDetectionArgs): PersonaDetectionResult {
+  const {
+    totalCommits,
+    docEvidence,
+    agentEvidence,
+    testCount,
+    featureCount,
+    fixCount,
+    setupCount,
+    docsCount,
+    authCount,
+    infraCount,
+    chunkLabel,
+    highFileCommitRatio,
+    fixAfterFeatureCount,
+    patterns,
+    evidenceByCategory,
+  } = args;
+
+  const personaScores: Record<PersonaId, number> = {
+    "spec-architect": 0,
+    "test-validator": 0,
+    "vibe-prototyper": 0,
+    "agent-orchestrator": 0,
+    "specialist-consultant": 0,
+    "infra-architect": 0,
+    "debugger-risk-taker": 0,
+    "reflective-balancer": 0,
+  };
+
+  const personaEvidence: Record<PersonaId, Set<string>> = {
+    "spec-architect": new Set(),
+    "test-validator": new Set(),
+    "vibe-prototyper": new Set(),
+    "agent-orchestrator": new Set(),
+    "specialist-consultant": new Set(),
+    "infra-architect": new Set(),
+    "debugger-risk-taker": new Set(),
+    "reflective-balancer": new Set(),
+  };
+
+  const addScore = (id: PersonaId, value: number, evidence?: string[]) => {
+    if (value <= 0) return;
+    personaScores[id] += value;
+    evidence?.forEach((sha) => personaEvidence[id].add(sha));
+  };
+
+  if (docEvidence.length > 0) {
+    addScore("spec-architect", docEvidence.length, docEvidence);
+  }
+
+  if (patterns) {
+    addScore("spec-architect", 1, docEvidence.slice(0, 1));
+  }
+
+  const docRatio =
+    totalCommits === 0 ? 0 : (setupCount + docsCount + authCount) / Math.max(1, totalCommits);
+  if (docRatio >= 0.15) {
+    addScore("spec-architect", 1, docEvidence.slice(0, 1));
+  }
+
+  const testEvidence = evidenceByCategory.get("test") ?? [];
+  if (testCount > 0) {
+    addScore("test-validator", testCount, testEvidence);
+  }
+
+  if (chunkLabel === "chunker") {
+    addScore("agent-orchestrator", 2, agentEvidence);
+  } else if (chunkLabel === "mixer") {
+    addScore("agent-orchestrator", 1, agentEvidence);
+  }
+
+  if (args.avgFilesChanged !== null && args.avgFilesChanged >= 6) {
+    addScore("agent-orchestrator", 1, agentEvidence);
+  }
+
+  if (highFileCommitRatio >= 0.2) {
+    addScore("agent-orchestrator", highFileCommitRatio * 3, agentEvidence);
+  }
+
+  if (fixAfterFeatureCount >= 2) {
+    addScore("debugger-risk-taker", fixAfterFeatureCount, evidenceByCategory.get("fix"));
+  }
+
+  if (fixCount > featureCount) {
+    addScore("debugger-risk-taker", 1, evidenceByCategory.get("fix"));
+  }
+
+  if (infraCount >= 3) {
+    addScore("infra-architect", infraCount, evidenceByCategory.get("infra"));
+  }
+
+  if (testCount > 0 && docEvidence.length > 0) {
+    addScore("specialist-consultant", 2, [...docEvidence, ...testEvidence]);
+  }
+
+  if (totalCommits <= 30) {
+    addScore("vibe-prototyper", totalCommits > 0 ? 1 : 0, evidenceByCategory.get("feature"));
+  }
+
+  if (chunkLabel === "slicer" || chunkLabel === "mixer") {
+    addScore("vibe-prototyper", chunkLabel === "slicer" ? 1.5 : 0.8, evidenceByCategory.get("feature"));
+  }
+
+  if (Object.values(personaScores).every((score) => score === 0)) {
+    addScore("reflective-balancer", 1, docEvidence);
+  }
+
+  const sorted = Object.entries(personaScores) as Array<[PersonaId, number]>;
+  sorted.sort((a, b) => b[1] - a[1]);
+  const [bestId, bestScore] = sorted[0];
+  const totalScore = Object.values(personaScores).reduce((sum, value) => sum + value, 0) || 1;
+  const confidence = personaConfidenceFromScore(bestScore, totalScore);
+
+  const descriptor = PERSONA_DESCRIPTORS[bestId];
+  const persona: AnalysisInsightPersona = {
+    id: bestId,
+    label: descriptor.label,
+    description: descriptor.description,
+    confidence,
+    archetypes: descriptor.archetypes,
+    evidence_shas: Array.from(personaEvidence[bestId]).slice(0, 5),
+  };
+
+  const delta: AnalysisInsightPersonaDelta[] = [
+    {
+      from: null,
+      to: bestId,
+      note: `Detected as ${descriptor.label} based on observed signals.`,
+      evidence_shas: persona.evidence_shas,
+    },
+  ];
+
+  return { persona, delta };
+}
+
+function buildShareTemplate(
+  persona: AnalysisInsightPersona,
+  streak: ReturnType<typeof longestStreakUtc>,
+  peakWindow: AnalysisInsightTimeWindow | null,
+  chunkLabel: AnalysisInsights["chunkiness"]["label"],
+  featuresPerFix: number | null,
+  peakWeekday: number | null
+): AnalysisInsightShareTemplate {
+  const streakValue =
+    streak.days > 0 ? `${streak.days} day${streak.days === 1 ? "" : "s"}` : "No streak yet";
+
+  const metrics = [
+    { label: "Longest streak", value: streakValue },
+    { label: "Peak window", value: formatWindowLabel(peakWindow) },
+    { label: "Chunkiness", value: chunkLabel ?? "steady" },
+  ];
+
+  if (featuresPerFix !== null) {
+    metrics.push({
+      label: "Feature / Fix ratio",
+      value: featuresPerFix >= 1 ? `${featuresPerFix.toFixed(2)} features per fix` : `${(1 / featuresPerFix).toFixed(2)} fixes per feature`,
+    });
+  }
+
+  const personaDescriptor = PERSONA_DESCRIPTORS[persona.id];
+
+  return {
+    colors: {
+      primary: personaDescriptor.color,
+      accent: personaDescriptor.accent,
+    },
+    headline: `Vibed as ${persona.label}`,
+    subhead: `Confidence: ${persona.confidence}`,
+    metrics,
+    persona_archetype: {
+      label: persona.label,
+      archetypes: persona.archetypes,
+    },
+  };
+}
+
 export interface AnalysisInsights {
   version: string;
   timezone: "UTC";
@@ -166,11 +507,12 @@ export interface AnalysisInsights {
     confidence: AnalysisInsightConfidence;
     evidence_shas: string[];
   };
-  tech: {
-    source: "commit_message_keywords";
-    top_terms: Array<{ term: string; count: number }>;
-    confidence: AnalysisInsightConfidence;
-  };
+  tech: AnalysisInsightTechSignals;
+  persona: AnalysisInsightPersona;
+  share_template: AnalysisInsightShareTemplate;
+  persona_delta: AnalysisInsightPersonaDelta[];
+  tech_signals: AnalysisInsightTechSignals;
+  sources: string[];
   disclaimers: string[];
 }
 
@@ -603,6 +945,9 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
   const evidenceByWindow = new Map<AnalysisInsights["timing"]["peak_window"], string[]>();
   const evidenceByCategory = new Map<BuildCategory, string[]>();
 
+  const docKeywordRegex = /\b(doc|docs|documentation|architecture|design|spec|plan|adr|blueprint)\b/i;
+  const agentKeywordRegex = /\b(agent|agentic|cursor|autonomous|auto-?gpt)\b/i;
+
   const allCategories: BuildCategory[] = [
     "setup",
     "auth",
@@ -616,6 +961,11 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
     "chore",
     "unknown",
   ];
+
+  let prevCategory: BuildCategory | null = null;
+  let fixAfterFeatureCount = 0;
+  const docEvidence: string[] = [];
+  const agentEvidence: string[] = [];
 
   for (const e of byTimeAsc) {
     const dayKey = utcDayKey(e.committer_date);
@@ -643,7 +993,20 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
       evidenceByCategory.set(category, [...(evidenceByCategory.get(category) ?? []), e.sha]);
     }
 
+    const subject = (e.message.split("\n")[0] ?? "").toLowerCase();
+    if (docKeywordRegex.test(subject) && docEvidence.length < 5) {
+      docEvidence.push(e.sha);
+    }
+    if (agentKeywordRegex.test(subject) && agentEvidence.length < 5) {
+      agentEvidence.push(e.sha);
+    }
+
     if (Number.isFinite(e.files_changed)) filesChanged.push(e.files_changed);
+
+    if (category === "fix" && prevCategory === "feature") {
+      fixAfterFeatureCount += 1;
+    }
+    prevCategory = category;
   }
 
   const streak = longestStreakUtc(Array.from(dayCounts.keys()));
@@ -669,8 +1032,18 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
       e.message.split("\n")[0] ?? ""
     )
   );
-  const authThenRoles =
-    authIndex !== -1 && rolesIndex !== -1 && rolesIndex > authIndex && rolesIndex - authIndex <= 12;
+
+  const patterns = {
+    auth_then_roles:
+      authIndex !== -1 && rolesIndex !== -1 && rolesIndex > authIndex && rolesIndex - authIndex <= 12,
+    evidence_shas:
+      authIndex !== -1 && rolesIndex !== -1
+        ? [byTimeAsc[authIndex]?.sha, byTimeAsc[rolesIndex]?.sha].filter(
+            (s): s is string => typeof s === "string"
+          )
+        : [],
+  };
+
   const patternsConfidence = totalCommits >= 20 ? "medium" : confidence;
 
   const techTerms = [
@@ -701,11 +1074,13 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
       if (subject.includes(t)) techCounts.set(t, (techCounts.get(t) ?? 0) + 1);
     }
   }
+
   const topTech = topNFromMap(techCounts, 3)
     .filter((t) => t.count >= 2)
     .map((t) => ({ term: String(t.key), count: t.count }));
 
   const categoryCountsRecord = toCountsRecord(allCategories, categoryCounts);
+
   const streakEvidence =
     streak.start && streak.end
       ? byTimeAsc
@@ -717,16 +1092,42 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
           .map((e) => e.sha)
       : [];
 
-  const timingEvidence =
-    peakWindow !== null ? [...(evidenceByWindow.get(peakWindow) ?? [])] : [];
-
+  const timingEvidence = peakWindow !== null ? [...(evidenceByWindow.get(peakWindow) ?? [])] : [];
   const commitsEvidence = topCategory ? [...(evidenceByCategory.get(topCategory) ?? [])] : [];
-  const patternsEvidence: string[] =
-    authIndex !== -1 && rolesIndex !== -1
-      ? [byTimeAsc[authIndex]?.sha, byTimeAsc[rolesIndex]?.sha].filter(
-          (s): s is string => typeof s === "string"
-        )
-      : [];
+
+  const techSignals: AnalysisInsightTechSignals = {
+    source: "commit_message_keywords",
+    top_terms: topTech,
+    confidence: topTech.length > 0 ? confidence : "low",
+  };
+
+  const personaResult = detectPersona({
+    totalCommits,
+    docEvidence,
+    testCount: categoryCounts.get("test") ?? 0,
+    featureCount: features,
+    fixCount: fixes,
+    setupCount: categoryCounts.get("setup") ?? 0,
+    docsCount: categoryCounts.get("docs") ?? 0,
+    authCount: categoryCounts.get("auth") ?? 0,
+    infraCount: categoryCounts.get("infra") ?? 0,
+    chunkLabel,
+    avgFilesChanged: avgFiles,
+    highFileCommitRatio: totalCommits === 0 ? 0 : filesChanged.filter((n) => n >= 8).length / totalCommits,
+    fixAfterFeatureCount,
+    agentEvidence,
+    patterns: patterns.auth_then_roles,
+    evidenceByCategory,
+  });
+
+  const shareTemplate = buildShareTemplate(
+    personaResult.persona,
+    streak,
+    peakWindow,
+    chunkLabel,
+    featuresPerFix,
+    peakWeekday
+  );
 
   const disclaimers = [
     "Insights are computed from commit timestamps and messages only (no file contents).",
@@ -771,15 +1172,16 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
       evidence_shas: commitsEvidence,
     },
     patterns: {
-      auth_then_roles: totalCommits >= 10 ? authThenRoles : null,
+      auth_then_roles: totalCommits >= 10 ? patterns.auth_then_roles : null,
       confidence: patternsConfidence,
-      evidence_shas: patternsEvidence,
+      evidence_shas: patterns.evidence_shas,
     },
-    tech: {
-      source: "commit_message_keywords",
-      top_terms: topTech,
-      confidence: topTech.length > 0 ? confidence : "low",
-    },
+    tech: techSignals,
+    persona: personaResult.persona,
+    share_template: shareTemplate,
+    persona_delta: personaResult.delta,
+    tech_signals: techSignals,
+    sources: INSIGHT_SOURCES,
     disclaimers,
   };
 }
