@@ -6,7 +6,7 @@ const heroFeatures = [
   "Turn commit history into a build-rhythm profile",
   "See burstiness, fixups, and build categories over time",
   "Read a narrative that cites exact SHAs and metric values",
-  "Supabase Auth + RLS keep data scoped to your account",
+  "Supabase Auth + RLS scope user-facing reads to your account",
 ];
 
 const timeline = [
@@ -220,7 +220,7 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
           <h1 className="text-4xl font-semibold text-white">Your Bolokono dashboard</h1>
           <p className="text-lg text-white/70">
             A single pane for monitoring your repos, job status, and insights. Everything here is
-            backed by Supabase data and secure by design.
+            backed by Supabase data and scoped access controls.
           </p>
         </header>
 
