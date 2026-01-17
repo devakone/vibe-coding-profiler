@@ -46,13 +46,13 @@ export default async function ReposPage() {
       <div className="mx-auto max-w-3xl">
         <header className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
-            Add chapters
+            Your repos
           </p>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
-            Pick a project for a vibe check
+            Pick a repo for a vibe check
           </h1>
           <p className="text-sm text-zinc-700 sm:text-base">
-            Each repo becomes a chapter in your profile. Start with something safe and non-sensitive.
+            Each repo adds to your profile. Start with something safe and non-sensitive.
           </p>
         </header>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { wrappedTheme } from "@/lib/theme";
@@ -34,6 +34,9 @@ type ConnectedRepo = {
   full_name: string;
 };
 
+const GITHUB_REPO_CACHE_KEY = "vibed.githubRepos.v1";
+const GITHUB_REPO_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
+
 export default function ReposClient(props: {
   initialConnected: ConnectedRepo[];
   latestJobByRepoId: Record<string, string>;
@@ -45,6 +48,7 @@ export default function ReposClient(props: {
   const [error, setError] = useState<string | null>(null);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [selectedFullName, setSelectedFullName] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
 
   function formatWhen(iso: string | null | undefined): string | null {
     if (!iso) return null;
@@ -64,25 +68,72 @@ export default function ReposClient(props: {
     return repos.find((r) => r.full_name === selectedFullName) ?? null;
   }, [repos, selectedFullName]);
 
-  async function loadRepos() {
-    setIsLoading(true);
-    setError(null);
+  const readCachedRepos = useCallback((): { repos: GithubRepo[]; syncedAt: number } | null => {
     try {
-      const res = await fetch("/api/github/sync-repos", { method: "POST" });
-      const data = (await res.json()) as { repos?: GithubRepo[]; error?: string };
-      if (!res.ok) throw new Error(data.error || "Failed to load repos");
-      const nextRepos = data.repos ?? [];
-      setRepos(nextRepos);
-      setIsPickerOpen(false);
-      if (nextRepos.length > 0 && !selectedFullName) {
-        setSelectedFullName(nextRepos[0].full_name);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load repos");
-    } finally {
-      setIsLoading(false);
+      const raw = localStorage.getItem(GITHUB_REPO_CACHE_KEY);
+      if (!raw) return null;
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return null;
+      const record = parsed as Record<string, unknown>;
+      if (typeof record.syncedAt !== "number") return null;
+      if (!Array.isArray(record.repos)) return null;
+      return { repos: record.repos as GithubRepo[], syncedAt: record.syncedAt };
+    } catch {
+      return null;
     }
-  }
+  }, []);
+
+  const writeCachedRepos = useCallback((nextRepos: GithubRepo[]) => {
+    try {
+      const payload = JSON.stringify({ syncedAt: Date.now(), repos: nextRepos });
+      localStorage.setItem(GITHUB_REPO_CACHE_KEY, payload);
+    } catch {}
+  }, []);
+
+  const loadRepos = useCallback(
+    async (opts?: { force?: boolean }) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        if (!opts?.force) {
+          const cached = readCachedRepos();
+          if (cached && Date.now() - cached.syncedAt < GITHUB_REPO_CACHE_TTL_MS) {
+            setRepos(cached.repos);
+            setLastSyncedAt(cached.syncedAt);
+            setSelectedFullName((prev) => prev ?? cached.repos[0]?.full_name ?? null);
+            return;
+          }
+        }
+
+        const res = await fetch("/api/github/sync-repos", { method: "POST" });
+        const data = (await res.json()) as { repos?: GithubRepo[]; error?: string };
+        if (!res.ok) throw new Error(data.error || "Failed to load repos");
+        const nextRepos = data.repos ?? [];
+        setRepos(nextRepos);
+        setLastSyncedAt(Date.now());
+        writeCachedRepos(nextRepos);
+        setIsPickerOpen(false);
+        setSelectedFullName((prev) => prev ?? nextRepos[0]?.full_name ?? null);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load repos");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [readCachedRepos, writeCachedRepos]
+  );
+
+  useEffect(() => {
+    const cached = readCachedRepos();
+    if (cached && Date.now() - cached.syncedAt < GITHUB_REPO_CACHE_TTL_MS) {
+      setRepos(cached.repos);
+      setLastSyncedAt(cached.syncedAt);
+      setSelectedFullName((prev) => prev ?? cached.repos[0]?.full_name ?? null);
+      return;
+    }
+
+    void loadRepos();
+  }, [loadRepos, readCachedRepos]);
 
   async function connectRepo(repo: GithubRepo) {
     setIsLoading(true);
@@ -136,23 +187,24 @@ export default function ReposClient(props: {
         <button
           type="button"
           className="rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
-          onClick={loadRepos}
+          onClick={() => loadRepos({ force: true })}
           disabled={isLoading}
         >
-          {isLoading ? "Loading..." : "Pick a project"}
+          {isLoading ? "Loading..." : "Refresh from GitHub"}
         </button>
         <p className="text-sm text-zinc-700">
-          Choose a safe repo. Avoid work, NDA, or sensitive projects.
+          Choose a safe repo. Avoid work, NDA, or sensitive repos.
+          {lastSyncedAt ? ` · Last synced ${new Date(lastSyncedAt).toLocaleDateString()}` : ""}
         </p>
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-zinc-950">Your chapters</h2>
+        <h2 className="text-lg font-semibold text-zinc-950">Your repos</h2>
         {initialConnected.length === 0 ? (
           <p className="text-sm text-zinc-700">
-            No chapters yet. Add a repo to start building your profile.
+            No repos connected yet. Add one to start building your profile.
           </p>
         ) : (
           <ul className="divide-y divide-black/5 rounded-2xl border border-black/5 bg-white/70 backdrop-blur">
@@ -200,7 +252,7 @@ export default function ReposClient(props: {
         <h2 className="text-lg font-semibold text-zinc-950">Find a GitHub repo</h2>
         {repos === null ? (
           <p className="text-sm text-zinc-700">
-            Press “Pick a project” to load your repositories.
+            Loading your repositories…
           </p>
         ) : repos.length === 0 ? (
           <p className="text-sm text-zinc-700">No repositories found.</p>

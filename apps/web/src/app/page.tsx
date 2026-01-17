@@ -4,17 +4,17 @@ import type { Database } from "@vibed/db";
 import { wrappedTheme } from "@/lib/theme";
 
 const heroFeatures = [
-  "A vibe profile built from commit metadata and patterns",
-  "A persona snapshot with confidence and evidence SHAs",
-  "Charts for rhythm, burstiness, fixups, and build categories",
-  "A narrative that cites exact SHAs and metric values",
+  "A Vibed profile built from vibe-coding signals in your commit history",
+  "Persona snapshots that evolve as you add more repos",
+  "Share-ready cards with playful language and honest confidence",
+  "Deep dive metrics and evidence when you want receipts",
 ];
 
 const timeline = [
-  { title: "Connect GitHub", description: "Sign in, then choose which repos to analyze." },
-  { title: "Run an analysis", description: "We fetch commit history and compute metrics." },
-  { title: "Get your vibe coding profile", description: "See patterns, categories, and evidence SHAs." },
-  { title: "See your persona", description: "A lightweight archetype to set expectations, not judge you." },
+  { title: "Connect GitHub", description: "Sign in, then pick the repos that feel like you." },
+  { title: "Run a vibe check", description: "We read commit metadata and patterns (not your code)." },
+  { title: "Get your Vibed read", description: "Highlights, categories, and the story of how you build." },
+  { title: "See your persona", description: "A playful archetype that changes as your work evolves." },
 ];
 
 type AuthStats = {
@@ -188,16 +188,16 @@ function MarketingLanding() {
         <header className="space-y-6">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
-              For solo builders
+              For vibe coders
             </p>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 sm:text-5xl">
-              <span className={wrappedTheme.gradientText}>Find your coding vibe</span>{" "}
-              and persona, grounded in commit evidence
+              <span className={wrappedTheme.gradientText}>Find your Vibed coding profile</span>{" "}
+              and the personality behind your workflow
             </h1>
             <p className="max-w-2xl text-base text-zinc-700 sm:text-lg">
-              Vibed Coding analyzes commit history patterns to generate a vibe profile, a persona
-              snapshot, and a narrative with evidence SHAs. It is not a performance review and it
-              does not replace human judgment.
+              Vibed is a playful experiment by vibe coders who want to understand themselves
+              better. We surface signals from your commit history to shine a light on how you build
+              with AI. What feels like you, what feels new, and how your workflow is evolving.
             </p>
           </div>
 
@@ -225,8 +225,8 @@ function MarketingLanding() {
               ))}
             </ul>
             <p className="mt-6 text-sm text-zinc-700">
-              Personas are an interpretation layer based on signals we can observe in commits. They
-              can change as your repo evolves.
+              Personas are an interpretation layer based on observable commit signals. They can
+              shift as your repos and your AI habits evolve.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
@@ -265,8 +265,8 @@ function MarketingLanding() {
             <div>
               <h2 className="text-2xl font-semibold text-zinc-950">Persona previews</h2>
               <p className="mt-2 max-w-2xl text-sm text-zinc-800">
-                You may see one of these (or another persona) in your profile. The goal is to set
-                expectations for the vibe of your output, not to label you permanently.
+                You may see one of these (or another persona). These are lenses on your
+                vibe-coding style — observations, not labels.
               </p>
             </div>
             <Link
@@ -293,14 +293,7 @@ function MarketingLanding() {
 
         <footer className="mt-12 flex flex-col gap-3 border-t border-black/5 pt-6 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-zinc-700">Vibed Coding</p>
-          <div className="flex flex-wrap gap-4">
-            <Link href="/security" className="transition hover:text-zinc-900">
-              Security
-            </Link>
-            <Link href="/login" className="transition hover:text-zinc-900">
-              Sign in
-            </Link>
-          </div>
+          <p className="font-mono text-xs text-zinc-400">v0.1.0</p>
         </footer>
       </div>
     </div>
@@ -321,9 +314,9 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
 
   const cards = [
     {
-      label: "Projects in profile",
+      label: "Repos in profile",
       value: stats.connectedRepos,
-      helper: "Chapters you’ve added",
+      helper: "Repos you've connected",
     },
     {
       label: "Stories generated",
@@ -348,7 +341,7 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
             Your Vibed profile
           </h1>
           <p className="max-w-2xl text-lg text-zinc-700">
-            Narrative first, receipts always available. Your profile sharpens across safe projects.
+            Narrative first, receipts always available. Your profile sharpens across repos.
           </p>
         </header>
 
@@ -387,7 +380,7 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
           {stats.completedJobs === 0 ? (
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/repos" className={wrappedTheme.primaryButton}>
-                Pick a project
+                Pick a repo
               </Link>
               <Link href="/security" className={wrappedTheme.secondaryButton}>
                 What we store
@@ -399,7 +392,7 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
                 View stories
               </Link>
               <Link href="/repos" className={wrappedTheme.secondaryButton}>
-                Add a chapter
+                Add a repo
               </Link>
             </div>
           )}
@@ -439,7 +432,7 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
                 href="/repos"
                 className="rounded-full border border-white/70 bg-white/10 px-6 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15"
               >
-                Add a chapter
+                Add a repo
               </Link>
               <Link
                 href="/analysis"
