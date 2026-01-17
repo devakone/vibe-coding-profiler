@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { computeAnalysisInsights } from "@bolokono/core";
 import type { AnalysisInsights, AnalysisMetrics, CommitEvent } from "@bolokono/core";
 
@@ -220,6 +220,44 @@ function isAnalysisInsights(v: unknown): v is AnalysisInsights {
   if (v.tech.source !== "commit_message_keywords") return false;
   if (!Array.isArray(v.tech.top_terms) || !v.tech.top_terms.every(isTechTerm)) return false;
 
+  if (!isRecord(v.persona)) return false;
+  if (typeof v.persona.id !== "string") return false;
+  if (typeof v.persona.label !== "string") return false;
+  if (typeof v.persona.description !== "string") return false;
+  if (!Array.isArray(v.persona.archetypes) || !v.persona.archetypes.every((a) => typeof a === "string")) return false;
+  if (typeof v.persona.confidence !== "string") return false;
+  if (!isStringArray(v.persona.evidence_shas)) return false;
+
+  if (!isRecord(v.share_template)) return false;
+  if (typeof v.share_template.headline !== "string") return false;
+  if (typeof v.share_template.subhead !== "string") return false;
+  if (!isRecord(v.share_template.colors)) return false;
+  if (typeof v.share_template.colors.primary !== "string") return false;
+  if (typeof v.share_template.colors.accent !== "string") return false;
+  if (!Array.isArray(v.share_template.metrics)) return false;
+  for (const metric of v.share_template.metrics) {
+    if (!isRecord(metric)) return false;
+    if (typeof metric.label !== "string" || typeof metric.value !== "string") return false;
+  }
+  if (
+    !isRecord(v.share_template.persona_archetype) ||
+    typeof v.share_template.persona_archetype.label !== "string" ||
+    !Array.isArray(v.share_template.persona_archetype.archetypes)
+  ) {
+    return false;
+  }
+
+  if (!Array.isArray(v.persona_delta)) return false;
+  for (const delta of v.persona_delta) {
+    if (!isRecord(delta)) return false;
+    if (delta.from !== null && typeof delta.from !== "string") return false;
+    if (typeof delta.to !== "string") return false;
+    if (typeof delta.note !== "string") return false;
+    if (!isStringArray(delta.evidence_shas)) return false;
+  }
+
+  if (!Array.isArray(v.sources) || !v.sources.every((s) => typeof s === "string")) return false;
+
   if (v.disclaimers !== undefined && !isStringArray(v.disclaimers)) return false;
 
   return true;
@@ -260,7 +298,7 @@ function InsightCard(props: {
       {props.detail ? <p className="mt-3 text-sm text-zinc-600">{props.detail}</p> : null}
     </div>
   );
-}
+} 
 
 export default function AnalysisClient({ jobId }: { jobId: string }) {
   const [data, setData] = useState<ApiResponse | null>(null);
@@ -315,6 +353,29 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
   const insightsJson = parsedInsightsRow?.insights_json ?? null;
   const wrapped = isAnalysisInsights(insightsJson) ? insightsJson : computeAnalysisInsights(events);
+
+  const persona = wrapped.persona;
+  const shareTemplate = wrapped.share_template;
+  const personaDelta = wrapped.persona_delta;
+  const [copied, setCopied] = useState(false);
+
+  const shareText = useMemo(() => {
+    if (!shareTemplate) return "";
+    const metricsLine = shareTemplate.metrics
+      .map((metric) => `${metric.label}: ${metric.value}`)
+      .join(" · ");
+    return `${shareTemplate.headline}\n${shareTemplate.subhead}\n${metricsLine}\n#Vibed`;
+  }, [shareTemplate]);
+
+  const handleCopyShare = async () => {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   return (
     <div className="mt-6 flex flex-col gap-6">
@@ -463,6 +524,98 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                 enrich data with GitHub repo languages or file-extension sampling (still without storing file contents).
               </p>
             )}
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Persona snapshot</p>
+              <h3 className="mt-2 text-2xl font-semibold text-zinc-900">{persona.label}</h3>
+              <p className="mt-2 text-sm text-zinc-600">{persona.description}</p>
+              <p className="mt-3 text-xs uppercase tracking-[0.3em] text-zinc-400">
+                Confidence: {persona.confidence}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {persona.archetypes.map((arch) => (
+                  <span
+                    key={arch}
+                    className="rounded-full border border-black/10 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-700"
+                  >
+                    {arch}
+                  </span>
+                ))}
+              </div>
+              {persona.evidence_shas.length > 0 ? (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
+                    Evidence SHAs
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {persona.evidence_shas.map((sha) => (
+                      <span
+                        key={sha}
+                        className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-zinc-700"
+                      >
+                        {sha.slice(0, 10)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {personaDelta.length > 0 ? (
+                <div className="mt-4 rounded-2xl border border-dashed border-zinc-200 p-3 text-sm text-zinc-700">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
+                    Evolution notes
+                  </p>
+                  <ul className="mt-2 space-y-2">
+                    {personaDelta.map((delta, idx) => (
+                      <li key={`${delta.to}-${idx}`}>
+                        <p>
+                          {delta.from ? `${delta.from} → ` : ""} {delta.to}
+                        </p>
+                        <p className="text-xs text-zinc-500">{delta.note}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+            <div
+              className="rounded-3xl border border-black/5 p-6 shadow-sm"
+              style={{
+                background: `linear-gradient(135deg, ${shareTemplate.colors.primary}, ${shareTemplate.colors.accent})`,
+              }}
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/80">Share card</p>
+              <h3 className="mt-3 text-3xl font-semibold text-white">{shareTemplate.headline}</h3>
+              <p className="mt-2 text-sm text-white/80">{shareTemplate.subhead}</p>
+              <div className="mt-6 space-y-2">
+                {shareTemplate.metrics.map((metric) => (
+                  <p key={metric.label} className="text-sm font-semibold text-white">
+                    {metric.label}: <span className="font-normal">{metric.value}</span>
+                  </p>
+                ))}
+              </div>
+              <div className="mt-4 text-xs uppercase tracking-[0.3em] text-white/70">
+                {shareTemplate.persona_archetype.label}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {shareTemplate.persona_archetype.archetypes.map((arch) => (
+                  <span
+                    key={arch}
+                    className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white"
+                  >
+                    {arch}
+                  </span>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="mt-4 inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                onClick={handleCopyShare}
+              >
+                {copied ? "Copied" : "Copy summary"}
+              </button>
+            </div>
           </div>
 
           <details className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
