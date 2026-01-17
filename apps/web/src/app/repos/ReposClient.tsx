@@ -2,7 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { wrappedTheme } from "@/lib/theme";
+import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type GithubRepo = {
   id: number;
@@ -23,11 +34,17 @@ type ConnectedRepo = {
   full_name: string;
 };
 
-export default function ReposClient({ initialConnected }: { initialConnected: ConnectedRepo[] }) {
+export default function ReposClient(props: {
+  initialConnected: ConnectedRepo[];
+  latestJobByRepoId: Record<string, string>;
+}) {
   const router = useRouter();
+  const { initialConnected, latestJobByRepoId } = props;
   const [repos, setRepos] = useState<GithubRepo[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [selectedFullName, setSelectedFullName] = useState<string | null>(null);
 
   function formatWhen(iso: string | null | undefined): string | null {
     if (!iso) return null;
@@ -42,6 +59,11 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
     return m;
   }, [initialConnected]);
 
+  const selectedRepo = useMemo(() => {
+    if (!repos || !selectedFullName) return null;
+    return repos.find((r) => r.full_name === selectedFullName) ?? null;
+  }, [repos, selectedFullName]);
+
   async function loadRepos() {
     setIsLoading(true);
     setError(null);
@@ -49,7 +71,12 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
       const res = await fetch("/api/github/sync-repos", { method: "POST" });
       const data = (await res.json()) as { repos?: GithubRepo[]; error?: string };
       if (!res.ok) throw new Error(data.error || "Failed to load repos");
-      setRepos(data.repos ?? []);
+      const nextRepos = data.repos ?? [];
+      setRepos(nextRepos);
+      setIsPickerOpen(false);
+      if (nextRepos.length > 0 && !selectedFullName) {
+        setSelectedFullName(nextRepos[0].full_name);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load repos");
     } finally {
@@ -132,14 +159,37 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
             {initialConnected.map((r) => (
               <li key={r.repo_id} className="flex items-center justify-between gap-4 p-3">
                 <span className="text-sm text-zinc-900">{r.full_name}</span>
-                <button
-                  type="button"
-                  className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur disabled:opacity-60"
-                  onClick={() => startAnalysis(r.repo_id)}
-                  disabled={isLoading}
-                >
-                  Get vibe
-                </button>
+                <div className="flex items-center gap-2">
+                  {latestJobByRepoId[r.repo_id] ? (
+                    <>
+                      <button
+                        type="button"
+                        className={`${wrappedTheme.primaryButtonSm} disabled:opacity-60`}
+                        onClick={() => router.push(`/analysis/${latestJobByRepoId[r.repo_id]}`)}
+                        disabled={isLoading}
+                      >
+                        View vibe
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur disabled:opacity-60"
+                        onClick={() => startAnalysis(r.repo_id)}
+                        disabled={isLoading}
+                      >
+                        Re-run
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur disabled:opacity-60"
+                      onClick={() => startAnalysis(r.repo_id)}
+                      disabled={isLoading}
+                    >
+                      Get vibe
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -147,7 +197,7 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-zinc-950">Your GitHub list</h2>
+        <h2 className="text-lg font-semibold text-zinc-950">Find a GitHub repo</h2>
         {repos === null ? (
           <p className="text-sm text-zinc-700">
             Press “Pick a project” to load your repositories.
@@ -155,43 +205,148 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
         ) : repos.length === 0 ? (
           <p className="text-sm text-zinc-700">No repositories found.</p>
         ) : (
-          <ul className="divide-y divide-black/5 rounded-2xl border border-black/5 bg-white/70 backdrop-blur">
-            {repos.map((r) => {
-              const connectedRepoId = connectedByFullName.get(r.full_name);
-              const lastTouch = formatWhen(r.pushed_at ?? r.updated_at);
-              return (
-                <li key={r.id} className="flex items-center justify-between gap-4 p-3">
+          <div className="flex flex-col gap-3">
+            <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  role="combobox"
+                  aria-expanded={isPickerOpen}
+                  aria-controls="repo-picker-list"
+                  className="flex w-full items-center justify-between gap-3 rounded-2xl border border-black/5 bg-white/70 px-4 py-3 text-left text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur transition hover:bg-white disabled:opacity-60"
+                  disabled={isLoading}
+                >
+                  <span className="truncate">
+                    {selectedRepo ? selectedRepo.full_name : "Search and select a repo"}
+                  </span>
+                  <ChevronsUpDown className="h-4 w-4 shrink-0 text-zinc-500" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                className="w-[var(--radix-popover-trigger-width)] p-0"
+              >
+                <Command>
+                  <CommandInput placeholder="Search repos by name…" />
+                  <CommandList id="repo-picker-list">
+                    <CommandEmpty>No matches.</CommandEmpty>
+                    <CommandGroup>
+                      {repos.map((r) => {
+                        const connectedRepoId = connectedByFullName.get(r.full_name);
+                        const lastTouch = formatWhen(r.pushed_at ?? r.updated_at);
+                        return (
+                          <CommandItem
+                            key={r.id}
+                            value={r.full_name}
+                            onSelect={() => {
+                              setSelectedFullName(r.full_name);
+                              setIsPickerOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mt-0.5 h-4 w-4 shrink-0",
+                                selectedFullName === r.full_name ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="truncate text-sm font-semibold text-zinc-950">
+                                  {r.full_name}
+                                </span>
+                                {connectedRepoId ? (
+                                  <span className="shrink-0 rounded-full border border-black/10 bg-white px-2 py-0.5 text-[11px] font-semibold text-zinc-700">
+                                    In profile
+                                  </span>
+                                ) : null}
+                              </div>
+                              <p className="mt-1 text-xs text-zinc-600">
+                                {r.private ? "Private" : "Public"}
+                                {r.language ? ` · ${r.language}` : ""}
+                                {lastTouch ? ` · Updated ${lastTouch}` : ""}
+                              </p>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+
+            {selectedRepo ? (
+              <div className="rounded-2xl border border-black/5 bg-white/70 p-4 shadow-sm backdrop-blur">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <p className="truncate text-sm text-zinc-900">{r.full_name}</p>
-                    <p className="text-xs text-zinc-600">
-                      {r.private ? "Private" : "Public"}
-                      {r.language ? ` · ${r.language}` : ""}
-                      {lastTouch ? ` · Updated ${lastTouch}` : ""}
+                    <p className="truncate text-sm font-semibold text-zinc-950">
+                      {selectedRepo.full_name}
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-600">
+                      {selectedRepo.private ? "Private" : "Public"}
+                      {selectedRepo.language ? ` · ${selectedRepo.language}` : ""}
+                      {formatWhen(selectedRepo.pushed_at ?? selectedRepo.updated_at)
+                        ? ` · Updated ${formatWhen(selectedRepo.pushed_at ?? selectedRepo.updated_at)}`
+                        : ""}
                     </p>
                   </div>
-                  {connectedRepoId ? (
-                    <button
-                      type="button"
-                      className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur disabled:opacity-60"
-                      onClick={() => startAnalysis(connectedRepoId)}
-                      disabled={isLoading}
-                    >
-                      Get vibe
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className={`${wrappedTheme.primaryButtonSm} disabled:opacity-60`}
-                      onClick={() => connectRepo(r)}
-                      disabled={isLoading}
-                    >
-                      Add to profile
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {(() => {
+                      const connectedRepoId = connectedByFullName.get(selectedRepo.full_name);
+                      if (!connectedRepoId) {
+                        return (
+                          <button
+                            type="button"
+                            className={`${wrappedTheme.primaryButtonSm} disabled:opacity-60`}
+                            onClick={() => connectRepo(selectedRepo)}
+                            disabled={isLoading}
+                          >
+                            Add to profile
+                          </button>
+                        );
+                      }
+
+                      const jobId = latestJobByRepoId[connectedRepoId];
+                      if (jobId) {
+                        return (
+                          <>
+                            <button
+                              type="button"
+                              className={`${wrappedTheme.primaryButtonSm} disabled:opacity-60`}
+                              onClick={() => router.push(`/analysis/${jobId}`)}
+                              disabled={isLoading}
+                            >
+                              View vibe
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur disabled:opacity-60"
+                              onClick={() => startAnalysis(connectedRepoId)}
+                              disabled={isLoading}
+                            >
+                              Re-run
+                            </button>
+                          </>
+                        );
+                      }
+
+                      return (
+                        <button
+                          type="button"
+                          className={`${wrappedTheme.primaryButtonSm} disabled:opacity-60`}
+                          onClick={() => startAnalysis(connectedRepoId)}
+                          disabled={isLoading}
+                        >
+                          Get vibe
+                        </button>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
         )}
       </div>
     </div>

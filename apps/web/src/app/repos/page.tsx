@@ -28,6 +28,19 @@ export default async function ReposPage() {
     .filter((r) => Boolean(r.repos?.full_name))
     .map((r) => ({ repo_id: r.repo_id, full_name: r.repos!.full_name }));
 
+  const { data: analyzedJobs } = await supabase
+    .from("analysis_jobs")
+    .select("id, repo_id, created_at")
+    .eq("user_id", user.id)
+    .eq("status", "done")
+    .order("created_at", { ascending: false });
+
+  const latestJobByRepoId: Record<string, string> = {};
+  for (const row of (analyzedJobs ?? []) as Array<{ id: string; repo_id: string | null }>) {
+    if (!row.repo_id) continue;
+    if (!latestJobByRepoId[row.repo_id]) latestJobByRepoId[row.repo_id] = row.id;
+  }
+
   return (
     <div className={`${wrappedTheme.container} py-10`}>
       <div className="mx-auto max-w-3xl">
@@ -43,7 +56,7 @@ export default async function ReposPage() {
           </p>
         </header>
 
-        <ReposClient initialConnected={initialConnected} />
+        <ReposClient initialConnected={initialConnected} latestJobByRepoId={latestJobByRepoId} />
       </div>
     </div>
   );
