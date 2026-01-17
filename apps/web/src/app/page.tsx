@@ -3,17 +3,17 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@bolokono/db";
 
 const heroFeatures = [
-  "Turn commit history into a build-rhythm profile",
-  "See burstiness, fixups, and build categories over time",
-  "Read a narrative that cites exact SHAs and metric values",
-  "Supabase Auth + RLS scope user-facing reads to your account",
+  "A vibe profile built from commit metadata and patterns",
+  "A persona snapshot with confidence and evidence SHAs",
+  "Charts for rhythm, burstiness, fixups, and build categories",
+  "A narrative that cites exact SHAs and metric values",
 ];
 
 const timeline = [
-  { title: "Connect GitHub", description: "Sign in and pick the repos you want to analyze." },
-  { title: "Queue an analysis", description: "We fetch commit history and compute metrics." },
-  { title: "Get your profile", description: "See patterns, archetype, and evidence SHAs." },
-  { title: "Share responsibly", description: "Keep private repos private; share only what you intend to share." },
+  { title: "Connect GitHub", description: "Sign in, then choose which repos to analyze." },
+  { title: "Run an analysis", description: "We fetch commit history and compute metrics." },
+  { title: "Get your vibe coding profile", description: "See patterns, categories, and evidence SHAs." },
+  { title: "See your persona", description: "A lightweight archetype to set expectations, not judge you." },
 ];
 
 type AuthStats = {
@@ -104,6 +104,29 @@ export default async function Home() {
 }
 
 function MarketingLanding() {
+  const personaCards = [
+    {
+      title: "Spec-Driven Architect",
+      description:
+        "Plans thoroughly before touching code; constraints show up early and often.",
+    },
+    {
+      title: "Test-First Validator",
+      description:
+        "Leans on tests as a contract; prefers safety nets before big changes.",
+    },
+    {
+      title: "Vibe Prototyper",
+      description:
+        "Moves fast by experimenting; iterates in bursts and learns by doing.",
+    },
+    {
+      title: "Agent Orchestrator",
+      description:
+        "Coordinates tools and assistants; breaks work into structured moves.",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 px-6 py-12 sm:px-10 lg:px-20">
       <div className="mx-auto max-w-6xl">
@@ -113,11 +136,12 @@ function MarketingLanding() {
               For solo builders
             </p>
             <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Bolokono turns git history into a build-rhythm profile
+              Find your coding vibe and persona, grounded in commit evidence
             </h1>
             <p className="max-w-2xl text-base text-white/70 sm:text-lg">
-              Analyze commit metadata, compute metrics, and generate a narrative that points to
-              evidence SHAs. No magic claims. Just a clean view of how you build.
+              Bolokono analyzes commit history patterns to generate a vibe profile, a persona
+              snapshot, and a narrative with evidence SHAs. It is not a performance review and it
+              does not replace human judgment.
             </p>
           </div>
 
@@ -148,6 +172,10 @@ function MarketingLanding() {
                 </li>
               ))}
             </ul>
+            <p className="mt-6 text-sm text-white/60">
+              Personas are an interpretation layer based on signals we can observe in commits. They
+              can change as your repo evolves.
+            </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/login"
@@ -176,6 +204,33 @@ function MarketingLanding() {
             </div>
           </section>
         </div>
+
+        <section className="mt-6 rounded-3xl border border-white/10 bg-zinc-900/40 p-8 shadow-[0_20px_60px_rgba(2,6,23,0.7)]">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-white">Persona previews</h2>
+              <p className="mt-2 max-w-2xl text-sm text-white/70">
+                You may see one of these (or another persona) in your profile. The goal is to set
+                expectations for the vibe of your output, not to label you permanently.
+              </p>
+            </div>
+            <Link href="/login" className="text-sm font-semibold text-white/90 transition hover:text-white">
+              Generate mine →
+            </Link>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {personaCards.map((card) => (
+              <div
+                key={card.title}
+                className="rounded-2xl border border-white/10 bg-zinc-950/40 p-6"
+              >
+                <p className="text-sm font-semibold text-white">{card.title}</p>
+                <p className="mt-2 text-sm text-white/70">{card.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <footer className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between">
           <p>Bolokono</p>

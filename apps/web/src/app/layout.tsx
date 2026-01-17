@@ -15,12 +15,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Bolokono · Understand your vibe coding profile",
   description:
-    "Bolokono analyzes your GitHub history to reveal your vibe coding profile—commit rhythm, build categories, and narratives that explain how you build without exposing raw files.",
+    "Bolokono analyzes your GitHub history to generate a vibe profile, persona snapshot, and narratives with evidence SHAs.",
   metadataBase: new URL("http://localhost:8108"),
   openGraph: {
     title: "Bolokono · Vibe coding profile, surfaced",
     description:
-      "Metrics-first insight into your vibe coding profile. Bolokono computes rhythms, categories, and narratives from commit history.",
+      "Vibe profiles and personas grounded in commit history metrics and evidence SHAs.",
     url: "https://www.bolokonon.app",
     locale: "en_US",
     type: "website",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Bolokono · Understand your coding vibe",
     description:
-      "Solo-focused analytics that turn commits into a narrative of how you build software.",
+      "Solo-focused vibe profiles and personas grounded in commit evidence.",
   },
 };
 
