@@ -187,13 +187,22 @@ export default function ReposClient(props: {
         <button
           type="button"
           className="rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
+          onClick={() => loadRepos()}
+          disabled={isLoading}
+        >
+          {isLoading ? "Loading..." : "Refresh"}
+        </button>
+        <button
+          type="button"
+          className="rounded-full border border-black/10 bg-white/80 px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm backdrop-blur transition hover:bg-white disabled:opacity-60"
           onClick={() => loadRepos({ force: true })}
           disabled={isLoading}
         >
-          {isLoading ? "Loading..." : "Refresh from GitHub"}
+          Force refresh from GitHub
         </button>
         <p className="text-sm text-zinc-700">
           Choose a safe repo. Avoid work, NDA, or sensitive repos.
+          {" "}Repos are cached for 24 hours.
           {lastSyncedAt ? ` · Last synced ${new Date(lastSyncedAt).toLocaleDateString()}` : ""}
         </p>
       </div>

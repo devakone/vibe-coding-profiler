@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { computeAnalysisInsights } from "@vibed/core";
 import type { AnalysisInsights, AnalysisMetrics, CommitEvent } from "@vibed/core";
@@ -18,6 +19,17 @@ type ApiResponse = {
   report: unknown | null;
   metrics: unknown | null;
   insights: unknown | null;
+  profileContribution?: unknown | null;
+};
+
+type ProfileContribution = {
+  repoName: string | null;
+  jobCommitCount: number | null;
+  includedInProfile: boolean | null;
+  profileTotalCommits: number | null;
+  profileTotalRepos: number | null;
+  profilePersonaName: string | null;
+  profileUpdatedAt: string | null;
 };
 
 type NarrativeJson = {
@@ -82,6 +94,18 @@ function isStringOrNull(v: unknown): v is string | null {
 
 function isBooleanOrNull(v: unknown): v is boolean | null {
   return v === null || typeof v === "boolean";
+}
+
+function isProfileContribution(v: unknown): v is ProfileContribution {
+  if (!isRecord(v)) return false;
+  if (!isStringOrNull(v.repoName)) return false;
+  if (!isNumberOrNull(v.jobCommitCount)) return false;
+  if (!isBooleanOrNull(v.includedInProfile)) return false;
+  if (!isNumberOrNull(v.profileTotalCommits)) return false;
+  if (!isNumberOrNull(v.profileTotalRepos)) return false;
+  if (!isStringOrNull(v.profilePersonaName)) return false;
+  if (!isStringOrNull(v.profileUpdatedAt)) return false;
+  return true;
 }
 
 function isNarrativeJson(v: unknown): v is NarrativeJson {
@@ -372,6 +396,8 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
   const parsedReport = data && isReportRow(data.report) ? data.report : null;
   const parsedMetrics = data && isMetricsRow(data.metrics) ? data.metrics : null;
   const parsedInsightsRow = data && isInsightsRow(data.insights) ? data.insights : null;
+  const profileContribution =
+    data && isProfileContribution(data.profileContribution) ? data.profileContribution : null;
 
   const narrative = parsedReport?.narrative_json;
   const sections = narrative?.sections ?? [];
@@ -385,7 +411,12 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
   const persona = wrapped.persona;
   const shareTemplate = wrapped.share_template;
-  const personaDelta = wrapped.persona_delta;
+  const profileContributionLabel = (() => {
+    if (!profileContribution) return null;
+    if (profileContribution.includedInProfile === true) return "Included in your Vibed profile";
+    if (profileContribution.includedInProfile === false) return "Not yet included in your Vibed profile";
+    return "Vibed profile impact";
+  })();
 
   const shareText = useMemo(() => {
     if (!shareTemplate) return "";
@@ -459,15 +490,15 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
     };
   }, [jobStatus]);
 
-  if (error) return <p className="mt-6 text-sm text-red-600">{error}</p>;
-  if (!data) return <p className="mt-6 text-sm text-zinc-600">Loading…</p>;
+  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  if (!data) return <p className="text-sm text-zinc-600">Loading…</p>;
 
   const { job } = data;
 
   // Show minimal status for non-complete states
   if (job.status === "queued" || job.status === "running") {
     return (
-      <div className="mt-6 flex flex-col items-center justify-center gap-4 py-16">
+      <div className="flex flex-col items-center justify-center gap-4 py-16">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-fuchsia-500" />
         <p className="text-sm text-zinc-600">
           {job.status === "queued" ? "Waiting to analyze…" : "Analyzing your commits…"}
@@ -478,7 +509,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
   if (job.status === "error") {
     return (
-      <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6">
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
         <p className="font-semibold text-red-800">Analysis failed</p>
         <p className="mt-2 text-sm text-red-600">{job.error_message ?? "Unknown error"}</p>
       </div>
@@ -486,20 +517,33 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
   }
 
   return (
-    <div className="mt-6 flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       {job.status === "done" && events.length > 0 ? (
         <>
-          {/* Main Vibe Card - Hero Section */}
           <div className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-white shadow-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-500/10 via-transparent to-cyan-500/10" />
             <div className="relative p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Your Vibe</p>
-              <h2 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-950">
-                {persona.label}
-              </h2>
-              <p className="mt-3 max-w-2xl text-base text-zinc-600">
-                {persona.description}
-              </p>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="max-w-2xl">
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Your vibe</p>
+                  <h2 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-950">
+                    {persona.label}
+                  </h2>
+                  <p className="mt-3 text-base text-zinc-600">{persona.description}</p>
+                  {narrative?.summary ? (
+                    <p className="mt-3 text-sm font-medium text-zinc-800">{narrative.summary}</p>
+                  ) : null}
+                </div>
+
+                <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+                  <Link
+                    href="/"
+                    className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+                  >
+                    My Vibed profile
+                  </Link>
+                </div>
+              </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {persona.archetypes.map((arch) => (
                   <span
@@ -511,8 +555,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                 ))}
               </div>
 
-              {/* Insights Grid - Inside the main card */}
-              <div className="mt-8 grid gap-4 border-t border-zinc-100 pt-8 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="mt-6 grid gap-3 rounded-2xl border border-black/5 bg-white/60 p-4 backdrop-blur sm:grid-cols-2 lg:grid-cols-5">
                 <div className="text-center">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Streak</p>
                   <p className="mt-1 text-2xl font-semibold text-zinc-900">
@@ -577,113 +620,148 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Profile contribution banner */}
-          <div className="rounded-2xl border border-indigo-200/50 bg-gradient-to-r from-fuchsia-50 via-indigo-50 to-cyan-50 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600" />
-                <p className="text-sm text-zinc-700">
-                  This repo contributes to your aggregated profile
-                </p>
-              </div>
-              <a
-                href="/profile"
-                className="text-sm font-semibold text-zinc-950 transition hover:text-zinc-700"
-              >
-                View profile →
-              </a>
-            </div>
-          </div>
-
-          {/* Share Card - Centered */}
-          {shareTemplate ? (
-            <div className="flex justify-center">
-              <div
-                className="w-full max-w-xl rounded-3xl border border-black/5 p-6 shadow-sm"
-                style={{
-                  background: `linear-gradient(135deg, ${shareTemplate.colors.primary}, ${shareTemplate.colors.accent})`,
-                }}
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/80">Share your vibe</p>
-                <h3 className="mt-3 text-3xl font-semibold text-white">{shareTemplate.headline}</h3>
-                <p className="mt-2 text-sm text-white/80">{shareTemplate.subhead}</p>
-                <div className="mt-6 flex flex-wrap justify-center gap-4">
-                  {shareTemplate.metrics.map((metric) => (
-                    <div key={metric.label} className="text-center">
-                      <p className="text-xs uppercase tracking-wider text-white/70">{metric.label}</p>
-                      <p className="text-lg font-semibold text-white">{metric.value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 flex justify-center gap-3">
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
-                    onClick={handleCopyShare}
-                  >
-                    {copied ? "Copied" : "Copy summary"}
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
-                    onClick={handleDownloadShare}
-                  >
-                    Download SVG
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Timeline - Only show if there's history */}
-          {history.length > 1 ? (
-            <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
+              {profileContribution ? (
+                <div className="mt-6 rounded-2xl border border-black/5 bg-white/60 p-4 backdrop-blur">
                   <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
-                    Your journey
+                    {profileContributionLabel}
                   </p>
-                  <h3 className="text-xl font-semibold text-zinc-950">Vibe timeline</h3>
-                </div>
-                <div className="text-xs text-zinc-500">
-                  {historyLoading && "Loading…"}
-                  {historyError ? historyError : null}
-                </div>
-              </div>
-              <div className="mt-4 flex flex-col gap-3">
-                {history.slice(0, 6).map((entry) => (
-                  <div
-                    key={entry.job_id}
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-black/5 bg-zinc-50 px-4 py-3"
-                  >
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div>
-                      <p className="text-xs text-zinc-400">
-                        {fmtDate(entry.created_at)}
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">This repo</p>
+                      <p className="mt-1 text-sm font-semibold text-zinc-900">
+                        {profileContribution.repoName ?? "—"}
                       </p>
-                      <p className="text-base font-semibold text-zinc-900">{entry.persona_label ?? "—"}</p>
+                      <p className="mt-1 text-xs text-zinc-600">
+                        {typeof profileContribution.jobCommitCount === "number"
+                          ? `${profileContribution.jobCommitCount} commits`
+                          : "Commit count unavailable"}
+                      </p>
                     </div>
-                    {entry.persona_confidence ? (
-                      <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-600">
-                        {entry.persona_confidence}
-                      </span>
-                    ) : null}
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Your Vibed profile</p>
+                      <p className="mt-1 text-sm font-semibold text-zinc-900">
+                        {typeof profileContribution.profileTotalRepos === "number"
+                          ? `${profileContribution.profileTotalRepos} repos`
+                          : "—"}
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-600">
+                        {typeof profileContribution.profileTotalCommits === "number"
+                          ? `${profileContribution.profileTotalCommits} commits`
+                          : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Current persona</p>
+                      <p className="mt-1 text-sm font-semibold text-zinc-900">
+                        {profileContribution.profilePersonaName ?? "—"}
+                      </p>
+                      {profileContribution.profileUpdatedAt ? (
+                        <p className="mt-1 text-xs text-zinc-600">
+                          Updated {fmtDate(profileContribution.profileUpdatedAt)}
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-xs text-zinc-600">—</p>
+                      )}
+                    </div>
                   </div>
-                ))}
-              </div>
+                  {profileContribution.includedInProfile === false ? (
+                    <p className="mt-3 text-xs text-zinc-500">
+                      The profile aggregate can lag behind analysis completion by a moment.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
-          ) : null}
+          </div>
 
           <details className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
-            <summary className="cursor-pointer text-sm font-semibold text-zinc-900">Deep dive (for the curious)</summary>
+            <summary className="cursor-pointer text-sm font-semibold text-zinc-900">
+              Share, timeline, and details
+            </summary>
             <div className="mt-5 space-y-6">
+              {shareTemplate ? (
+                <div
+                  className="rounded-3xl border border-black/5 p-6 shadow-sm"
+                  style={{
+                    background: `linear-gradient(135deg, ${shareTemplate.colors.primary}, ${shareTemplate.colors.accent})`,
+                  }}
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="max-w-2xl">
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/80">
+                        Share
+                      </p>
+                      <h3 className="mt-3 text-2xl font-semibold text-white">{shareTemplate.headline}</h3>
+                      <p className="mt-2 text-sm text-white/80">{shareTemplate.subhead}</p>
+                      <div className="mt-4 flex flex-wrap gap-4">
+                        {shareTemplate.metrics.map((metric) => (
+                          <div key={metric.label}>
+                            <p className="text-xs uppercase tracking-wider text-white/70">{metric.label}</p>
+                            <p className="text-lg font-semibold text-white">{metric.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                        onClick={handleCopyShare}
+                      >
+                        {copied ? "Copied" : "Copy summary"}
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                        onClick={handleDownloadShare}
+                      >
+                        SVG
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {history.length > 1 ? (
+                <details className="rounded-2xl border border-black/5 bg-zinc-50 p-5">
+                  <summary className="cursor-pointer text-sm font-semibold text-zinc-900">
+                    Timeline
+                    <span className="ml-2 text-xs font-normal text-zinc-500">
+                      {historyLoading ? "Loading…" : historyError ? historyError : `${history.length} reads`}
+                    </span>
+                  </summary>
+                  <div className="mt-4 flex flex-col gap-3">
+                    {history.slice(0, 8).map((entry) => (
+                      <div
+                        key={entry.job_id}
+                        className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-black/5 bg-white px-4 py-3"
+                      >
+                        <div>
+                          <p className="text-xs text-zinc-400">{fmtDate(entry.created_at)}</p>
+                          <p className="text-base font-semibold text-zinc-900">{entry.persona_label ?? "—"}</p>
+                        </div>
+                        {entry.persona_confidence ? (
+                          <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-600">
+                            {entry.persona_confidence}
+                          </span>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
+
               {highlights.length > 0 ? (
                 <div className="grid gap-3 sm:grid-cols-3">
                   {highlights.map((h, idx) => (
-                    <div key={`${h.metric ?? "metric"}-${idx}`} className="rounded-2xl border border-black/5 bg-zinc-50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">{h.metric ?? "Metric"}</p>
+                    <div
+                      key={`${h.metric ?? "metric"}-${idx}`}
+                      className="rounded-2xl border border-black/5 bg-zinc-50 p-4"
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
+                        {h.metric ?? "Metric"}
+                      </p>
                       <p className="mt-2 text-2xl font-semibold text-zinc-900">{h.value ?? "—"}</p>
                       <p className="mt-2 text-sm text-zinc-600">{h.interpretation ?? "—"}</p>
                     </div>

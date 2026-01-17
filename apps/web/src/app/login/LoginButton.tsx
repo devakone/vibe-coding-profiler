@@ -22,7 +22,7 @@ export default function LoginButton() {
 
     const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider: "github",
-      options: { redirectTo },
+      options: { redirectTo, scopes: "read:org repo" },
     });
 
     if (signInError) {

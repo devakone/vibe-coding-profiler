@@ -23,6 +23,10 @@ type AuthStats = {
   queuedJobs: number;
   analyzedRepos: number;
   analyzedCommits: number;
+  personaHistory: {
+    label: string | null;
+    generatedAt: string | null;
+  }[];
   latestJob?: {
     status: string;
     repoName: string | null;
@@ -40,6 +44,14 @@ type AuthStats = {
     personaConfidence: string;
     totalRepos: number;
     totalCommits: number;
+    axes: Record<string, { score: number; level: string; why: string[] }>;
+    repoPersonas: Array<{
+      repoName: string;
+      personaId: string;
+      personaName: string;
+      commitCount: number;
+    }>;
+    updatedAt: string | null;
   };
 };
 
@@ -66,6 +78,16 @@ type LatestInsightRow = {
     | null;
 };
 
+type PersonaHistoryRow = {
+  persona_label: string | null;
+  generated_at: string | null;
+  analysis_jobs:
+    | {
+        created_at: string;
+      }
+    | null;
+};
+
 export default async function Home() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -82,6 +104,7 @@ export default async function Home() {
     completedJobsRowsResult,
     latestJobResult,
     latestInsightResult,
+    personaHistoryResult,
     userProfileResult,
   ] =
     await Promise.all([
@@ -127,21 +150,43 @@ export default async function Home() {
         .limit(1)
         .maybeSingle(),
       supabase
+        .from("analysis_insights")
+        .select("persona_label, generated_at, analysis_jobs(created_at)")
+        .eq("analysis_jobs.user_id", user.id)
+        .order("analysis_jobs.created_at", { ascending: false })
+        .limit(5),
+      supabase
         .from("user_profiles")
-        .select("persona_name, persona_tagline, persona_confidence, total_repos, total_commits")
+        .select(
+          "persona_name, persona_tagline, persona_confidence, total_repos, total_commits, axes_json, repo_personas_json, updated_at"
+        )
         .eq("user_id", user.id)
         .maybeSingle(),
     ]);
 
   const latestJob = (latestJobResult.data ?? null) as unknown as LatestJobRow | null;
   const latestInsight = (latestInsightResult.data ?? null) as unknown as LatestInsightRow | null;
+  const personaHistoryRows = (personaHistoryResult.data ?? []) as unknown as PersonaHistoryRow[];
   const userProfileData = userProfileResult.data as {
     persona_name: string;
     persona_tagline: string | null;
     persona_confidence: string;
     total_repos: number;
     total_commits: number;
+    axes_json: Record<string, { score: number; level: string; why: string[] }>;
+    repo_personas_json: Array<{
+      repoName: string;
+      personaId: string;
+      personaName: string;
+      commitCount: number;
+    }>;
+    updated_at: string | null;
   } | null;
+
+  const personaHistory = personaHistoryRows.map((row) => ({
+    label: row.persona_label,
+    generatedAt: row.generated_at,
+  }));
 
   const repoNameResult = latestJob?.repo_id
     ? await supabase
@@ -193,6 +238,7 @@ export default async function Home() {
     queuedJobs: queuedJobsResult.count ?? 0,
     analyzedRepos: userProfileData?.total_repos ?? analyzedRepos,
     analyzedCommits: userProfileData?.total_commits ?? analyzedCommits,
+    personaHistory,
     latestJob: latestJob
       ? {
           status: latestJob.status,
@@ -219,6 +265,9 @@ export default async function Home() {
           personaConfidence: userProfileData.persona_confidence,
           totalRepos: userProfileData.total_repos,
           totalCommits: userProfileData.total_commits,
+          axes: userProfileData.axes_json ?? {},
+          repoPersonas: userProfileData.repo_personas_json ?? [],
+          updatedAt: userProfileData.updated_at ?? null,
         }
       : undefined,
   };
@@ -334,7 +383,7 @@ function MarketingLanding() {
               <h2 className="text-2xl font-semibold text-zinc-950">Persona previews</h2>
               <p className="mt-2 max-w-2xl text-sm text-zinc-800">
                 You may see one of these (or another persona). These are lenses on your
-                vibe-coding style — observations, not labels.
+                vibe-coding style. Observations, not labels.
               </p>
             </div>
             <Link
@@ -380,41 +429,131 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
 
   const clarity = clarityScore();
 
+  const recentLabels = stats.personaHistory
+    .map((entry) => entry.label)
+    .filter((label): label is string => Boolean(label));
+
+  let shiftCount = 0;
+  for (let i = 1; i < recentLabels.length; i += 1) {
+    if (recentLabels[i] !== recentLabels[i - 1]) shiftCount += 1;
+  }
+
+  const personaCounts = new Map<string, number>();
+  for (const label of recentLabels) {
+    personaCounts.set(label, (personaCounts.get(label) ?? 0) + 1);
+  }
+  const dominantPersona =
+    [...personaCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+  const shiftValue =
+    recentLabels.length < 2
+      ? "New"
+      : shiftCount === 0
+        ? "Steady"
+        : `${shiftCount}`;
+
+  const shiftHelper =
+    recentLabels.length < 2
+      ? "Run a few vibe checks to see movement."
+      : `Across your last ${recentLabels.length} reads.`;
+
+  const axisMeta = {
+    automation_heaviness: {
+      name: "Automation",
+      description: "How much AI-generated code you accept",
+    },
+    guardrail_strength: {
+      name: "Guardrails",
+      description: "Testing, linting, and safety measures",
+    },
+    iteration_loop_intensity: {
+      name: "Iteration",
+      description: "Rapid cycles of prompting and fixing",
+    },
+    planning_signal: {
+      name: "Planning",
+      description: "Thoughtful setup before execution",
+    },
+    surface_area_per_change: {
+      name: "Surface Area",
+      description: "Size and scope of each change",
+    },
+    shipping_rhythm: {
+      name: "Rhythm",
+      description: "How frequently you ship changes",
+    },
+  } as const;
+
+  const axisKeys = Object.keys(axisMeta) as Array<keyof typeof axisMeta>;
+
   const cards = [
     {
-      label: "Repos connected",
-      value: stats.connectedRepos,
-      helper: "Repos you've connected",
-    },
-    {
-      label: "Repos analyzed",
-      value: stats.analyzedRepos,
-      helper: "Repos included in your profile",
-    },
-    {
-      label: "Reports generated",
+      label: "Reads captured",
       value: stats.completedJobs,
-      helper: "Completed vibe checks",
+      helper: "Every run adds a chapter.",
     },
     {
-      label: "In progress",
-      value: stats.queuedJobs,
-      helper: "Reading commits",
+      label: "Vibe shifts",
+      value: shiftValue,
+      helper: shiftHelper,
+    },
+    {
+      label: "Most frequent vibe",
+      value: dominantPersona ?? "Still forming",
+      helper:
+        recentLabels.length === 0
+          ? "Complete a vibe check to see your read."
+          : `Based on your last ${recentLabels.length} reads.`,
     },
   ];
+
+  function generateCrossRepoInsight(): string {
+    if (!stats.userProfile) return "Add more repos to unlock cross-repo insights.";
+    const repos = stats.userProfile.repoPersonas ?? [];
+    if (repos.length === 0) {
+      return "Add more repos to unlock cross-repo insights.";
+    }
+
+    if (repos.length === 1) {
+      return `Based on ${repos[0].repoName}, you show strong ${stats.userProfile.personaName.toLowerCase()} tendencies. Add more repos to see how your style varies across projects.`;
+    }
+
+    const personaCounts = repos.reduce(
+      (acc, repo) => {
+        acc[repo.personaName] = (acc[repo.personaName] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+
+    const uniquePersonas = Object.keys(personaCounts);
+
+    if (uniquePersonas.length === 1) {
+      return `Across ${repos.length} repos, you consistently show ${stats.userProfile.personaName.toLowerCase()} patterns. Your style is remarkably consistent.`;
+    }
+
+    const dominant = repos[0];
+    const secondary = repos.find((r) => r.personaName !== dominant.personaName);
+
+    if (secondary) {
+      return `On ${dominant.repoName} you lean ${dominant.personaName.toLowerCase()}, while on ${secondary.repoName} you show more ${secondary.personaName.toLowerCase()} tendencies. Your aggregated profile balances these styles.`;
+    }
+
+    return `Your ${stats.userProfile.personaName.toLowerCase()} profile emerges from ${repos.length} repos and ${stats.userProfile.totalCommits.toLocaleString()} commits.`;
+  }
 
   return (
     <div className={`${wrappedTheme.container} ${wrappedTheme.pageY}`}>
       <div className="mx-auto max-w-6xl space-y-10">
         <header className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
-            Your profile
+            My Vibed
           </p>
           <h1 className="text-4xl font-semibold tracking-tight text-zinc-950">
             Your Vibed profile
           </h1>
           <p className="max-w-2xl text-lg text-zinc-700">
-            Narrative first, receipts always available. Your profile sharpens across repos.
+            A living read of your vibe coding style. It sharpens as you add more runs and repos.
           </p>
         </header>
 
@@ -427,6 +566,11 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
               <p className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950">
                 {stats.userProfile?.personaName ?? stats.latestPersona?.label ?? "Still forming"}
               </p>
+              {stats.userProfile?.personaTagline ? (
+                <p className="mt-2 text-sm text-zinc-700">
+                  “{stats.userProfile.personaTagline}”
+                </p>
+              ) : null}
               <p className="mt-2 text-sm text-zinc-700">
                 {stats.userProfile ? (
                   <>
@@ -446,21 +590,9 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
                   "Run a vibe check to get your first read."
                 )}
               </p>
-              {stats.userProfile ? (
-                <Link
-                  href="/profile"
-                  className="mt-3 inline-block text-sm font-semibold text-zinc-950 transition hover:text-zinc-700"
-                >
-                  View full profile →
-                </Link>
-              ) : stats.analyzedRepos > 0 ? (
-                <Link
-                  href="/profile"
-                  className="mt-3 inline-block text-sm font-semibold text-zinc-950 transition hover:text-zinc-700"
-                >
-                  Build profile →
-                </Link>
-              ) : null}
+              <p className="mt-2 text-xs text-zinc-500">
+                Profiles evolve with every run. The more variety you add, the clearer the read.
+              </p>
             </div>
 
             <div className="w-full max-w-md rounded-3xl border border-black/5 bg-white/70 p-6 backdrop-blur">
@@ -475,7 +607,7 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
                 />
               </div>
               <p className="mt-3 text-sm text-zinc-700">
-                More data helps us stay accurate. Keep it safe: avoid sensitive repos.
+                More data helps us stay accurate. Keep it safe with non-sensitive repos.
               </p>
             </div>
           </div>
@@ -491,14 +623,11 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
             </div>
           ) : (
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/profile" className={wrappedTheme.primaryButton}>
-                View profile
+              <Link href="/analysis" className={wrappedTheme.primaryButton}>
+                View stories
               </Link>
               <Link href="/repos" className={wrappedTheme.secondaryButton}>
                 Add a repo
-              </Link>
-              <Link href="/analysis" className={wrappedTheme.secondaryButton}>
-                View reports
               </Link>
             </div>
           )}
@@ -519,6 +648,95 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
           ))}
         </div>
 
+        {stats.userProfile ? (
+          <>
+            <section className={`${wrappedTheme.card} p-8`}>
+              <h2 className="text-xl font-semibold text-zinc-950">Your Axes</h2>
+              <p className="mt-1 text-sm text-zinc-600">
+                Weighted averages across your analyzed repos
+              </p>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {axisKeys.map((key) => {
+                  const axis = stats.userProfile?.axes[key];
+                  const meta = axisMeta[key];
+                  const score = axis?.score ?? 50;
+
+                  return (
+                    <div
+                      key={key}
+                      className="rounded-2xl border border-black/5 bg-white/70 p-5 backdrop-blur"
+                    >
+                      <p className="text-sm font-semibold text-zinc-950">{meta.name}</p>
+                      <p className="mt-1 text-xs text-zinc-600">{meta.description}</p>
+                      <div className="mt-4">
+                        <div className="flex items-end justify-between">
+                          <span className="text-2xl font-semibold text-zinc-950">
+                            {score}
+                          </span>
+                          <span className="text-xs text-zinc-500">/100</span>
+                        </div>
+                        <div className="mt-2 h-2 w-full rounded-full bg-zinc-200">
+                          <div
+                            className="h-2 rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600"
+                            style={{ width: `${score}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            {stats.userProfile.repoPersonas.length > 0 ? (
+              <section className={`${wrappedTheme.card} p-8`}>
+                <h2 className="text-xl font-semibold text-zinc-950">Your Repos</h2>
+                <p className="mt-1 text-sm text-zinc-600">
+                  Each repo contributes to your overall profile, weighted by commits
+                </p>
+
+                <div className="mt-6 divide-y divide-zinc-100">
+                  {stats.userProfile.repoPersonas.map((repo, i) => (
+                    <div
+                      key={`${repo.repoName}-${i}`}
+                      className="flex items-center justify-between py-4 first:pt-0 last:pb-0"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-zinc-950">
+                          {repo.repoName}
+                        </p>
+                        <p className="text-xs text-zinc-600">
+                          {repo.personaName} · {repo.commitCount.toLocaleString()} commits
+                        </p>
+                      </div>
+                      <div className="ml-4 flex-shrink-0">
+                        <span className="rounded-full bg-gradient-to-r from-fuchsia-100 via-indigo-100 to-cyan-100 px-3 py-1 text-xs font-medium text-zinc-700">
+                          {Math.round((repo.commitCount / (stats.userProfile?.totalCommits ?? 1)) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            <section className="rounded-3xl border border-black/5 bg-gradient-to-br from-fuchsia-600 via-indigo-600 to-cyan-600 p-6 shadow-[0_30px_120px_rgba(2,6,23,0.18)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-white/75">
+                Cross-repo insight
+              </p>
+              <p className="mt-3 text-lg font-medium text-white">
+                {generateCrossRepoInsight()}
+              </p>
+              {stats.userProfile.updatedAt ? (
+                <p className="mt-4 text-xs text-white/60">
+                  Last updated {new Date(stats.userProfile.updatedAt).toLocaleDateString()}
+                </p>
+              ) : null}
+            </section>
+          </>
+        ) : null}
+
         <div className="rounded-3xl border border-black/5 bg-gradient-to-br from-fuchsia-600 via-indigo-600 to-cyan-600 p-6 shadow-[0_30px_120px_rgba(2,6,23,0.18)]">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -529,8 +747,10 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
                 {stats.latestJob?.repoName ?? "No runs yet"}
               </p>
               <p className="text-sm text-white/80">
-                Status: {stats.latestJob?.status ?? "waiting"}
-                {stats.latestJob?.updatedAt ? ` • Updated ${new Date(stats.latestJob.updatedAt).toLocaleString()}` : ""}
+                {stats.latestPersona?.label ? `Latest vibe: ${stats.latestPersona.label}` : "Latest vibe: pending"}
+                {stats.latestJob?.status ? ` · Status: ${stats.latestJob.status}` : ""}
+                {stats.queuedJobs > 0 ? ` · Reading ${stats.queuedJobs} run${stats.queuedJobs > 1 ? "s" : ""}` : ""}
+                {stats.latestJob?.updatedAt ? ` · Updated ${new Date(stats.latestJob.updatedAt).toLocaleString()}` : ""}
               </p>
             </div>
             <div className="flex flex-wrap gap-3">

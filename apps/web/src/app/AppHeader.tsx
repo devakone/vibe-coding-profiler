@@ -19,7 +19,7 @@ export default function AppHeader(props: {
 
   const links = props.isAuthed
     ? [
-        { href: "/", label: "Dashboard" },
+        { href: "/", label: "My Vibed" },
         { href: "/repos", label: "Repos" },
         { href: "/analysis", label: "Reports" },
         { href: "/security", label: "Security" },
@@ -89,4 +89,3 @@ export default function AppHeader(props: {
     </header>
   );
 }
-

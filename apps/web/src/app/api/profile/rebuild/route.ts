@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { aggregateUserProfile, type RepoInsightSummary, type VibeAxes, type VibePersona } from "@vibed/core";
+import {
+  aggregateUserProfile,
+  computeVibeFromCommits,
+  type RepoInsightSummary,
+  type VibeAxes,
+  type VibeCommitEvent,
+  type VibePersona,
+} from "@vibed/core";
 import type { Insertable, Json } from "@vibed/db";
 
 export const runtime = "nodejs";
@@ -210,6 +217,139 @@ export async function POST(request: Request) {
     legacyInsightByJobId.set(insight.job_id, insight);
   }
 
+  const { data: missingMetricsData, error: missingMetricsError } =
+    missingJobIds.length > 0
+      ? await service
+          .from("analysis_metrics")
+          .select("job_id, events_json")
+          .in("job_id", missingJobIds)
+      : { data: [] as Array<{ job_id: string; events_json: unknown }>, error: null };
+
+  if (missingMetricsError) {
+    return NextResponse.json({ error: "failed_to_load_metrics" }, { status: 500 });
+  }
+
+  function toCommitEvents(input: unknown): VibeCommitEvent[] | null {
+    if (!Array.isArray(input)) return null;
+
+    const commits: VibeCommitEvent[] = [];
+    for (const row of input) {
+      if (typeof row !== "object" || row === null) return null;
+
+      const r = row as Record<string, unknown>;
+      const sha = r.sha;
+      const message = r.message;
+      const author_date = r.author_date;
+      const committer_date = r.committer_date;
+      const author_email = r.author_email;
+      const files_changed = r.files_changed;
+      const additions = r.additions;
+      const deletions = r.deletions;
+
+      const parsedFilesChanged =
+        typeof files_changed === "number"
+          ? files_changed
+          : typeof files_changed === "string"
+            ? Number(files_changed)
+            : NaN;
+
+      const parsedAdditions =
+        typeof additions === "number" ? additions : typeof additions === "string" ? Number(additions) : NaN;
+
+      const parsedDeletions =
+        typeof deletions === "number" ? deletions : typeof deletions === "string" ? Number(deletions) : NaN;
+
+      if (
+        typeof sha !== "string" ||
+        typeof message !== "string" ||
+        typeof author_date !== "string" ||
+        typeof committer_date !== "string" ||
+        !(author_email == null || typeof author_email === "string") ||
+        !Number.isFinite(parsedFilesChanged) ||
+        !Number.isFinite(parsedAdditions) ||
+        !Number.isFinite(parsedDeletions)
+      ) {
+        return null;
+      }
+
+      const parentsRaw = r.parents;
+      const parents = Array.isArray(parentsRaw)
+        ? parentsRaw.filter((p): p is string => typeof p === "string")
+        : [];
+
+      const filePathsRaw = r.file_paths;
+      const file_paths = Array.isArray(filePathsRaw)
+        ? filePathsRaw.filter((p): p is string => typeof p === "string")
+        : undefined;
+
+      commits.push({
+        sha,
+        message,
+        author_date,
+        committer_date,
+        author_email: author_email ?? "",
+        files_changed: parsedFilesChanged,
+        additions: parsedAdditions,
+        deletions: parsedDeletions,
+        parents,
+        ...(file_paths ? { file_paths } : {}),
+      });
+    }
+
+    return commits;
+  }
+
+  const eventsByJobId = new Map<string, VibeCommitEvent[]>();
+  for (const row of missingMetricsData ?? []) {
+    const commits = toCommitEvents((row as { events_json: unknown }).events_json);
+    if (!commits) continue;
+    eventsByJobId.set(row.job_id, commits);
+  }
+
+  const computedByJobId = new Map<
+    string,
+    { axes: VibeAxes; persona: VibePersona; cards: unknown; evidence: unknown; generatedAt: string; version: string }
+  >();
+
+  for (const jobId of missingJobIds) {
+    const commits = eventsByJobId.get(jobId);
+    if (!commits) continue;
+    const vibe = computeVibeFromCommits({ commits, episodeGapHours: 4 });
+    computedByJobId.set(jobId, {
+      axes: vibe.axes,
+      persona: vibe.persona,
+      cards: vibe.cards,
+      evidence: vibe.evidence_index,
+      generatedAt: vibe.generated_at,
+      version: vibe.version,
+    });
+  }
+
+  const backfillRows = Array.from(computedByJobId.entries()).map(([jobId, v]) => ({
+    job_id: jobId,
+    version: v.version,
+    axes_json: v.axes as unknown as Json,
+    persona_id: v.persona.id,
+    persona_name: v.persona.name,
+    persona_tagline: v.persona.tagline,
+    persona_confidence: v.persona.confidence,
+    persona_score: v.persona.score,
+    cards_json: v.cards as unknown as Json,
+    evidence_json: v.evidence as unknown as Json,
+    generated_at: v.generatedAt,
+    updated_at: new Date().toISOString(),
+  }));
+
+  if (backfillRows.length > 0) {
+    const { error: backfillError } = await service
+      .from("vibe_insights")
+      .upsert(backfillRows, { onConflict: "job_id" });
+
+    if (backfillError) {
+      return NextResponse.json({ error: "failed_to_backfill_vibe_insights" }, { status: 500 });
+    }
+  }
+
   const repoInsights: RepoInsightSummary[] = [];
 
   for (const job of completedJobs) {
@@ -235,6 +375,19 @@ export async function POST(request: Request) {
           why: [],
           caveats: [],
         } as VibePersona,
+        analyzedAt: job.completed_at ?? new Date().toISOString(),
+      });
+      continue;
+    }
+
+    const computed = computedByJobId.get(job.id);
+    if (computed) {
+      repoInsights.push({
+        jobId: job.id,
+        repoName,
+        commitCount,
+        axes: computed.axes,
+        persona: computed.persona,
         analyzedAt: job.completed_at ?? new Date().toISOString(),
       });
       continue;

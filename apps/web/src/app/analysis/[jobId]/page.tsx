@@ -21,13 +21,17 @@ export default async function AnalysisPage({
   return (
     <div className={`${wrappedTheme.container} py-10`}>
       <div className="mx-auto max-w-5xl">
-        <div className={`rounded-[2rem] p-6 ${wrappedTheme.card}`}>
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">Analysis</h1>
-          <p className="mt-2 text-sm text-zinc-600">
-            Job <span className="font-mono">{jobId}</span>
-          </p>
-        </div>
         <AnalysisClient jobId={jobId} />
+        <details className={`mt-10 rounded-[2rem] p-6 ${wrappedTheme.card}`}>
+          <summary className="cursor-pointer text-sm font-semibold text-zinc-900">
+            Analysis details
+          </summary>
+          <div className="mt-3 space-y-1 text-sm text-zinc-600">
+            <p>
+              Job <span className="font-mono">{jobId}</span>
+            </p>
+          </div>
+        </details>
       </div>
     </div>
   );

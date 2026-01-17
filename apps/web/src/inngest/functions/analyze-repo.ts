@@ -523,6 +523,96 @@ export const analyzeRepo = inngest.createFunction(
       const vibeJobIds = new Set(vibeInsights.map((v) => v.job_id));
       const missingJobIds = jobIds.filter((id) => !vibeJobIds.has(id));
 
+      const { data: missingMetricsData } = missingJobIds.length > 0
+        ? await supabase
+            .from("analysis_metrics")
+            .select("job_id, events_json")
+            .in("job_id", missingJobIds)
+        : { data: [] };
+
+      function toCommitEvents(input: unknown): VibeCommitEvent[] | null {
+        if (!Array.isArray(input)) return null;
+
+        const commits: VibeCommitEvent[] = [];
+        for (const row of input) {
+          if (typeof row !== "object" || row === null) return null;
+          const r = row as Record<string, unknown>;
+
+          const sha = r.sha;
+          const message = r.message;
+          const author_date = r.author_date;
+          const committer_date = r.committer_date;
+          const author_email = r.author_email;
+          const files_changed = r.files_changed;
+          const additions = r.additions;
+          const deletions = r.deletions;
+
+          if (
+            typeof sha !== "string" ||
+            typeof message !== "string" ||
+            typeof author_date !== "string" ||
+            typeof committer_date !== "string" ||
+            typeof author_email !== "string" ||
+            typeof files_changed !== "number" ||
+            typeof additions !== "number" ||
+            typeof deletions !== "number"
+          ) {
+            return null;
+          }
+
+          const parentsRaw = r.parents;
+          const parents = Array.isArray(parentsRaw)
+            ? parentsRaw.filter((p): p is string => typeof p === "string")
+            : [];
+
+          const filePathsRaw = r.file_paths;
+          const file_paths = Array.isArray(filePathsRaw)
+            ? filePathsRaw.filter((p): p is string => typeof p === "string")
+            : undefined;
+
+          commits.push({
+            sha,
+            message,
+            author_date,
+            committer_date,
+            author_email,
+            files_changed,
+            additions,
+            deletions,
+            parents,
+            ...(file_paths ? { file_paths } : {}),
+          });
+        }
+
+        return commits;
+      }
+
+      const computedByJobId = new Map<string, ReturnType<typeof computeVibeFromCommits>>();
+      for (const row of missingMetricsData ?? []) {
+        const jobId = (row as { job_id: string }).job_id;
+        const commits = toCommitEvents((row as { events_json: unknown }).events_json);
+        if (!commits) continue;
+        computedByJobId.set(jobId, computeVibeFromCommits({ commits, episodeGapHours: 4 }));
+      }
+
+      const backfillRows = Array.from(computedByJobId.entries()).map(([jobId, v]) => ({
+        job_id: jobId,
+        version: v.version,
+        axes_json: v.axes,
+        persona_id: v.persona.id,
+        persona_name: v.persona.name,
+        persona_tagline: v.persona.tagline,
+        persona_confidence: v.persona.confidence,
+        persona_score: v.persona.score,
+        cards_json: v.cards,
+        evidence_json: v.evidence_index,
+        generated_at: v.generated_at,
+      }));
+
+      if (backfillRows.length > 0) {
+        await supabase.from("vibe_insights").upsert(backfillRows, { onConflict: "job_id" });
+      }
+
       const { data: legacyInsightsData } = missingJobIds.length > 0
         ? await supabase
             .from("analysis_insights")
@@ -574,6 +664,19 @@ export const analyzeRepo = inngest.createFunction(
               why: [],
               caveats: [],
             } as VibePersona,
+            analyzedAt: job.completed_at ?? new Date().toISOString(),
+          });
+          continue;
+        }
+
+        const computed = computedByJobId.get(job.id);
+        if (computed) {
+          repoInsights.push({
+            jobId: job.id,
+            repoName,
+            commitCount,
+            axes: computed.axes,
+            persona: computed.persona,
             analyzedAt: job.completed_at ?? new Date().toISOString(),
           });
           continue;
