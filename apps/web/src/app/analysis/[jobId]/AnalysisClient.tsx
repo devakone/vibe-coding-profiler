@@ -54,6 +54,16 @@ type InsightsRow = {
   generated_at?: string;
 };
 
+type InsightHistoryEntry = {
+  job_id: string;
+  status: string;
+  created_at: string;
+  persona_label?: string;
+  persona_confidence?: string;
+  share_template?: AnalysisInsights["share_template"];
+  generated_at?: string;
+};
+
 function isRecord(v: unknown): v is Record<string, unknown> {
   return Boolean(v) && typeof v === "object";
 }
@@ -270,6 +280,49 @@ function fmtDate(iso: string | null): string {
   return d.toLocaleString();
 }
 
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function createShareSvg(template: AnalysisInsights["share_template"]): string {
+  const width = 1200;
+  const height = 630;
+  const metricsText = template.metrics
+    .map((metric) => `${metric.label}: ${metric.value}`)
+    .join(" · ");
+  const archetypes = template.persona_archetype.archetypes.join(", ");
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+  <defs>
+    <linearGradient id="g" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="${template.colors.primary}" />
+      <stop offset="100%" stop-color="${template.colors.accent}" />
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" rx="48" fill="url(#g)" />
+  <text x="80" y="140" font-size="64" font-weight="700" fill="#fff" font-family="Space Grotesk, sans-serif">
+    ${escapeXml(template.headline)}
+  </text>
+  <text x="80" y="210" font-size="28" fill="#F8FAFC" font-family="Space Grotesk, sans-serif">
+    ${escapeXml(template.subhead)}
+  </text>
+  <text x="80" y="280" font-size="24" fill="#F8FAFC" font-family="Space Grotesk, sans-serif">
+    ${escapeXml(metricsText)}
+  </text>
+  <text x="80" y="340" font-size="18" fill="#E0F2FE" font-family="Space Grotesk, sans-serif" opacity="0.9">
+    Persona: ${escapeXml(template.persona_archetype.label)} · ${escapeXml(archetypes)}
+  </text>
+  <text x="80" y="420" font-size="16" fill="#E0F2FE" font-family="Space Grotesk, sans-serif" opacity="0.8">
+    #Vibed
+  </text>
+</svg>`;
+}
+
 function weekdayName(dow: number): string {
   return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dow] ?? "—";
 }
@@ -303,6 +356,10 @@ function InsightCard(props: {
 export default function AnalysisClient({ jobId }: { jobId: string }) {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<InsightHistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -357,7 +414,6 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
   const persona = wrapped.persona;
   const shareTemplate = wrapped.share_template;
   const personaDelta = wrapped.persona_delta;
-  const [copied, setCopied] = useState(false);
 
   const shareText = useMemo(() => {
     if (!shareTemplate) return "";
@@ -376,6 +432,60 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
       setCopied(false);
     }
   };
+
+  const handleDownloadShare = () => {
+    if (!shareTemplate) return;
+    const svg = createShareSvg(shareTemplate);
+    const blob = new Blob([svg], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `bolokono-vibed-${jobId}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (job.status !== "done") {
+      setHistory([]);
+      setHistoryLoading(false);
+      setHistoryError(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    async function fetchHistory() {
+      setHistoryLoading(true);
+      setHistoryError(null);
+      try {
+        const res = await fetch("/api/analysis/history", { cache: "no-store" });
+        const payload = (await res.json()) as { history?: InsightHistoryEntry[]; error?: string };
+        if (cancelled) return;
+        if (!res.ok) {
+          setHistoryError(payload.error ?? "Unable to load insight history");
+          setHistory([]);
+        } else {
+          setHistory(payload.history ?? []);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setHistoryError("Failed to load insight history");
+        setHistory([]);
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
+      }
+    }
+
+    fetchHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [job.status]);
 
   return (
     <div className="mt-6 flex flex-col gap-6">
@@ -526,96 +636,150 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
             )}
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Persona snapshot</p>
-              <h3 className="mt-2 text-2xl font-semibold text-zinc-900">{persona.label}</h3>
-              <p className="mt-2 text-sm text-zinc-600">{persona.description}</p>
-              <p className="mt-3 text-xs uppercase tracking-[0.3em] text-zinc-400">
-                Confidence: {persona.confidence}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {persona.archetypes.map((arch) => (
-                  <span
-                    key={arch}
-                    className="rounded-full border border-black/10 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-700"
-                  >
-                    {arch}
-                  </span>
-                ))}
-              </div>
-              {persona.evidence_shas.length > 0 ? (
-                <div className="mt-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
-                    Evidence SHAs
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {persona.evidence_shas.map((sha) => (
-                      <span
-                        key={sha}
-                        className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-zinc-700"
-                      >
-                        {sha.slice(0, 10)}
-                      </span>
-                    ))}
+          {shareTemplate ? (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Persona snapshot</p>
+                <h3 className="mt-2 text-2xl font-semibold text-zinc-900">{persona.label}</h3>
+                <p className="mt-2 text-sm text-zinc-600">{persona.description}</p>
+                <p className="mt-3 text-xs uppercase tracking-[0.3em] text-zinc-400">
+                  Confidence: {persona.confidence}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {persona.archetypes.map((arch) => (
+                    <span
+                      key={arch}
+                      className="rounded-full border border-black/10 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-700"
+                    >
+                      {arch}
+                    </span>
+                  ))}
+                </div>
+                {persona.evidence_shas.length > 0 ? (
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
+                      Evidence SHAs
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {persona.evidence_shas.map((sha) => (
+                        <span
+                          key={sha}
+                          className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-zinc-700"
+                        >
+                          {sha.slice(0, 10)}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : null}
-              {personaDelta.length > 0 ? (
-                <div className="mt-4 rounded-2xl border border-dashed border-zinc-200 p-3 text-sm text-zinc-700">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
-                    Evolution notes
-                  </p>
-                  <ul className="mt-2 space-y-2">
-                    {personaDelta.map((delta, idx) => (
-                      <li key={`${delta.to}-${idx}`}>
-                        <p>
-                          {delta.from ? `${delta.from} → ` : ""} {delta.to}
-                        </p>
-                        <p className="text-xs text-zinc-500">{delta.note}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-            <div
-              className="rounded-3xl border border-black/5 p-6 shadow-sm"
-              style={{
-                background: `linear-gradient(135deg, ${shareTemplate.colors.primary}, ${shareTemplate.colors.accent})`,
-              }}
-            >
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/80">Share card</p>
-              <h3 className="mt-3 text-3xl font-semibold text-white">{shareTemplate.headline}</h3>
-              <p className="mt-2 text-sm text-white/80">{shareTemplate.subhead}</p>
-              <div className="mt-6 space-y-2">
-                {shareTemplate.metrics.map((metric) => (
-                  <p key={metric.label} className="text-sm font-semibold text-white">
-                    {metric.label}: <span className="font-normal">{metric.value}</span>
-                  </p>
-                ))}
+                ) : null}
+                {personaDelta.length > 0 ? (
+                  <div className="mt-4 rounded-2xl border border-dashed border-zinc-200 p-3 text-sm text-zinc-700">
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
+                      Evolution notes
+                    </p>
+                    <ul className="mt-2 space-y-2">
+                      {personaDelta.map((delta, idx) => (
+                        <li key={`${delta.to}-${idx}`}>
+                          <p>
+                            {delta.from ? `${delta.from} → ` : ""} {delta.to}
+                          </p>
+                          <p className="text-xs text-zinc-500">{delta.note}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
-              <div className="mt-4 text-xs uppercase tracking-[0.3em] text-white/70">
-                {shareTemplate.persona_archetype.label}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {shareTemplate.persona_archetype.archetypes.map((arch) => (
-                  <span
-                    key={arch}
-                    className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white"
-                  >
-                    {arch}
-                  </span>
-                ))}
-              </div>
-              <button
-                type="button"
-                className="mt-4 inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
-                onClick={handleCopyShare}
+              <div
+                className="rounded-3xl border border-black/5 p-6 shadow-sm"
+                style={{
+                  background: `linear-gradient(135deg, ${shareTemplate.colors.primary}, ${shareTemplate.colors.accent})`,
+                }}
               >
-                {copied ? "Copied" : "Copy summary"}
-              </button>
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/80">Share card</p>
+                <h3 className="mt-3 text-3xl font-semibold text-white">{shareTemplate.headline}</h3>
+                <p className="mt-2 text-sm text-white/80">{shareTemplate.subhead}</p>
+                <div className="mt-6 space-y-2">
+                  {shareTemplate.metrics.map((metric) => (
+                    <p key={metric.label} className="text-sm font-semibold text-white">
+                      {metric.label}: <span className="font-normal">{metric.value}</span>
+                    </p>
+                  ))}
+                </div>
+                <div className="mt-4 text-xs uppercase tracking-[0.3em] text-white/70">
+                  {shareTemplate.persona_archetype.label}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {shareTemplate.persona_archetype.archetypes.map((arch) => (
+                    <span
+                      key={arch}
+                      className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white"
+                    >
+                      {arch}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-4 flex gap-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                    onClick={handleCopyShare}
+                  >
+                    {copied ? "Copied" : "Copy summary"}
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                    onClick={handleDownloadShare}
+                  >
+                    Download SVG
+                  </button>
+                </div>
+              </div>
             </div>
+          ) : null}
+
+          <div className="mt-6 rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
+                  Persona history
+                </p>
+                <h3 className="text-2xl font-semibold text-zinc-950">Your Vibed timeline</h3>
+              </div>
+              <div className="text-xs text-zinc-500">
+                {historyLoading && "Loading history…"}
+                {historyError ? historyError : null}
+              </div>
+            </div>
+            {history.length > 0 ? (
+              <div className="mt-4 flex flex-col gap-3">
+                {history.slice(0, 6).map((entry) => (
+                  <div
+                    key={entry.job_id}
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-black/5 bg-zinc-50 px-4 py-3"
+                  >
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
+                        {fmtDate(entry.created_at)} · {entry.status}
+                      </p>
+                      <p className="text-base font-semibold text-zinc-900">{entry.persona_label ?? "No profile"}</p>
+                      {entry.persona_confidence ? (
+                        <p className="text-xs text-zinc-500">Confidence: {entry.persona_confidence}</p>
+                      ) : null}
+                    </div>
+                    <div className="text-right text-xs text-zinc-500">
+                      <p>Job {entry.job_id.slice(0, 6)}</p>
+                      {entry.generated_at ? <p>refresh {fmtDate(entry.generated_at)}</p> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : historyError ? (
+              <p className="mt-4 text-sm text-red-600">{historyError}</p>
+            ) : (
+              <p className="mt-4 text-sm text-zinc-500">No historical insights yet.</p>
+            )}
           </div>
 
           <details className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
