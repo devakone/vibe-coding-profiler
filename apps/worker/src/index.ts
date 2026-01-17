@@ -25,7 +25,6 @@ import {
 import { fetchCommitDetail, fetchCommitList, mapWithConcurrency } from "./github";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { createServer } from "node:http";
 
 const POLL_INTERVAL_MS = 5000;
@@ -60,7 +59,7 @@ function loadDotEnvFile(filePath: string) {
   }
 }
 
-const workerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const workerDir = path.resolve(process.cwd());
 loadDotEnvFile(path.join(workerDir, ".env.local"));
 loadDotEnvFile(path.join(workerDir, ".env"));
 

@@ -5,9 +5,9 @@ export const runtime = "nodejs";
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ jobId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { jobId } = await params;
+  const { id } = await params;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -19,13 +19,11 @@ export async function GET(
 
   const { data, error } = await supabase
     .from("analysis_insights")
-    .select(
-      "share_template, persona_label, persona_confidence, persona_id, persona_archetype, generated_at"
-    )
-    .eq("job_id", jobId)
+    .select("share_template, persona_label, persona_confidence, persona_id, generated_at")
+    .eq("job_id", id)
     .single();
 
-  if (error) {
+  if (error || !data) {
     console.error("Failed to fetch share payload:", error);
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }

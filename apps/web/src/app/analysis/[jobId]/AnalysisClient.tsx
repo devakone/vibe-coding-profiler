@@ -393,13 +393,11 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
     };
   }, [jobId]);
 
-  if (error) return <p className="mt-6 text-sm text-red-600">{error}</p>;
-  if (!data) return <p className="mt-6 text-sm text-zinc-600">Loading…</p>;
+  const jobStatus = data?.job.status ?? null;
 
-  const { job, report, metrics, insights } = data;
-  const parsedReport = isReportRow(report) ? report : null;
-  const parsedMetrics = isMetricsRow(metrics) ? metrics : null;
-  const parsedInsightsRow = isInsightsRow(insights) ? insights : null;
+  const parsedReport = data && isReportRow(data.report) ? data.report : null;
+  const parsedMetrics = data && isMetricsRow(data.metrics) ? data.metrics : null;
+  const parsedInsightsRow = data && isInsightsRow(data.insights) ? data.insights : null;
 
   const narrative = parsedReport?.narrative_json;
   const sections = narrative?.sections ?? [];
@@ -449,7 +447,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    if (job.status !== "done") {
+    if (jobStatus !== "done") {
       setHistory([]);
       setHistoryLoading(false);
       setHistoryError(null);
@@ -471,7 +469,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
         } else {
           setHistory(payload.history ?? []);
         }
-      } catch (err) {
+      } catch {
         if (cancelled) return;
         setHistoryError("Failed to load insight history");
         setHistory([]);
@@ -485,7 +483,12 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [job.status]);
+  }, [jobStatus]);
+
+  if (error) return <p className="mt-6 text-sm text-red-600">{error}</p>;
+  if (!data) return <p className="mt-6 text-sm text-zinc-600">Loading…</p>;
+
+  const { job } = data;
 
   return (
     <div className="mt-6 flex flex-col gap-6">
