@@ -1,11 +1,12 @@
 import LoginButton from "./LoginButton";
 import Link from "next/link";
+import { wrappedTheme } from "@/lib/theme";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-6">
-      <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+    <div className={`flex min-h-screen items-center justify-center ${wrappedTheme.container}`}>
+      <div className={`w-full max-w-md p-6 ${wrappedTheme.card}`}>
+        <h1 className={`text-2xl font-semibold tracking-tight ${wrappedTheme.gradientText}`}>
           Bolokono
         </h1>
         <p className="mt-2 text-sm text-zinc-600">

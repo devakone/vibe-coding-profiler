@@ -269,7 +269,7 @@ INSERT INTO auth.users (
 
 For GitHub OAuth testing locally:
 1. Create a GitHub OAuth App at https://github.com/settings/developers
-2. Set callback URL to `http://localhost:8108/auth/callback`
+2. Set callback URL to `http://localhost:54421/auth/v1/callback`
 3. Add credentials to `.env.local`
 
 ---
@@ -490,7 +490,7 @@ npx supabase migration repair --status applied <version>
 
 ### GitHub OAuth Not Working
 
-1. Check callback URL matches exactly: `http://localhost:8108/auth/callback`
+1. Check callback URL matches exactly: `http://localhost:54421/auth/v1/callback`
 2. Verify client ID and secret in `.env.local`
 3. Check Supabase Auth settings in dashboard
 

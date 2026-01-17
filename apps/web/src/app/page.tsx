@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@bolokono/db";
+import { wrappedTheme } from "@/lib/theme";
 
 const heroFeatures = [
   "A vibe profile built from commit metadata and patterns",
@@ -128,17 +129,18 @@ function MarketingLanding() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 px-6 py-12 sm:px-10 lg:px-20">
+    <div className={`${wrappedTheme.container} ${wrappedTheme.pageY}`}>
       <div className="mx-auto max-w-6xl">
-        <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.4em] text-white/40">
+        <header className="space-y-6">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
               For solo builders
             </p>
-            <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Find your coding vibe and persona, grounded in commit evidence
+            <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 sm:text-5xl">
+              <span className={wrappedTheme.gradientText}>Find your coding vibe</span>{" "}
+              and persona, grounded in commit evidence
             </h1>
-            <p className="max-w-2xl text-base text-white/70 sm:text-lg">
+            <p className="max-w-2xl text-base text-zinc-700 sm:text-lg">
               Bolokono analyzes commit history patterns to generate a vibe profile, a persona
               snapshot, and a narrative with evidence SHAs. It is not a performance review and it
               does not replace human judgment.
@@ -147,74 +149,76 @@ function MarketingLanding() {
 
           <div className="flex flex-wrap gap-3">
             <Link
-              href="/security"
-              className="rounded-full border border-white/20 px-6 py-2 text-sm font-semibold text-white/90 transition hover:border-white/40"
-            >
-              Security
-            </Link>
-            <Link
               href="/login"
-              className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-zinc-900"
+              className={wrappedTheme.primaryButton}
             >
-              Sign in
+              Generate mine
             </Link>
           </div>
         </header>
 
         <div className="mt-12 grid gap-6 lg:grid-cols-2">
-          <section className="rounded-3xl border border-white/10 bg-zinc-900/40 p-8 shadow-[0_20px_60px_rgba(2,6,23,0.7)]">
-            <h2 className="text-2xl font-semibold text-white">What you get</h2>
-            <ul className="mt-6 space-y-3 text-sm text-white/70">
+          <section className={`${wrappedTheme.card} p-8`}>
+            <h2 className="text-2xl font-semibold text-zinc-950">
+              What you get
+            </h2>
+            <ul className="mt-6 space-y-3 text-sm text-zinc-800">
               {heroFeatures.map((feature) => (
                 <li key={feature} className="flex gap-3">
-                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-300/70" />
+                  <span className={`mt-1 shrink-0 ${wrappedTheme.dot}`} />
                   <span>{feature}</span>
                 </li>
               ))}
             </ul>
-            <p className="mt-6 text-sm text-white/60">
+            <p className="mt-6 text-sm text-zinc-700">
               Personas are an interpretation layer based on signals we can observe in commits. They
               can change as your repo evolves.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/login"
-                className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-zinc-900"
+                className="rounded-full bg-zinc-950 px-6 py-2 text-sm font-semibold text-white transition hover:bg-black"
               >
                 Start with GitHub
               </Link>
               <Link
                 href="/security"
-                className="rounded-full border border-white/20 px-6 py-2 text-sm font-semibold text-white/90 transition hover:border-white/40"
+                className={wrappedTheme.secondaryButton}
               >
                 Read security notes
               </Link>
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-600/70 to-cyan-500/50 p-8">
-            <h2 className="text-2xl font-semibold text-white">How it works</h2>
+          <section className="rounded-3xl border border-black/5 bg-gradient-to-br from-fuchsia-200/70 via-indigo-200/60 to-cyan-200/70 p-8 shadow-[0_25px_80px_rgba(2,6,23,0.06)]">
+            <h2 className="text-2xl font-semibold text-zinc-950">How it works</h2>
             <div className="mt-6 grid gap-4">
               {timeline.map((step) => (
-                <div key={step.title} className="rounded-2xl border border-white/15 bg-white/5 p-5">
-                  <p className="text-sm font-semibold text-white">{step.title}</p>
-                  <p className="mt-1 text-sm text-white/80">{step.description}</p>
+                <div
+                  key={step.title}
+                  className="rounded-2xl border border-black/5 bg-white/70 p-5 backdrop-blur"
+                >
+                  <p className="text-sm font-semibold text-zinc-950">{step.title}</p>
+                  <p className="mt-1 text-sm text-zinc-700">{step.description}</p>
                 </div>
               ))}
             </div>
           </section>
         </div>
 
-        <section className="mt-6 rounded-3xl border border-white/10 bg-zinc-900/40 p-8 shadow-[0_20px_60px_rgba(2,6,23,0.7)]">
+        <section className={`mt-6 ${wrappedTheme.card} p-8`}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold text-white">Persona previews</h2>
-              <p className="mt-2 max-w-2xl text-sm text-white/70">
+              <h2 className="text-2xl font-semibold text-zinc-950">Persona previews</h2>
+              <p className="mt-2 max-w-2xl text-sm text-zinc-800">
                 You may see one of these (or another persona) in your profile. The goal is to set
                 expectations for the vibe of your output, not to label you permanently.
               </p>
             </div>
-            <Link href="/login" className="text-sm font-semibold text-white/90 transition hover:text-white">
+            <Link
+              href="/login"
+              className="text-sm font-semibold text-zinc-950 transition hover:text-zinc-700"
+            >
               Generate mine →
             </Link>
           </div>
@@ -223,22 +227,23 @@ function MarketingLanding() {
             {personaCards.map((card) => (
               <div
                 key={card.title}
-                className="rounded-2xl border border-white/10 bg-zinc-950/40 p-6"
+                className="rounded-2xl border border-black/5 bg-white p-6 shadow-sm"
               >
-                <p className="text-sm font-semibold text-white">{card.title}</p>
-                <p className="mt-2 text-sm text-white/70">{card.description}</p>
+                <div className="h-1.5 w-12 rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600" />
+                <p className="mt-4 text-sm font-semibold text-zinc-950">{card.title}</p>
+                <p className="mt-2 text-sm text-zinc-800">{card.description}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <footer className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between">
-          <p>Bolokono</p>
+        <footer className="mt-12 flex flex-col gap-3 border-t border-black/5 pt-6 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-zinc-700">Bolokono</p>
           <div className="flex flex-wrap gap-4">
-            <Link href="/security" className="transition hover:text-white">
+            <Link href="/security" className="transition hover:text-zinc-900">
               Security
             </Link>
-            <Link href="/login" className="transition hover:text-white">
+            <Link href="/login" className="transition hover:text-zinc-900">
               Sign in
             </Link>
           </div>
@@ -268,12 +273,16 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 px-6 py-12 sm:px-10 lg:px-20">
+    <div className={`${wrappedTheme.container} ${wrappedTheme.pageY}`}>
       <div className="mx-auto max-w-6xl space-y-10">
         <header className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.4em] text-white/40">Authenticated workspace</p>
-          <h1 className="text-4xl font-semibold text-white">Your Bolokono dashboard</h1>
-          <p className="text-lg text-white/70">
+          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
+            Authenticated workspace
+          </p>
+          <h1 className="text-4xl font-semibold tracking-tight text-zinc-950">
+            Your Bolokono dashboard
+          </h1>
+          <p className="max-w-2xl text-lg text-zinc-700">
             A single pane for monitoring your repos, job status, and insights. Everything here is
             backed by Supabase data and scoped access controls.
           </p>
@@ -283,19 +292,23 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
           {cards.map(({ label, value, helper }) => (
             <article
               key={label}
-              className="rounded-2xl border border-white/10 bg-zinc-900/40 p-6 shadow-[0_20px_60px_rgba(2,6,23,0.7)]"
+              className={`${wrappedTheme.card} p-6`}
             >
-              <p className="text-sm uppercase tracking-[0.4em] text-white/40">{label}</p>
-              <p className="mt-4 text-4xl font-semibold text-white">{value}</p>
-              <p className="mt-2 text-sm text-white/70">{helper}</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.4em] text-zinc-600">
+                {label}
+              </p>
+              <p className="mt-4 text-4xl font-semibold text-zinc-950">{value}</p>
+              <p className="mt-2 text-sm text-zinc-700">{helper}</p>
             </article>
           ))}
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-600/80 to-cyan-500/60 p-6">
+        <div className="rounded-3xl border border-black/5 bg-gradient-to-br from-fuchsia-600 via-indigo-600 to-cyan-600 p-6 shadow-[0_30px_120px_rgba(2,6,23,0.18)]">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.4em] text-white/70">Latest job</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-white/75">
+                Latest job
+              </p>
               <p className="text-2xl font-semibold text-white">
                 {stats.latestJob?.repoName ?? "No jobs yet"}
               </p>
@@ -307,13 +320,13 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/repos"
-                className="rounded-full border border-white/60 px-6 py-2 text-sm font-semibold text-white transition hover:border-white"
+                className="rounded-full border border-white/70 bg-white/10 px-6 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15"
               >
                 Manage repos
               </Link>
               <Link
                 href="/analysis"
-                className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-zinc-900"
+                className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-white/90"
               >
                 View reports
               </Link>

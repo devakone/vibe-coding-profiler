@@ -8,14 +8,14 @@ This document summarizes what you need to do before you can authenticate via Git
 2. Fill in the required URLs for local development:
    - **Application name:** e.g., `Bolokono Local`
    - **Homepage URL:** `http://localhost:8108`
-   - **Authorization callback URL:** `http://localhost:8108/auth/callback`
+   - **Authorization callback URL:** `http://localhost:54421/auth/v1/callback`
 3. Save the Client ID and Client Secret; you will store both in your local environment file (`.env.local`).
 
 ## 2. Enable GitHub as a Supabase Auth Provider
 
 This project relies on Supabase Auth using GitHub OAuth (see `docs/PRD.md`).
 
-1. Start your local Supabase stack if it is not running: `npx supabase start`.
+1. Start your local Supabase stack if it is not running: `npm run supabase:start`.
 2. Open Supabase Studio at `http://127.0.0.1:54423` and navigate to **Authentication → Providers → GitHub**.
 3. Paste the Client ID and Client Secret from the OAuth app you created above.
 4. Select scopes required for private repo access (at least `repo` and `read:user`).
@@ -25,7 +25,7 @@ This project relies on Supabase Auth using GitHub OAuth (see `docs/PRD.md`).
 Copy `.env.example` to `.env.local` and fill in the required values (see `docs/Agents.md` for the list). At minimum for GitHub/Supabase auth locally:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54421
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<from `npx supabase status`>
 SUPABASE_SERVICE_ROLE_KEY=<from `npx supabase status`>
 GITHUB_CLIENT_ID=<from GitHub OAuth app>
@@ -51,7 +51,7 @@ When you create a new OAuth app or Supabase account (GitHub, Supabase service cr
 |-------------|-------|-----------------------|
 | GitHub OAuth App | Application name | “Bolokono Local” or “Bolokono Dev” |
 |  | Homepage URL | `http://localhost:8108` (local) / production URL when ready |
-|  | Authorization callback URL | `http://localhost:8108/auth/callback` |
+|  | Authorization callback URL | `http://localhost:54421/auth/v1/callback` |
 |  | Client ID / Client Secret | Store securely (env file, vault) |
 | Supabase Auth provider | Client ID / Secret | Same values as above |
 |  | Scopes | `repo`, `read:user`, `user:email` (minimum for repo access) |

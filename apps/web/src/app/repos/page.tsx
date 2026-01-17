@@ -1,6 +1,7 @@
 import ReposClient from "./ReposClient";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { wrappedTheme } from "@/lib/theme";
 
 export const runtime = "nodejs";
 
@@ -28,14 +29,16 @@ export default async function ReposPage() {
     .map((r) => ({ repo_id: r.repo_id, full_name: r.repos!.full_name }));
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight text-white">
+    <div className={`${wrappedTheme.container} py-10`}>
+      <div className="mx-auto max-w-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
         Repositories
-      </h1>
-      <p className="mt-2 text-sm text-zinc-300">
+        </h1>
+        <p className="mt-2 text-sm text-zinc-700">
         Connect a repo, then start an analysis job.
-      </p>
-      <ReposClient initialConnected={initialConnected} />
+        </p>
+        <ReposClient initialConnected={initialConnected} />
+      </div>
     </div>
   );
 }

@@ -1,0 +1,71 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { wrappedTheme } from "@/lib/theme";
+
+export default function AppHeader(props: {
+  isAuthed: boolean;
+  signOut: () => Promise<void>;
+}) {
+  const pathname = usePathname();
+
+  if (pathname === "/login") return null;
+
+  const links = props.isAuthed
+    ? [
+        { href: "/", label: "Dashboard" },
+        { href: "/repos", label: "Repos" },
+        { href: "/analysis", label: "Reports" },
+        { href: "/security", label: "Security" },
+      ]
+    : [
+        { href: "/", label: "Home" },
+        { href: "/security", label: "Security" },
+      ];
+
+  return (
+    <header className="sticky top-0 z-50 bg-white/75 backdrop-blur">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500" />
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-amber-400 via-fuchsia-500 to-cyan-500 opacity-70" />
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4 sm:px-10 lg:px-20">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/"
+            className="group flex items-center gap-2 text-sm font-semibold tracking-tight text-zinc-950"
+          >
+            <span className={wrappedTheme.dot} />
+            <span className={wrappedTheme.gradientText}>Bolokono</span>
+          </Link>
+          <nav className="flex items-center gap-2 text-sm">
+            {links.map((l) => (
+              <Link key={l.href} href={l.href} className={wrappedTheme.pillLink}>
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+        <div className="flex items-center gap-3">
+          {props.isAuthed ? (
+            <form action={props.signOut}>
+              <button
+                type="submit"
+                className="rounded-full border border-zinc-300/80 bg-white/70 px-4 py-1.5 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur transition hover:border-zinc-400 hover:bg-white"
+              >
+                Sign out
+              </button>
+            </form>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
+            >
+              Sign in
+            </Link>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+

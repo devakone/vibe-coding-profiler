@@ -1,5 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { wrappedTheme } from "@/lib/theme";
+import AppHeader from "./AppHeader";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -34,19 +38,39 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#050505",
+  themeColor: "#ffffff",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  async function signOut() {
+    "use server";
+
+    const serverSupabase = await createSupabaseServerClient();
+    await serverSupabase.auth.signOut();
+    redirect("/");
+  }
+
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased ${wrappedTheme.background}`}
       >
+        <div className={wrappedTheme.backgroundOrbs.wrapper}>
+          <div className={wrappedTheme.backgroundOrbs.orbA} />
+          <div className={wrappedTheme.backgroundOrbs.orbB} />
+          <div className={wrappedTheme.backgroundOrbs.orbC} />
+          <div className={wrappedTheme.backgroundOrbs.vignette} />
+        </div>
+        <AppHeader isAuthed={Boolean(user)} signOut={signOut} />
         {children}
       </body>
     </html>
