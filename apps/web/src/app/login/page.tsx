@@ -1,4 +1,5 @@
 import LoginButton from "./LoginButton";
+import Link from "next/link";
 
 export default function LoginPage() {
   return (
@@ -13,8 +14,15 @@ export default function LoginPage() {
         <div className="mt-6">
           <LoginButton />
         </div>
+        <div className="mt-6 flex items-center justify-between text-xs text-zinc-500">
+          <Link href="/security" className="underline underline-offset-2">
+            Security notes
+          </Link>
+          <Link href="/" className="underline underline-offset-2">
+            Home
+          </Link>
+        </div>
       </div>
     </div>
   );
 }
-

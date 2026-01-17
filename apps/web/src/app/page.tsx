@@ -1,20 +1,19 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import type { Database } from "@bolokono/db";
 
 const heroFeatures = [
-  "Capture your commits without exposing file contents",
-  "Trace build categories, burstiness, and fixup sequences",
-  "Narratives cite exact SHAs and metric values",
-  "Supabase handles auth + RLS; you control the data",
+  "Turn commit history into a build-rhythm profile",
+  "See burstiness, fixups, and build categories over time",
+  "Read a narrative that cites exact SHAs and metric values",
+  "Supabase Auth + RLS keep data scoped to your account",
 ];
 
 const timeline = [
-  { title: "Connect your repo", description: "Grant limited GitHub scopes and keep tokens encrypted." },
-  { title: "Queue an analysis job", description: "Supabase records the request and job status." },
-  { title: "Worker sketches your rhythm", description: "Commit timing, categories, and fixups become metrics." },
-  { title: "Read your Bolokono profile", description: "Type, timeline, and narrative explain your vibe." },
+  { title: "Connect GitHub", description: "Sign in and pick the repos you want to analyze." },
+  { title: "Queue an analysis", description: "We fetch commit history and compute metrics." },
+  { title: "Get your profile", description: "See patterns, archetype, and evidence SHAs." },
+  { title: "Share responsibly", description: "Keep private repos private; share only what you intend to share." },
 ];
 
 type AuthStats = {
@@ -44,7 +43,7 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) return <MarketingLanding />;
 
   const [connectedReposResult, completedJobsResult, queuedJobsResult, latestJobResult] =
     await Promise.all([
@@ -102,6 +101,96 @@ export default async function Home() {
   };
 
   return <AuthenticatedDashboard stats={stats} />;
+}
+
+function MarketingLanding() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 px-6 py-12 sm:px-10 lg:px-20">
+      <div className="mx-auto max-w-6xl">
+        <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.4em] text-white/40">
+              For solo builders
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Bolokono turns git history into a build-rhythm profile
+            </h1>
+            <p className="max-w-2xl text-base text-white/70 sm:text-lg">
+              Analyze commit metadata, compute metrics, and generate a narrative that points to
+              evidence SHAs. No magic claims. Just a clean view of how you build.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/security"
+              className="rounded-full border border-white/20 px-6 py-2 text-sm font-semibold text-white/90 transition hover:border-white/40"
+            >
+              Security
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-zinc-900"
+            >
+              Sign in
+            </Link>
+          </div>
+        </header>
+
+        <div className="mt-12 grid gap-6 lg:grid-cols-2">
+          <section className="rounded-3xl border border-white/10 bg-zinc-900/40 p-8 shadow-[0_20px_60px_rgba(2,6,23,0.7)]">
+            <h2 className="text-2xl font-semibold text-white">What you get</h2>
+            <ul className="mt-6 space-y-3 text-sm text-white/70">
+              {heroFeatures.map((feature) => (
+                <li key={feature} className="flex gap-3">
+                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-300/70" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/login"
+                className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-zinc-900"
+              >
+                Start with GitHub
+              </Link>
+              <Link
+                href="/security"
+                className="rounded-full border border-white/20 px-6 py-2 text-sm font-semibold text-white/90 transition hover:border-white/40"
+              >
+                Read security notes
+              </Link>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-600/70 to-cyan-500/50 p-8">
+            <h2 className="text-2xl font-semibold text-white">How it works</h2>
+            <div className="mt-6 grid gap-4">
+              {timeline.map((step) => (
+                <div key={step.title} className="rounded-2xl border border-white/15 bg-white/5 p-5">
+                  <p className="text-sm font-semibold text-white">{step.title}</p>
+                  <p className="mt-1 text-sm text-white/80">{step.description}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <footer className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between">
+          <p>Bolokono</p>
+          <div className="flex flex-wrap gap-4">
+            <Link href="/security" className="transition hover:text-white">
+              Security
+            </Link>
+            <Link href="/login" className="transition hover:text-white">
+              Sign in
+            </Link>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
 }
 
 function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
