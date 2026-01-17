@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { computeAnalysisInsights } from "@bolokono/core";
-import type { AnalysisInsights, AnalysisMetrics, CommitEvent } from "@bolokono/core";
+import { computeAnalysisInsights } from "@vibed/core";
+import type { AnalysisInsights, AnalysisMetrics, CommitEvent } from "@vibed/core";
 
 type Job = {
   id: string;
@@ -35,7 +35,7 @@ type NarrativeJson = {
 };
 
 type ReportRow = {
-  bolokono_type: string | null;
+  vibe_type: string | null;
   narrative_json?: NarrativeJson;
   evidence_json?: string[];
   llm_model?: string;
@@ -116,7 +116,7 @@ function isNarrativeJson(v: unknown): v is NarrativeJson {
 
 function isReportRow(v: unknown): v is ReportRow {
   if (!isRecord(v)) return false;
-  const bt = v.bolokono_type;
+  const bt = v.vibe_type;
   if (!(bt === null || typeof bt === "string" || bt === undefined)) return false;
   if (v.narrative_json !== undefined && !isNarrativeJson(v.narrative_json)) return false;
   if (v.evidence_json !== undefined && !isStringArray(v.evidence_json)) return false;
@@ -438,7 +438,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `bolokono-vibed-${jobId}.svg`;
+    link.download = `vibed-coding-${jobId}.svg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -514,7 +514,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
             <div className="relative">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Your Coding Wrapped</p>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950">
-                {parsedReport?.bolokono_type ? parsedReport.bolokono_type : "Your profile"}
+                {parsedReport?.vibe_type ? parsedReport.vibe_type : "Your profile"}
               </h2>
               <p className="mt-3 max-w-2xl text-sm text-zinc-600">
                 {narrative?.summary ??

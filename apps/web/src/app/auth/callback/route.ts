@@ -1,4 +1,4 @@
-import { encryptString } from "@bolokono/core";
+import { encryptString } from "@vibed/core";
 import { NextResponse } from "next/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -58,8 +58,7 @@ export async function GET(request: Request) {
     }
   }
 
-  url.pathname = "/repos";
+  url.pathname = "/";
   url.search = "";
   return NextResponse.redirect(url);
 }
-

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Database } from "@bolokono/db";
+import type { Database } from "@vibed/db";
 import { wrappedTheme } from "@/lib/theme";
 
 const heroFeatures = [
@@ -26,6 +26,12 @@ type AuthStats = {
     repoName: string | null;
     updatedAt: string | null;
   };
+  latestPersona?: {
+    label: string | null;
+    confidence: string | null;
+    repoName: string | null;
+    generatedAt: string | null;
+  };
 };
 
 type LatestJobRow = Pick<
@@ -38,6 +44,19 @@ type RepoNameRow = Pick<
   "full_name"
 >;
 
+type LatestInsightRow = {
+  job_id: string;
+  persona_label: string | null;
+  persona_confidence: string | null;
+  generated_at: string | null;
+  analysis_jobs:
+    | {
+        created_at: string;
+        repo_id: string | null;
+      }
+    | null;
+};
+
 export default async function Home() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -46,7 +65,13 @@ export default async function Home() {
 
   if (!user) return <MarketingLanding />;
 
-  const [connectedReposResult, completedJobsResult, queuedJobsResult, latestJobResult] =
+  const [
+    connectedReposResult,
+    completedJobsResult,
+    queuedJobsResult,
+    latestJobResult,
+    latestInsightResult,
+  ] =
     await Promise.all([
       supabase
         .from("user_repos")
@@ -70,9 +95,19 @@ export default async function Home() {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from("analysis_insights")
+        .select(
+          "job_id, persona_label, persona_confidence, generated_at, analysis_jobs(created_at, repo_id)"
+        )
+        .eq("analysis_jobs.user_id", user.id)
+        .order("analysis_jobs.created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
   const latestJob = (latestJobResult.data ?? null) as unknown as LatestJobRow | null;
+  const latestInsight = (latestInsightResult.data ?? null) as unknown as LatestInsightRow | null;
 
   const repoNameResult = latestJob?.repo_id
     ? await supabase
@@ -83,6 +118,17 @@ export default async function Home() {
     : null;
 
   const repoName = (repoNameResult?.data ?? null) as unknown as RepoNameRow | null;
+
+  const latestInsightRepoNameResult = latestInsight?.analysis_jobs?.repo_id
+    ? await supabase
+        .from("repos")
+        .select("full_name")
+        .eq("id", latestInsight.analysis_jobs.repo_id)
+        .maybeSingle()
+    : null;
+
+  const latestInsightRepoName = (latestInsightRepoNameResult?.data ??
+    null) as unknown as RepoNameRow | null;
 
   const stats: AuthStats = {
     connectedRepos: connectedReposResult.count ?? 0,
@@ -97,6 +143,14 @@ export default async function Home() {
             latestJob.started_at ??
             latestJob.created_at ??
             null,
+        }
+      : undefined,
+    latestPersona: latestInsight
+      ? {
+          label: latestInsight.persona_label,
+          confidence: latestInsight.persona_confidence,
+          repoName: latestInsightRepoName?.full_name ?? null,
+          generatedAt: latestInsight.generated_at,
         }
       : undefined,
   };
@@ -141,7 +195,7 @@ function MarketingLanding() {
               and persona, grounded in commit evidence
             </h1>
             <p className="max-w-2xl text-base text-zinc-700 sm:text-lg">
-              Bolokono analyzes commit history patterns to generate a vibe profile, a persona
+              Vibed Coding analyzes commit history patterns to generate a vibe profile, a persona
               snapshot, and a narrative with evidence SHAs. It is not a performance review and it
               does not replace human judgment.
             </p>
@@ -238,7 +292,7 @@ function MarketingLanding() {
         </section>
 
         <footer className="mt-12 flex flex-col gap-3 border-t border-black/5 pt-6 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-zinc-700">Bolokono</p>
+          <p className="text-zinc-700">Vibed Coding</p>
           <div className="flex flex-wrap gap-4">
             <Link href="/security" className="transition hover:text-zinc-900">
               Security
@@ -254,21 +308,32 @@ function MarketingLanding() {
 }
 
 function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
+  function clarityScore(): number {
+    if (stats.completedJobs === 0) return 0;
+    if (stats.connectedRepos <= 1) return 35;
+    if (stats.connectedRepos === 2) return 55;
+    if (stats.connectedRepos === 3) return 70;
+    if (stats.connectedRepos <= 5) return 85;
+    return 95;
+  }
+
+  const clarity = clarityScore();
+
   const cards = [
     {
-      label: "Connected repos",
+      label: "Projects in profile",
       value: stats.connectedRepos,
-      helper: "Active connections",
+      helper: "Chapters you’ve added",
     },
     {
-      label: "Finished analyses",
+      label: "Stories generated",
       value: stats.completedJobs,
-      helper: "Bolokono profiles generated",
+      helper: "Vibed moments",
     },
     {
-      label: "Queued or running",
+      label: "In progress",
       value: stats.queuedJobs,
-      helper: "Jobs in progress",
+      helper: "Reading commits",
     },
   ];
 
@@ -277,16 +342,68 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
       <div className="mx-auto max-w-6xl space-y-10">
         <header className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
-            Authenticated workspace
+            Your profile
           </p>
           <h1 className="text-4xl font-semibold tracking-tight text-zinc-950">
-            Your Bolokono dashboard
+            Your Vibed profile
           </h1>
           <p className="max-w-2xl text-lg text-zinc-700">
-            A single pane for monitoring your repos, job status, and insights. Everything here is
-            backed by Supabase data and scoped access controls.
+            Narrative first, receipts always available. Your profile sharpens across safe projects.
           </p>
         </header>
+
+        <section className={`${wrappedTheme.card} p-8`}>
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
+                Primary vibe
+              </p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950">
+                {stats.latestPersona?.label ?? "Still forming"}
+              </p>
+              <p className="mt-2 text-sm text-zinc-700">
+                {stats.latestPersona?.confidence ?? "Run a vibe check to get your first read."}
+                {stats.latestPersona?.repoName ? ` · Based on ${stats.latestPersona.repoName}` : ""}
+              </p>
+            </div>
+
+            <div className="w-full max-w-md rounded-3xl border border-black/5 bg-white/70 p-6 backdrop-blur">
+              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
+                Profile clarity
+              </p>
+              <p className="mt-3 text-2xl font-semibold text-zinc-950">{clarity}%</p>
+              <div className="mt-4 h-2 w-full rounded-full bg-zinc-200">
+                <div
+                  className="h-2 rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600"
+                  style={{ width: `${clarity}%` }}
+                />
+              </div>
+              <p className="mt-3 text-sm text-zinc-700">
+                More data helps us stay accurate. Keep it safe: avoid sensitive repos.
+              </p>
+            </div>
+          </div>
+
+          {stats.completedJobs === 0 ? (
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/repos" className={wrappedTheme.primaryButton}>
+                Pick a project
+              </Link>
+              <Link href="/security" className={wrappedTheme.secondaryButton}>
+                What we store
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/analysis" className={wrappedTheme.primaryButton}>
+                View stories
+              </Link>
+              <Link href="/repos" className={wrappedTheme.secondaryButton}>
+                Add a chapter
+              </Link>
+            </div>
+          )}
+        </section>
 
         <div className="grid gap-6 md:grid-cols-3">
           {cards.map(({ label, value, helper }) => (
@@ -307,13 +424,13 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.4em] text-white/75">
-                Latest job
+                Latest read
               </p>
               <p className="text-2xl font-semibold text-white">
-                {stats.latestJob?.repoName ?? "No jobs yet"}
+                {stats.latestJob?.repoName ?? "No runs yet"}
               </p>
               <p className="text-sm text-white/80">
-                Status: {stats.latestJob?.status ?? "waiting for queue"}
+                Status: {stats.latestJob?.status ?? "waiting"}
                 {stats.latestJob?.updatedAt ? ` • Updated ${new Date(stats.latestJob.updatedAt).toLocaleString()}` : ""}
               </p>
             </div>
@@ -322,13 +439,13 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
                 href="/repos"
                 className="rounded-full border border-white/70 bg-white/10 px-6 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15"
               >
-                Manage repos
+                Add a chapter
               </Link>
               <Link
                 href="/analysis"
                 className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-white/90"
               >
-                View reports
+                View stories
               </Link>
             </div>
           </div>

@@ -52,7 +52,7 @@ export async function GET(
   if (job.status === "done") {
     const { data: r } = await (supabase as unknown as SupabaseQueryLike)
       .from("analysis_reports")
-      .select("bolokono_type, narrative_json, evidence_json, llm_model, generated_at")
+      .select("vibe_type, narrative_json, evidence_json, llm_model, generated_at")
       .eq("job_id", id)
       .single();
 

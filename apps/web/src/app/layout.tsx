@@ -17,21 +17,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bolokono · Understand your vibe coding profile",
+  title: "Vibed Coding · Discover your coding vibe",
   description:
-    "Bolokono analyzes your GitHub history to generate a vibe profile, persona snapshot, and narratives with evidence SHAs.",
+    "Vibed Coding analyzes your GitHub history to generate a vibe profile, persona snapshot, and narratives with evidence SHAs.",
   metadataBase: new URL("http://localhost:8108"),
   openGraph: {
-    title: "Bolokono · Vibe coding profile, surfaced",
+    title: "Vibed Coding · Discover your coding vibe",
     description:
       "Vibe profiles and personas grounded in commit history metrics and evidence SHAs.",
-    url: "https://www.bolokonon.app",
+    url: "https://vibed.coding",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Bolokono · Understand your coding vibe",
+    title: "Vibed Coding · Discover your coding vibe",
     description:
       "Solo-focused vibe profiles and personas grounded in commit evidence.",
   },

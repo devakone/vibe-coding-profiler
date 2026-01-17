@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import type { Database, DbSchema } from "@bolokono/db";
+import type { Database, DbSchema } from "@vibed/db";
 
 export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -65,7 +65,7 @@ export async function proxy(request: NextRequest) {
 
   if (path === "/login" && user) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/repos";
+    redirectUrl.pathname = "/";
     redirectUrl.search = "";
     return NextResponse.redirect(redirectUrl);
   }

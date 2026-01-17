@@ -12,10 +12,10 @@
     "outDir": "./dist",
     "rootDir": "../..",
     "paths": {
-      "@bolokono/core": ["../../packages/core/src/index.ts"],
-      "@bolokono/core/*": ["../../packages/core/src/*"],
-      "@bolokono/db": ["../../packages/db/src/index.ts"],
-      "@bolokono/db/*": ["../../packages/db/src/*"]
+      "@vibed/core": ["../../packages/core/src/index.ts"],
+      "@vibed/core/*": ["../../packages/core/src/*"],
+      "@vibed/db": ["../../packages/db/src/index.ts"],
+      "@vibed/db/*": ["../../packages/db/src/*"]
     }
   },
   "include": ["src/**/*"],

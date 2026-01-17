@@ -5,6 +5,11 @@ export interface GithubRepoSummary {
   private: boolean;
   default_branch: string;
   owner: { login: string };
+  updated_at?: string;
+  pushed_at?: string | null;
+  language?: string | null;
+  archived?: boolean;
+  fork?: boolean;
 }
 
 async function githubFetch<T>(url: string, token: string): Promise<T> {
@@ -44,4 +49,3 @@ export async function fetchGithubRepos(token: string): Promise<GithubRepoSummary
 
   return repos;
 }
-

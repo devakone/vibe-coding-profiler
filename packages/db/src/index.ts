@@ -1,7 +1,7 @@
 /**
- * @bolokono/db
+ * @vibed/db
  *
- * Supabase client and database utilities for Bolokono.
+ * Supabase client and database utilities for Vibed Coding.
  */
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";

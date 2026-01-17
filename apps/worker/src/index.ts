@@ -1,5 +1,5 @@
 /**
- * Bolokono Worker
+ * Vibed Coding Worker
  *
  * Background job processor for git analysis.
  *
@@ -7,21 +7,21 @@
  * 1. Polls the analysis_jobs table for queued jobs
  * 2. Claims a job using FOR UPDATE SKIP LOCKED
  * 3. Fetches commits from GitHub API (or clones for deep analysis)
- * 4. Computes metrics using @bolokono/core
+ * 4. Computes metrics using @vibed/core
  * 5. Optionally generates narrative via LLM
  * 6. Writes results back to database
  */
 
-import { createServerClient, type Json } from "@bolokono/db";
+import { createServerClient, type Json } from "@vibed/db";
 import {
-  assignBolokonoType,
+  assignVibeType,
   computeAnalysisInsights,
   computeAnalysisMetrics,
   decryptString,
   type AnalysisReport,
   type CommitEvent,
   type JobStatus,
-} from "@bolokono/core";
+} from "@vibed/core";
 import { fetchCommitDetail, fetchCommitList, mapWithConcurrency } from "./github";
 import fs from "node:fs";
 import path from "node:path";
@@ -190,11 +190,11 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
     }));
 
     const metrics = computeAnalysisMetrics(events);
-    const assignment = assignBolokonoType(metrics);
+    const assignment = assignVibeType(metrics);
     const insights = computeAnalysisInsights(events);
 
     const report: AnalysisReport = {
-      bolokono_type: assignment.bolokono_type,
+      vibe_type: assignment.vibe_type,
       confidence: assignment.confidence,
       matched_criteria: assignment.matched_criteria,
       narrative: {
@@ -251,7 +251,7 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
       [
         {
           job_id: jobId,
-          bolokono_type: report.bolokono_type,
+          vibe_type: report.vibe_type,
           narrative_json: report.narrative as unknown as Json,
           evidence_json: report.matched_criteria as unknown as Json,
           llm_model: "none",

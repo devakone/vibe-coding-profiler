@@ -1,7 +1,7 @@
 /**
- * @bolokono/core
+ * @vibed/core
  *
- * Shared analysis logic, types, and utilities for Bolokono.
+ * Shared analysis logic, types, and utilities for Vibed Coding.
  */
 
 // =============================================================================
@@ -81,7 +81,7 @@ export interface AnalysisMetrics {
   data_quality_score: number;
 }
 
-export type BolokonoTypeName =
+export type VibeTypeName =
   | "foundation-first"
   | "auth-first"
   | "vertical-slice"
@@ -92,14 +92,14 @@ export type BolokonoTypeName =
   | "refactor-driven"
   | "unique";
 
-export interface BolokonoType {
-  id: BolokonoTypeName;
+export interface VibeType {
+  id: VibeTypeName;
   name: string;
   description: string;
 }
 
 export interface AnalysisReport {
-  bolokono_type: BolokonoTypeName | null;
+  vibe_type: VibeTypeName | null;
   confidence: "high" | "medium" | "low";
   narrative: {
     summary: string;
@@ -522,7 +522,7 @@ export type JobStatus = "queued" | "running" | "done" | "error";
 // Constants
 // =============================================================================
 
-export const BOLOKONO_TYPES: Record<BolokonoTypeName, BolokonoType> = {
+export const VIBE_TYPES: Record<VibeTypeName, VibeType> = {
   "foundation-first": {
     id: "foundation-first",
     name: "Foundation-First Craft",
@@ -807,8 +807,8 @@ export function computeAnalysisMetrics(events: CommitEvent[]): AnalysisMetrics {
   };
 }
 
-export function assignBolokonoType(metrics: AnalysisMetrics): {
-  bolokono_type: BolokonoTypeName | null;
+export function assignVibeType(metrics: AnalysisMetrics): {
+  vibe_type: VibeTypeName | null;
   confidence: AnalysisReport["confidence"];
   matched_criteria: string[];
 } {
@@ -836,23 +836,23 @@ export function assignBolokonoType(metrics: AnalysisMetrics): {
   if (refactorRatio >= 0.2) matched_criteria.push("high-refactor-ratio");
   if (fixRatio >= 0.25) matched_criteria.push("high-fix-ratio");
 
-  let bolokono_type: BolokonoTypeName | null = null;
-  if (setupEarly) bolokono_type = "foundation-first";
-  else if (authEarly) bolokono_type = "auth-first";
-  else if (testsEarly) bolokono_type = "test-driven";
-  else if (docsEarly && docsRatio >= 0.15) bolokono_type = "documentation-forward";
-  else if (refactorRatio >= 0.25) bolokono_type = "refactor-driven";
-  else if (fixRatio >= 0.3) bolokono_type = "fix-forward";
+  let vibe_type: VibeTypeName | null = null;
+  if (setupEarly) vibe_type = "foundation-first";
+  else if (authEarly) vibe_type = "auth-first";
+  else if (testsEarly) vibe_type = "test-driven";
+  else if (docsEarly && docsRatio >= 0.15) vibe_type = "documentation-forward";
+  else if (refactorRatio >= 0.25) vibe_type = "refactor-driven";
+  else if (fixRatio >= 0.3) vibe_type = "fix-forward";
   else if (metrics.commit_size_p50 > 0 && metrics.commit_size_p50 <= 40 && metrics.burstiness_score < 0.2)
-    bolokono_type = "incremental";
-  else bolokono_type = "unique";
+    vibe_type = "incremental";
+  else vibe_type = "unique";
 
   let confidence: AnalysisReport["confidence"] = "low";
   if (metrics.total_commits >= MIN_COMMITS_FOR_TYPE && metrics.data_quality_score >= HIGH_CONFIDENCE_THRESHOLD)
     confidence = "medium";
   if (metrics.total_commits >= 50 && metrics.data_quality_score >= 75) confidence = "high";
 
-  return { bolokono_type, confidence, matched_criteria };
+  return { vibe_type, confidence, matched_criteria };
 }
 
 function utcDayKey(iso: string): string | null {

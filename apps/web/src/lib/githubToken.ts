@@ -1,4 +1,4 @@
-import { decryptString } from "@bolokono/core";
+import { decryptString } from "@vibed/core";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function getGithubAccessToken(

@@ -35,7 +35,7 @@ export default function AppHeader(props: {
             className="group flex items-center gap-2 text-sm font-semibold tracking-tight text-zinc-950"
           >
             <span className={wrappedTheme.dot} />
-            <span className={wrappedTheme.gradientText}>Bolokono</span>
+            <span className={wrappedTheme.gradientText}>Vibed Coding</span>
           </Link>
           <nav className="flex items-center gap-2 text-sm">
             {links.map((l) => (

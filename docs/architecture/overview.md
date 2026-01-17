@@ -1,6 +1,6 @@
-# Bolokono Architecture Overview
+# Vibed Coding Architecture Overview
 
-This document explains how the Bolokono stack fits together, how data flows from a logged-in user through Supabase, the worker, and the UI, and which pieces of the codebase (web, worker, packages) own each responsibility. The diagrams use Mermaid syntax so you can paste them into any renderer, but the textual explanations also narrate every interaction.
+This document explains how the Vibed Coding stack fits together, how data flows from a logged-in user through Supabase, the worker, and the UI, and which pieces of the codebase (web, worker, packages) own each responsibility. The diagrams use Mermaid syntax so you can paste them into any renderer, but the textual explanations also narrate every interaction.
 
 ## High-level Components
 
@@ -15,9 +15,9 @@ This document explains how the Bolokono stack fits together, how data flows from
    - Enforces row-level security so each user only sees their records; Supabase Auth is the entrypoint for GitHub OAuth (handled in the Next app via the `/auth/callback` route).
    - Provides RPCs such as `claim_analysis_job` to coordinate workers.
 
-3. **Bolokono Worker** (`apps/worker`)
+3. **Vibed Coding Worker** (`apps/worker`)
    - Polls `analysis_jobs` (via `claim_analysis_job` RPC) and processes each job sequentially.
-   - Fetches commits through the GitHub API, decrypts stored tokens, calculates metrics with `@bolokono/core`, assigns a Bolokono persona, and writes structured results back to Postgres (`analysis_metrics`, `analysis_reports`, `analysis_insights`, updates job status).
+   - Fetches commits through the GitHub API, decrypts stored tokens, calculates metrics with `@vibed/core`, assigns a Vibe persona, and writes structured results back to Postgres (`analysis_metrics`, `analysis_reports`, `analysis_insights`, updates job status).
    - Hosts a health endpoint so orchestration (e.g., Docker Compose, Supervisord, or manual runs) can monitor liveness.
 
 4. **Shared Libraries**
@@ -52,7 +52,7 @@ flowchart LR
 graph TD
     JobQueue["analysis_jobs status: queued"] -->|"claim"| Worker["Worker Loop"]
     Worker -->|"fetch commits (GitHub API)"| CommitData["Commit Events"]
-    Worker -->|"compute metrics"| Core["@bolokono/core"]
+    Worker -->|"compute metrics"| Core["@vibed/core"]
     Core -->|"writes"| Metrics["analysis_metrics"]
     Core -->|"writes"| Narrative["analysis_reports"]
     Core -->|"writes"| Insights["analysis_insights"]
@@ -61,7 +61,7 @@ graph TD
 
 - **Polling**: The worker polls Postgres every `POLL_INTERVAL_MS` (5 s) and claims jobs via `claim_analysis_job`.
 - **Commit retrieval**: It uses the GitHub token (stored encrypted in `github_accounts`) to fetch the most recent commit list and details.
-- **Computation**: `computeAnalysisMetrics`, `assignBolokonoType`, and `computeAnalysisInsights` generate the numbers, persona, tech signals, share template, and confidence data.
+- **Computation**: `computeAnalysisMetrics`, `assignVibeType`, and `computeAnalysisInsights` generate the numbers, persona, tech signals, share template, and confidence data.
 - **Persistence**: Each result writes to a dedicated table, ensuring the UI can render both “Vibed summary cards” and “Deep dive evidence” without recompute.
 
 ## API & UI Interaction Map

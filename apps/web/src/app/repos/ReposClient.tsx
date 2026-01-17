@@ -11,6 +11,11 @@ type GithubRepo = {
   full_name: string;
   private: boolean;
   default_branch: string;
+  pushed_at?: string | null;
+  updated_at?: string;
+  language?: string | null;
+  archived?: boolean;
+  fork?: boolean;
 };
 
 type ConnectedRepo = {
@@ -23,6 +28,13 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
   const [repos, setRepos] = useState<GithubRepo[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function formatWhen(iso: string | null | undefined): string | null {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  }
 
   const connectedByFullName = useMemo(() => {
     const m = new Map<string, string>();
@@ -100,16 +112,21 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
           onClick={loadRepos}
           disabled={isLoading}
         >
-          {isLoading ? "Loading..." : "Load GitHub repos"}
+          {isLoading ? "Loading..." : "Pick a project"}
         </button>
+        <p className="text-sm text-zinc-700">
+          Choose a safe repo. Avoid work, NDA, or sensitive projects.
+        </p>
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-zinc-950">Connected</h2>
+        <h2 className="text-lg font-semibold text-zinc-950">Your chapters</h2>
         {initialConnected.length === 0 ? (
-          <p className="text-sm text-zinc-700">No repos connected yet.</p>
+          <p className="text-sm text-zinc-700">
+            No chapters yet. Add a repo to start building your profile.
+          </p>
         ) : (
           <ul className="divide-y divide-black/5 rounded-2xl border border-black/5 bg-white/70 backdrop-blur">
             {initialConnected.map((r) => (
@@ -121,7 +138,7 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
                   onClick={() => startAnalysis(r.repo_id)}
                   disabled={isLoading}
                 >
-                  Analyze
+                  Get vibe
                 </button>
               </li>
             ))}
@@ -130,21 +147,26 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-zinc-950">GitHub</h2>
+        <h2 className="text-lg font-semibold text-zinc-950">Your GitHub list</h2>
         {repos === null ? (
-          <p className="text-sm text-zinc-700">Load your repositories to connect.</p>
+          <p className="text-sm text-zinc-700">
+            Press “Pick a project” to load your repositories.
+          </p>
         ) : repos.length === 0 ? (
           <p className="text-sm text-zinc-700">No repositories found.</p>
         ) : (
           <ul className="divide-y divide-black/5 rounded-2xl border border-black/5 bg-white/70 backdrop-blur">
             {repos.map((r) => {
               const connectedRepoId = connectedByFullName.get(r.full_name);
+              const lastTouch = formatWhen(r.pushed_at ?? r.updated_at);
               return (
                 <li key={r.id} className="flex items-center justify-between gap-4 p-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm text-zinc-900">{r.full_name}</p>
                     <p className="text-xs text-zinc-600">
-                      {r.private ? "Private" : "Public"} · {r.default_branch}
+                      {r.private ? "Private" : "Public"}
+                      {r.language ? ` · ${r.language}` : ""}
+                      {lastTouch ? ` · Updated ${lastTouch}` : ""}
                     </p>
                   </div>
                   {connectedRepoId ? (
@@ -154,7 +176,7 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
                       onClick={() => startAnalysis(connectedRepoId)}
                       disabled={isLoading}
                     >
-                      Analyze
+                      Get vibe
                     </button>
                   ) : (
                     <button
@@ -163,7 +185,7 @@ export default function ReposClient({ initialConnected }: { initialConnected: Co
                       onClick={() => connectRepo(r)}
                       disabled={isLoading}
                     >
-                      Connect
+                      Add to profile
                     </button>
                   )}
                 </li>

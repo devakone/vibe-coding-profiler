@@ -1,5 +1,5 @@
 {
-  "name": "bolokono",
+  "name": "vibed-coding",
   "version": "0.1.0",
   "private": true,
   "workspaces": [
@@ -12,8 +12,8 @@
     "lint": "turbo lint",
     "type-check": "turbo type-check",
     "clean": "turbo clean && rm -rf node_modules",
-    "dev:web": "turbo dev --filter=@bolokono/web",
-    "dev:worker": "turbo dev --filter=@bolokono/worker",
+    "dev:web": "turbo dev --filter=@vibed/web",
+    "dev:worker": "turbo dev --filter=@vibed/worker",
     "supabase:start": "node scripts/supabase.mjs start",
     "supabase:stop": "node scripts/supabase.mjs stop",
     "supabase:status": "node scripts/supabase.mjs status",

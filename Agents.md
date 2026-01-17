@@ -1,12 +1,12 @@
-# Agent Instructions for Bolokono
+# Agent Instructions for Vibed Coding
 
-This document provides instructions for AI agents working on the Bolokono codebase. Read this before making any changes.
+This document provides instructions for AI agents working on the Vibed Coding codebase. Read this before making any changes.
 
 ---
 
 ## Project Overview
 
-**Bolokono** analyzes git history to reveal developer craftsmanship patterns. The stack is:
+**Vibed Coding** analyzes git history to reveal developer craftsmanship patterns. The stack is:
 
 - **Frontend:** Next.js 14+ (App Router), TypeScript, Tailwind CSS, shadcn/ui
 - **Backend:** Next.js Route Handlers (Vercel)
@@ -232,7 +232,7 @@ For testing authenticated flows locally, create this test user:
 
 | Field | Value |
 |-------|-------|
-| Email | `testuser@bolokono.dev` |
+| Email | `testuser@vibed.coding` |
 | Password | `TestPass123!` |
 
 **To create the test user:**
@@ -258,7 +258,7 @@ INSERT INTO auth.users (
   updated_at
 ) VALUES (
   gen_random_uuid(),
-  'testuser@bolokono.dev',
+  'testuser@vibed.coding',
   crypt('TestPass123!', gen_salt('bf')),
   now(),
   now(),

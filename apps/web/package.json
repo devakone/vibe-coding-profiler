@@ -1,5 +1,5 @@
 {
-  "name": "@bolokono/web",
+  "name": "@vibed/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,8 +10,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@bolokono/core": "*",
-    "@bolokono/db": "*",
+    "@vibed/core": "*",
+    "@vibed/db": "*",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.14",
     "next": "16.1.2",

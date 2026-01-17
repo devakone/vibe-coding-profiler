@@ -54,53 +54,66 @@ export default async function AnalysisIndexPage() {
       <div className="mx-auto max-w-5xl space-y-8">
         <header className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
-            Reports
+            Stories
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">
-            Your analysis history
+            Your Vibed stories
           </h1>
           <p className="max-w-2xl text-sm text-zinc-700 sm:text-base">
-            Open a report to view insights, persona, and evidence SHAs.
+            Each run adds a chapter. Open one to see the vibe, confidence, and receipts.
           </p>
         </header>
 
         <section className={`${wrappedTheme.card} p-6`}>
           {history.length === 0 ? (
             <div className="flex flex-col gap-3">
-              <p className="text-sm text-zinc-700">No reports yet.</p>
+              <p className="text-sm text-zinc-700">
+                No stories yet. Run your first vibe check.
+              </p>
               <Link className={wrappedTheme.primaryButtonSm} href="/repos">
-                Connect a repo
+                Pick a project
               </Link>
             </div>
           ) : (
-            <ul className="divide-y divide-black/5">
+            <ul className="grid gap-4 md:grid-cols-2">
               {history.map((h) => {
                 const repoId = h.analysis_jobs?.repo_id ?? null;
                 const repoName = repoId ? repoNameById.get(repoId) ?? null : null;
                 const status = h.analysis_jobs?.status ?? "unknown";
                 const createdAt = h.analysis_jobs?.created_at ?? null;
                 const generatedAt = h.generated_at ?? null;
+                const when = generatedAt ?? createdAt;
 
                 return (
-                  <li key={h.job_id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-zinc-950">
-                        {repoName ?? "Repository"}
-                      </p>
-                      <p className="mt-1 text-xs text-zinc-600">
-                        Status: {status}
-                        {createdAt ? ` • Created ${new Date(createdAt).toLocaleString()}` : ""}
-                        {generatedAt ? ` • Generated ${new Date(generatedAt).toLocaleString()}` : ""}
-                      </p>
-                      <p className="mt-2 text-xs text-zinc-700">
-                        Persona: {h.persona_label ?? "—"}
-                        {h.persona_confidence ? ` • ${h.persona_confidence}` : ""}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-3">
+                  <li
+                    key={h.job_id}
+                    className="rounded-3xl border border-black/5 bg-white/70 p-6 shadow-[0_25px_80px_rgba(2,6,23,0.06)] backdrop-blur"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-zinc-950">
+                          {repoName ?? "Repository"}
+                        </p>
+                        <p className="mt-1 text-xs text-zinc-600">
+                          {status === "done" ? "Ready" : status}
+                          {when ? ` · ${new Date(when).toLocaleDateString()}` : ""}
+                        </p>
+                      </div>
                       <Link href={`/analysis/${h.job_id}`} className={wrappedTheme.primaryButtonSm}>
-                        Open
+                        View
                       </Link>
+                    </div>
+
+                    <div className="mt-5 rounded-2xl border border-black/5 bg-white/70 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
+                        Persona
+                      </p>
+                      <p className="mt-2 text-lg font-semibold text-zinc-950">
+                        {h.persona_label ?? "Still forming"}
+                      </p>
+                      <p className="mt-1 text-sm text-zinc-700">
+                        {h.persona_confidence ?? "Not enough signal yet"}
+                      </p>
                     </div>
                   </li>
                 );
@@ -112,4 +125,3 @@ export default async function AnalysisIndexPage() {
     </div>
   );
 }
-
