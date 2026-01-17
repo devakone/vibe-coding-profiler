@@ -39,13 +39,15 @@ Before running any server commands, check if the server is already running:
 lsof -i :8108
 
 # Check if Supabase is running
-npx supabase status
+npm run supabase:status
 ```
 
 **If Supabase is not running:**
 ```bash
-npx supabase start
+npm run supabase:start
 ```
+
+**CRITICAL:** Always use the `npm run supabase:*` scripts instead of `npx supabase` directly. The npm scripts load environment variables (like `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`) from `apps/web/.env.local` before invoking Supabase commands. Using `npx supabase` directly will cause OAuth to fail with 400 errors.
 
 **If Next.js is not running and user asks you to start it:**
 ```bash
@@ -62,7 +64,7 @@ cp .env.example .env.local
 
 Required variables:
 ```bash
-# Supabase (from `npx supabase status` for local)
+# Supabase (from `npm run supabase:status` for local)
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<from supabase status>
 SUPABASE_SERVICE_ROLE_KEY=<from supabase status>
@@ -88,7 +90,7 @@ The local Supabase runs in Docker. Always develop against local first.
 
 **1. Get the database URL:**
 ```bash
-npx supabase status
+npm run supabase:status
 # Look for "DB URL: postgresql://postgres:postgres@127.0.0.1:XXXXX/postgres"
 ```
 
@@ -99,14 +101,14 @@ psql "postgresql://postgres:postgres@127.0.0.1:XXXXX/postgres" -c "YOUR SQL HERE
 
 **CRITICAL for AI Agents:**
 - Do NOT use MCP Supabase tools for local dev operations—they connect to remote projects
-- Always use `psql` with the local DB URL from `npx supabase status`
+- Always use `psql` with the local DB URL from `npm run supabase:status`
 - The MCP Supabase tools are for remote database operations only
 
 ### Supabase Project References
 
 | Environment | Project Ref | Dashboard URL | Branch |
 |-------------|-------------|---------------|--------|
-| Local | N/A | `npx supabase start` → http://127.0.0.1:54423 | - |
+| Local | N/A | `npm run supabase:start` → http://127.0.0.1:54423 | - |
 | Development | `ljxvzqjkwwwsgdnvgpgm` | https://supabase.com/dashboard/project/ljxvzqjkwwwsgdnvgpgm | `develop` |
 | Production | `idjewtwnfrufbxoxulmq` | https://supabase.com/dashboard/project/idjewtwnfrufbxoxulmq | `main` |
 
@@ -158,7 +160,7 @@ Add these scripts to `package.json`:
 
 ```bash
 # Create a new migration file
-npx supabase migration new <migration_name>
+npm run supabase:migration:new <migration_name>
 
 # This creates: supabase/migrations/<timestamp>_<migration_name>.sql
 ```
@@ -168,21 +170,21 @@ npx supabase migration new <migration_name>
 **Local (default approach):**
 ```bash
 # Apply pending migrations (preserves data)
-npx supabase migration up
+npm run supabase:migration:up
 
 # Check migration status
-npx supabase migration list
+npm run supabase:status
 ```
 
 **Remote:**
 ```bash
-# Push migrations to linked remote project
+# Push migrations to linked remote project (use npx for remote operations)
 npx supabase db push
 ```
 
 ### When to Use `db reset`
 
-Only use `npx supabase db reset` when:
+Only use `npm run supabase:reset` when:
 - You need to completely rebuild the schema from scratch
 - There are migration conflicts that cannot be resolved
 - Explicitly requested by the user
@@ -214,9 +216,9 @@ CREATE POLICY users_select ON public.users
 
 ```bash
 # Local
-npx supabase migration list
+npm run supabase:status
 
-# Remote (after linking)
+# Remote (after linking) - use npx for remote operations
 npx supabase migration list --linked
 ```
 
@@ -235,7 +237,7 @@ For testing authenticated flows locally, create this test user:
 
 **To create the test user:**
 
-1. Start local Supabase: `npx supabase start`
+1. Start local Supabase: `npm run supabase:start`
 2. Go to local Supabase Studio: `http://127.0.0.1:54323`
 3. Navigate to Authentication → Users
 4. Click "Add User" and enter the credentials above
@@ -243,7 +245,7 @@ For testing authenticated flows locally, create this test user:
 **Alternative via SQL:**
 ```bash
 # Get DB URL first
-npx supabase status
+npm run supabase:status
 
 # Create user (replace XXXXX with actual port)
 psql "postgresql://postgres:postgres@127.0.0.1:XXXXX/postgres" -c "
@@ -367,8 +369,8 @@ export async function POST(request: Request) {
 
 1. Read `docs/PRD.md` for product context
 2. Check `docs/implementation-trackers/` for current progress
-3. Verify local Supabase is running: `npx supabase status`
-4. Check for pending migrations: `npx supabase migration list`
+3. Verify local Supabase is running: `npm run supabase:status`
+4. Check for pending migrations: `npm run supabase:status`
 
 ### Task Specification Format
 
@@ -383,7 +385,7 @@ When creating implementation tasks, use this format:
 - [ ] RLS policies applied
 - [ ] Indexes added
 **Files:** `supabase/migrations/XXXXXX_create_users_repos.sql`
-**Success Criteria:** `npx supabase migration up` succeeds, RLS tests pass
+**Success Criteria:** `npm run supabase:migration:up` succeeds, RLS tests pass
 **Dependencies:** None
 **Blocks:** F2, P1, P2
 ```
@@ -456,7 +458,7 @@ Before marking any task complete:
 
 - [ ] TypeScript compiles without errors (`npm run type-check`)
 - [ ] ESLint passes (`npm run lint`)
-- [ ] Migrations apply cleanly (`npx supabase migration up`)
+- [ ] Migrations apply cleanly (`npm run supabase:migration:up`)
 - [ ] RLS policies tested (query as different users)
 - [ ] Loading states implemented
 - [ ] Error states handled
@@ -474,25 +476,28 @@ Before marking any task complete:
 docker ps
 
 # Reset Supabase (destroys local data)
-npx supabase stop
-npx supabase start
+npm run supabase:stop
+npm run supabase:start
 ```
 
 ### Migration Conflicts
 
 ```bash
 # Check current state
-npx supabase migration list
+npm run supabase:status
 
-# If stuck, repair migration history (careful!)
+# If stuck, repair migration history (careful!) - use npx for advanced operations
 npx supabase migration repair --status applied <version>
 ```
 
 ### GitHub OAuth Not Working
 
-1. Check callback URL matches exactly: `http://localhost:54421/auth/v1/callback`
-2. Verify client ID and secret in `.env.local`
-3. Check Supabase Auth settings in dashboard
+1. **Most common cause:** Supabase was started without env vars. Restart with `npm run supabase:stop && npm run supabase:start`
+2. **Stale browser state:** Clear cookies and site data for `localhost` in your browser, then try again
+3. Check callback URL in GitHub OAuth App matches: `http://localhost:54421/auth/v1/callback`
+4. Verify `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are set in `apps/web/.env.local`
+5. Check Supabase Auth settings in local Studio: `http://127.0.0.1:54423`
+6. Use `localhost:8108` consistently (not `127.0.0.1:8108`) to avoid OAuth state mismatches
 
 ### MCP Tools Not Connecting
 
@@ -506,14 +511,14 @@ MCP Supabase tools connect to remote projects, not local. For local development:
 
 | Command | Purpose |
 |---------|---------|
-| `npx supabase start` | Start local Supabase |
-| `npx supabase stop` | Stop local Supabase |
-| `npx supabase status` | Show local URLs and keys |
-| `npx supabase migration new <name>` | Create migration |
-| `npx supabase migration up` | Apply migrations |
-| `npx supabase migration list` | List migration status |
-| `npx supabase db reset` | Reset database (destroys data) |
+| `npm run supabase:start` | Start local Supabase (loads env vars) |
+| `npm run supabase:stop` | Stop local Supabase |
+| `npm run supabase:status` | Show local URLs and keys |
+| `npm run supabase:migration:new <name>` | Create migration |
+| `npm run supabase:migration:up` | Apply migrations |
+| `npm run supabase:reset` | Reset database (destroys data) |
 | `npm run dev` | Start Next.js dev server |
+| `npm run dev:web` | Start only the web app |
 | `npm run type-check` | TypeScript check |
 | `npm run lint` | ESLint check |
 
