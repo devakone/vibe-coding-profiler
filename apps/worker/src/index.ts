@@ -262,20 +262,18 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
     if (reportError) throw new Error(`Failed to upsert report: ${reportError.message}`);
 
     const { error: insightsError } = await supabase.from("analysis_insights").upsert(
-      [
-        {
-          job_id: jobId,
-          insights_json: insights as unknown as Json,
-          generator_version: ANALYZER_VERSION,
-          persona_id: insights.persona.id,
-          persona_label: insights.persona.label,
-          persona_confidence: insights.persona.confidence,
-          tech_signals: insights.tech_signals,
-          share_template: insights.share_template,
-          persona_delta: insights.persona_delta,
-          sources: insights.sources,
-        },
-      ],
+      {
+        job_id: jobId,
+        insights_json: insights as unknown as Json,
+        generator_version: ANALYZER_VERSION,
+        persona_id: insights.persona.id,
+        persona_label: insights.persona.label,
+        persona_confidence: insights.persona.confidence,
+        tech_signals: insights.tech_signals as unknown as Json,
+        share_template: insights.share_template as unknown as Json,
+        persona_delta: insights.persona_delta as unknown as Json,
+        sources: insights.sources,
+      },
       { onConflict: "job_id" }
     );
     if (insightsError) throw new Error(`Failed to upsert insights: ${insightsError.message}`);
