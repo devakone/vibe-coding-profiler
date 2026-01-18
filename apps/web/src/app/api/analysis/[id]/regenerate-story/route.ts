@@ -241,7 +241,7 @@ export async function POST(
 
   // Get free tier status for UI
   const freeUsed = await countFreeAnalysesUsed(user.id, repoId);
-  const freeLimit = getFreeTierLimit();
+  const freeLimit = await getFreeTierLimit();
 
   return NextResponse.json({
     report: {

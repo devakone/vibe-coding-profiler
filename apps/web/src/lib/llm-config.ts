@@ -15,8 +15,8 @@ import {
   getDefaultModel,
 } from "@vibed/core";
 
-// Default free tier limit
-const FREE_LLM_ANALYSES_PER_REPO = 1;
+// Default free tier limit (used if not configured in database)
+const DEFAULT_FREE_LLM_ANALYSES_PER_REPO = 1;
 
 interface LLMConfigRecord {
   id: string;
@@ -24,6 +24,16 @@ interface LLMConfigRecord {
   api_key_encrypted: string;
   model: string | null;
   is_active: boolean;
+}
+
+interface PlatformLLMConfigRecord {
+  id: string;
+  provider: LLMProvider;
+  api_key_encrypted: string;
+  model: string | null;
+  is_active: boolean;
+  free_tier_limit: number | null;
+  llm_disabled: boolean | null;
 }
 
 // Type for llm_configs queries (until DB types regenerated)
@@ -93,9 +103,131 @@ export async function getUserLLMConfig(userId: string): Promise<LLMConfig | null
 }
 
 /**
- * Get the platform's default LLM configuration from environment.
+ * Cached platform config to avoid repeated database queries within a request.
  */
-export function getPlatformLLMConfig(): LLMConfig | null {
+let platformConfigCache: {
+  config: LLMConfig | null;
+  freeTierLimit: number;
+  llmDisabled: boolean;
+  fetchedAt: number;
+} | null = null;
+
+const PLATFORM_CONFIG_CACHE_TTL_MS = 60_000; // 1 minute
+
+/**
+ * Get the platform's LLM configuration from database (primary) or environment (fallback).
+ *
+ * The platform config is stored in llm_configs table with scope='platform'.
+ * Falls back to environment variables for backwards compatibility.
+ */
+export async function getPlatformLLMConfig(): Promise<LLMConfig | null> {
+  const fullConfig = await getPlatformLLMConfigFull();
+  if (fullConfig.llmDisabled) {
+    return null;
+  }
+  return fullConfig.config;
+}
+
+/**
+ * Get the full platform LLM configuration including free tier limit and disabled flag.
+ */
+export async function getPlatformLLMConfigFull(): Promise<{
+  config: LLMConfig | null;
+  freeTierLimit: number;
+  llmDisabled: boolean;
+}> {
+  // Check cache
+  if (
+    platformConfigCache &&
+    Date.now() - platformConfigCache.fetchedAt < PLATFORM_CONFIG_CACHE_TTL_MS
+  ) {
+    return {
+      config: platformConfigCache.config,
+      freeTierLimit: platformConfigCache.freeTierLimit,
+      llmDisabled: platformConfigCache.llmDisabled,
+    };
+  }
+
+  // Try database first
+  const dbConfig = await getPlatformLLMConfigFromDB();
+  if (dbConfig) {
+    platformConfigCache = {
+      config: dbConfig.config,
+      freeTierLimit: dbConfig.freeTierLimit,
+      llmDisabled: dbConfig.llmDisabled,
+      fetchedAt: Date.now(),
+    };
+    return dbConfig;
+  }
+
+  // Fallback to environment variables (for backwards compatibility)
+  const envConfig = getPlatformLLMConfigFromEnv();
+  platformConfigCache = {
+    config: envConfig,
+    freeTierLimit: DEFAULT_FREE_LLM_ANALYSES_PER_REPO,
+    llmDisabled: false,
+    fetchedAt: Date.now(),
+  };
+  return {
+    config: envConfig,
+    freeTierLimit: DEFAULT_FREE_LLM_ANALYSES_PER_REPO,
+    llmDisabled: false,
+  };
+}
+
+/**
+ * Get platform LLM config from the database.
+ */
+async function getPlatformLLMConfigFromDB(): Promise<{
+  config: LLMConfig | null;
+  freeTierLimit: number;
+  llmDisabled: boolean;
+} | null> {
+  if (!isLLMKeyEncryptionConfigured()) {
+    return null;
+  }
+
+  const service = createSupabaseServiceClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (service as any)
+    .from("llm_configs")
+    .select("id, provider, api_key_encrypted, model, is_active, free_tier_limit, llm_disabled")
+    .eq("scope", "platform")
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  const record = data as PlatformLLMConfigRecord;
+  const freeTierLimit = record.free_tier_limit ?? DEFAULT_FREE_LLM_ANALYSES_PER_REPO;
+  const llmDisabled = record.llm_disabled ?? false;
+
+  if (llmDisabled || !record.api_key_encrypted) {
+    return { config: null, freeTierLimit, llmDisabled };
+  }
+
+  try {
+    const apiKey = decryptLLMKey(record.api_key_encrypted);
+    return {
+      config: {
+        provider: record.provider,
+        apiKey,
+        model: record.model ?? getDefaultModel(record.provider),
+      },
+      freeTierLimit,
+      llmDisabled,
+    };
+  } catch {
+    console.error("Failed to decrypt platform LLM key");
+    return { config: null, freeTierLimit, llmDisabled };
+  }
+}
+
+/**
+ * Get platform LLM config from environment variables (fallback).
+ */
+function getPlatformLLMConfigFromEnv(): LLMConfig | null {
   // Try each provider in order of preference
   const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (anthropicKey) {
@@ -155,29 +287,37 @@ export async function countFreeAnalysesUsed(userId: string, repoId: string): Pro
  */
 export async function canUseFreeAnalysis(userId: string, repoId: string): Promise<boolean> {
   const used = await countFreeAnalysesUsed(userId, repoId);
-  const limit = FREE_LLM_ANALYSES_PER_REPO;
-  return used < limit;
+  const platformConfig = await getPlatformLLMConfigFull();
+  return used < platformConfig.freeTierLimit;
 }
 
 /**
- * Get the free tier limit.
+ * Get the free tier limit (from database or default).
  */
-export function getFreeTierLimit(): number {
-  return FREE_LLM_ANALYSES_PER_REPO;
+export async function getFreeTierLimit(): Promise<number> {
+  const platformConfig = await getPlatformLLMConfigFull();
+  return platformConfig.freeTierLimit;
 }
 
 /**
  * Resolve which LLM configuration to use for a given user and repo.
  *
  * Resolution order:
- * 1. User's own API key (if configured)
- * 2. Platform key (if user has free tier remaining)
- * 3. No LLM (fallback to metrics-only)
+ * 1. Check if LLM is disabled at platform level
+ * 2. User's own API key (if configured)
+ * 3. Platform key (if user has free tier remaining)
+ * 4. No LLM (fallback to metrics-only)
  */
 export async function resolveLLMConfig(
   userId: string,
   repoId: string
 ): Promise<LLMResolutionResult> {
+  // 0. Check if LLM is disabled at platform level
+  const platformFull = await getPlatformLLMConfigFull();
+  if (platformFull.llmDisabled) {
+    return { config: null, source: "none", reason: "llm_disabled" };
+  }
+
   // 1. Check if user has their own key configured
   const userConfig = await getUserLLMConfig(userId);
   if (userConfig) {
@@ -185,11 +325,12 @@ export async function resolveLLMConfig(
   }
 
   // 2. Check if user has free tier remaining for this repo
-  const canUseFree = await canUseFreeAnalysis(userId, repoId);
+  const used = await countFreeAnalysesUsed(userId, repoId);
+  const canUseFree = used < platformFull.freeTierLimit;
+
   if (canUseFree) {
-    const platformConfig = getPlatformLLMConfig();
-    if (platformConfig) {
-      return { config: platformConfig, source: "platform", reason: "free_tier" };
+    if (platformFull.config) {
+      return { config: platformFull.config, source: "platform", reason: "free_tier" };
     }
     // Platform key not configured
     return { config: null, source: "none", reason: "no_platform_key" };

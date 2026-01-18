@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { isCurrentUserAdmin } from "@/lib/admin";
 import { wrappedTheme } from "@/lib/theme";
-import { getPlatformLLMConfig } from "@/lib/llm-config";
+import { getPlatformLLMConfigFull } from "@/lib/llm-config";
 import { PROVIDER_INFO, LLM_PROVIDERS, type LLMProvider } from "@vibed/core";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
@@ -80,22 +80,25 @@ export default async function AdminLLMStatusPage() {
     redirect("/");
   }
 
-  const platformConfig = getPlatformLLMConfig();
+  const platformConfigFull = await getPlatformLLMConfigFull();
+  const platformConfig = platformConfigFull.config;
   const stats = await getLLMUsageStats();
 
-  // Check which providers are configured
+  // Check which providers are configured (database takes precedence, then env vars)
   const providerStatus = LLM_PROVIDERS.map((provider) => {
     const envKey = `${provider.toUpperCase()}_API_KEY`;
-    const isConfigured = Boolean(
+    const hasEnvKey = Boolean(
       provider === "anthropic" ? process.env.ANTHROPIC_API_KEY :
       provider === "openai" ? process.env.OPENAI_API_KEY :
       provider === "gemini" ? process.env.GEMINI_API_KEY : null
     );
+    const isDbConfigured = platformConfig?.provider === provider;
 
     return {
       provider,
       name: PROVIDER_INFO[provider].name,
-      isConfigured,
+      isConfigured: isDbConfigured || hasEnvKey,
+      isDbConfigured,
       envKey,
       isPrimary: platformConfig?.provider === provider,
     };
@@ -120,8 +123,29 @@ export default async function AdminLLMStatusPage() {
         <section className={`${wrappedTheme.card} p-6`}>
           <h2 className="text-lg font-semibold text-zinc-950">Platform Configuration</h2>
           <p className="mt-1 text-sm text-zinc-600">
-            LLM providers configured via environment variables
+            LLM providers configured via database or environment variables
           </p>
+
+          {/* Platform Settings from Database */}
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl bg-white/50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">Free Tier Limit</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-950">{platformConfigFull.freeTierLimit}</p>
+              <p className="text-xs text-zinc-500">per repo per user</p>
+            </div>
+            <div className="rounded-xl bg-white/50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">LLM Status</p>
+              <p className={`mt-1 text-2xl font-semibold ${platformConfigFull.llmDisabled ? "text-amber-600" : "text-green-600"}`}>
+                {platformConfigFull.llmDisabled ? "Disabled" : "Enabled"}
+              </p>
+            </div>
+            <div className="rounded-xl bg-white/50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">Config Source</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-950">
+                {platformConfig ? "Database" : "Env Vars"}
+              </p>
+            </div>
+          </div>
 
           <div className="mt-4 space-y-3">
             {providerStatus.map((status) => (
@@ -136,6 +160,11 @@ export default async function AdminLLMStatusPage() {
                   {status.isPrimary && (
                     <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
                       Primary
+                    </span>
+                  )}
+                  {status.isDbConfigured && (
+                    <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                      Database
                     </span>
                   )}
                   <p className="text-xs text-zinc-500">{status.envKey}</p>
@@ -153,8 +182,9 @@ export default async function AdminLLMStatusPage() {
 
           {!platformConfig && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              No LLM provider is configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or
-              GEMINI_API_KEY environment variable to enable AI-generated narratives.
+              No LLM provider is configured. Go to{" "}
+              <Link href="/admin/llm" className="underline">Admin → LLM Settings</Link>{" "}
+              to configure platform keys, or set environment variables as a fallback.
             </div>
           )}
         </section>
