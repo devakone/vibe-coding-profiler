@@ -804,6 +804,7 @@ export function detectVibePersona(
     id: VibePersonaId;
     name: string;
     tagline: string;
+    conditions: Array<{ id: string; ok: () => boolean }>;
     match: () => boolean;
     score: () => number;
     matched_rules: () => string[];
@@ -812,43 +813,64 @@ export function detectVibePersona(
   const rules: PersonaRule[] = [
     {
       id: "prompt_sprinter",
-      name: "Prompt Sprinter",
-      tagline: "You ship fast with big drops, then iterate in quick fix loops.",
+      name: "Vibe Prototyper",
+      tagline: "You build to think — code is your sketchpad.",
+      conditions: [
+        { id: "A>=70", ok: () => A >= 70 },
+        { id: "C>=65", ok: () => C >= 65 },
+        { id: "B<40", ok: () => B < 40 },
+        { id: "D<45", ok: () => D < 45 },
+      ],
       match: () => A >= 70 && C >= 65 && B < 40 && D < 45,
       score: () => Math.round((A + C + (100 - B) + (100 - D)) / 4),
       matched_rules: () => ["A>=70", "C>=65", "B<40", "D<45"],
     },
     {
       id: "guardrailed_viber",
-      name: "Guardrailed Viber",
-      tagline: "You vibe with agents, but keep tests and CI close to the work.",
+      name: "Test-First Validator",
+      tagline: "You lean on tests and safety nets before big changes.",
+      conditions: [
+        { id: "A>=65", ok: () => A >= 65 },
+        { id: "B>=65", ok: () => B >= 65 },
+        { id: "C>=40", ok: () => C >= 40 },
+      ],
       match: () => A >= 65 && B >= 65 && C >= 40,
       score: () => Math.round((A + B + C) / 3),
       matched_rules: () => ["A>=65", "B>=65", "C>=40"],
     },
     {
       id: "spec_first_director",
-      name: "Spec-First Director",
-      tagline:
-        "You direct the build with structure, issues, and intentional steps.",
+      name: "Spec-Driven Architect",
+      tagline: "Plans thoroughly before touching code; constraints show up early and often.",
+      conditions: [
+        { id: "D>=70", ok: () => D >= 70 },
+        { id: "B>=55", ok: () => B >= 55 },
+        { id: "A>=40", ok: () => A >= 40 },
+      ],
       match: () => D >= 70 && B >= 55 && A >= 40,
       score: () => Math.round((D + B + A) / 3),
       matched_rules: () => ["D>=70", "B>=55", "A>=40"],
     },
     {
       id: "vertical_slice_shipper",
-      name: "Vertical Slice Shipper",
-      tagline:
-        "You ship end-to-end slices that touch many parts of the system.",
+      name: "Agent Orchestrator",
+      tagline: "Coordinates tools and assistants; breaks work into structured moves.",
+      conditions: [
+        { id: "E>=70", ok: () => E >= 70 },
+        { id: "A>=60", ok: () => A >= 60 },
+      ],
       match: () => E >= 70 && A >= 60,
       score: () => Math.round((E + A + Math.max(C, F)) / 3),
       matched_rules: () => ["E>=70", "A>=60"],
     },
     {
       id: "fix_loop_hacker",
-      name: "Fix-Loop Hacker",
-      tagline:
-        "You build through rapid feedback loops, patching and refining quickly.",
+      name: "Hands-On Debugger",
+      tagline: "You move fast through triage and fix loops, refining in tight cycles.",
+      conditions: [
+        { id: "C>=80", ok: () => C >= 80 },
+        { id: "F>=60", ok: () => F >= 60 },
+      ],
       match: () => C >= 80 && F >= 60,
       score: () => Math.round((C + F + (100 - B)) / 3),
       matched_rules: () => ["C>=80", "F>=60"],
@@ -856,21 +878,48 @@ export function detectVibePersona(
   ];
 
   const matched = rules.filter((r) => r.match());
-  const chosen = matched.sort((a, b) => b.score() - a.score())[0];
+  const chosenStrict = matched.sort((a, b) => b.score() - a.score())[0] ?? null;
 
   const fallback = {
     id: "balanced_builder" as const,
-    name: "Balanced Builder",
-    tagline: "You mix shipping, iteration, and guardrails in a fairly even way.",
+    name: "Reflective Balancer",
+    tagline: "You balance exploration, guardrails, and shipping rhythm.",
     score: Math.round((A + B + C + D + E + F) / 6),
     matched_rules: [] as string[],
   };
 
-  const chosenId = chosen?.id ?? fallback.id;
-  const chosenName = chosen?.name ?? fallback.name;
-  const chosenTagline = chosen?.tagline ?? fallback.tagline;
-  const personaScore = chosen?.score() ?? fallback.score;
-  const matchedRules = chosen?.matched_rules() ?? fallback.matched_rules;
+  const chosenLoose = (() => {
+    if (chosenStrict) return { rule: chosenStrict, selection: "strict" as const };
+
+    const scored = rules
+      .map((rule) => {
+        const satisfied = rule.conditions.filter((c) => c.ok()).length;
+        const ratio = rule.conditions.length > 0 ? satisfied / rule.conditions.length : 0;
+        return { rule, satisfied, ratio, score: rule.score() };
+      })
+      .sort((a, b) => {
+        if (b.ratio !== a.ratio) return b.ratio - a.ratio;
+        return b.score - a.score;
+      });
+
+    const top = scored[0];
+    if (!top) return null;
+
+    if (top.ratio >= 0.5 && top.score >= 60) {
+      return { rule: top.rule, selection: "loose" as const };
+    }
+
+    return null;
+  })();
+
+  const chosenRule = chosenLoose?.rule ?? null;
+  const chosenSelection = chosenLoose?.selection ?? null;
+
+  const chosenId = chosenRule?.id ?? fallback.id;
+  const chosenName = chosenRule?.name ?? fallback.name;
+  const chosenTagline = chosenRule?.tagline ?? fallback.tagline;
+  const personaScore = chosenRule?.score() ?? fallback.score;
+  const matchedRules = chosenRule?.matched_rules() ?? fallback.matched_rules;
 
   const confidence: Confidence = (() => {
     const commitOk = meta.commitCount >= 200;
@@ -910,6 +959,9 @@ export function detectVibePersona(
     matched_rules: matchedRules,
     why,
     caveats: [
+      ...(chosenSelection === "loose"
+        ? ["Selected by nearest-match because no strict rule matched."]
+        : []),
       "Inferred from GitHub metadata (commits/PRs), not IDE prompts.",
       "Unpushed local work and private discussions are not visible.",
     ],

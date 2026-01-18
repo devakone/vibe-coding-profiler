@@ -2,6 +2,15 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@vibed/db";
 import { wrappedTheme } from "@/lib/theme";
+import { createClient } from "@supabase/supabase-js";
+import {
+  aggregateUserProfile,
+  computeVibeFromCommits,
+  type RepoInsightSummary,
+  type VibeAxes,
+  type VibeCommitEvent,
+  type VibePersona,
+} from "@vibed/core";
 
 const heroFeatures = [
   "A Vibed profile built from vibe-coding signals in your commit history",
@@ -78,17 +87,277 @@ type LatestInsightRow = {
     | null;
 };
 
-type PersonaHistoryRow = {
-  persona_label: string | null;
-  generated_at: string | null;
-  analysis_jobs:
-    | {
-        created_at: string;
-      }
-    | null;
+type DoneJobRow = {
+  id: string;
+  repo_id: string;
+  commit_count: number | null;
+  created_at: string;
+  completed_at: string | null;
 };
 
-export default async function Home() {
+type RepoFullNameRow = { id: string; full_name: string };
+
+type VibeInsightsRow = {
+  job_id: string;
+  axes_json: unknown;
+  persona_id: string;
+  persona_name: string;
+  persona_tagline: string | null;
+  persona_confidence: string;
+  persona_score: number | null;
+};
+
+type MetricsRow = {
+  job_id: string;
+  events_json: unknown;
+  metrics_json: unknown;
+};
+
+function toCommitEvents(input: unknown): VibeCommitEvent[] | null {
+  if (!Array.isArray(input)) return null;
+
+  const commits: VibeCommitEvent[] = [];
+  for (const row of input) {
+    if (typeof row !== "object" || row === null) return null;
+    const r = row as Record<string, unknown>;
+
+    const sha = r.sha;
+    const message = r.message;
+    const author_date = r.author_date;
+    const committer_date = r.committer_date;
+    const author_email = r.author_email;
+    const files_changed = r.files_changed;
+    const additions = r.additions;
+    const deletions = r.deletions;
+
+    if (
+      typeof sha !== "string" ||
+      typeof message !== "string" ||
+      typeof author_date !== "string" ||
+      typeof committer_date !== "string" ||
+      typeof author_email !== "string" ||
+      typeof files_changed !== "number" ||
+      typeof additions !== "number" ||
+      typeof deletions !== "number"
+    ) {
+      return null;
+    }
+
+    const parentsRaw = r.parents;
+    const parents = Array.isArray(parentsRaw)
+      ? parentsRaw.filter((p): p is string => typeof p === "string")
+      : [];
+
+    const filePathsRaw = r.file_paths;
+    const file_paths = Array.isArray(filePathsRaw)
+      ? filePathsRaw.filter((p): p is string => typeof p === "string")
+      : undefined;
+
+    commits.push({
+      sha,
+      message,
+      author_date,
+      committer_date,
+      author_email,
+      files_changed,
+      additions,
+      deletions,
+      parents,
+      ...(file_paths ? { file_paths } : {}),
+    });
+  }
+
+  return commits;
+}
+
+async function rebuildUserProfileIfNeeded(args: { userId: string }): Promise<void> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return;
+
+  const supabase = createClient(url, serviceKey);
+
+  const { data: userReposData, error: userReposError } = await supabase
+    .from("user_repos")
+    .select("repo_id, disconnected_at")
+    .eq("user_id", args.userId);
+
+  if (userReposError) return;
+
+  const disconnectedRepoIds = new Set(
+    (userReposData ?? [])
+      .filter((r) => r.disconnected_at != null)
+      .map((r) => r.repo_id)
+      .filter((id): id is string => typeof id === "string" && id.length > 0)
+  );
+
+  const { data: completedJobsData, error: jobsError } = await supabase
+    .from("analysis_jobs")
+    .select("id, repo_id, commit_count, created_at, completed_at")
+    .eq("user_id", args.userId)
+    .eq("status", "done");
+
+  if (jobsError || !completedJobsData || completedJobsData.length === 0) return;
+
+  const includedJobs = (completedJobsData as DoneJobRow[]).filter((job) => {
+    if (typeof job.repo_id !== "string") return false;
+    if (disconnectedRepoIds.has(job.repo_id)) return false;
+    return true;
+  });
+
+  if (includedJobs.length === 0) return;
+
+  const latestJobByRepoId = new Map<string, DoneJobRow>();
+  for (const job of includedJobs) {
+    const existing = latestJobByRepoId.get(job.repo_id);
+    if (!existing) {
+      latestJobByRepoId.set(job.repo_id, job);
+      continue;
+    }
+
+    const jobUpdatedAt = job.completed_at ?? job.created_at;
+    const existingUpdatedAt = existing.completed_at ?? existing.created_at;
+    if (String(jobUpdatedAt) > String(existingUpdatedAt)) {
+      latestJobByRepoId.set(job.repo_id, job);
+    }
+  }
+
+  const dedupedJobs = Array.from(latestJobByRepoId.values());
+
+  const repoIds = Array.from(new Set(dedupedJobs.map((j) => j.repo_id)));
+  const { data: reposData } = await supabase.from("repos").select("id, full_name").in("id", repoIds);
+  const repoNameById = new Map<string, string>();
+  for (const r of (reposData ?? []) as RepoFullNameRow[]) {
+    repoNameById.set(r.id, r.full_name);
+  }
+
+  const jobIds = dedupedJobs.map((j) => j.id);
+  const { data: vibeInsightsData } = await supabase
+    .from("vibe_insights")
+    .select("job_id, axes_json, persona_id, persona_name, persona_tagline, persona_confidence, persona_score")
+    .in("job_id", jobIds);
+
+  const vibeInsights = (vibeInsightsData ?? []) as VibeInsightsRow[];
+  const vibeInsightByJobId = new Map<string, VibeInsightsRow>();
+  for (const insight of vibeInsights) {
+    vibeInsightByJobId.set(insight.job_id, insight);
+  }
+
+  const missingJobIds = jobIds.filter((jobId) => !vibeInsightByJobId.has(jobId));
+  const { data: metricsData } =
+    missingJobIds.length > 0
+      ? await supabase.from("analysis_metrics").select("job_id, events_json, metrics_json").in("job_id", missingJobIds)
+      : { data: [] as MetricsRow[] };
+
+  const metricsByJobId = new Map<string, MetricsRow>();
+  for (const row of (metricsData ?? []) as MetricsRow[]) {
+    metricsByJobId.set(row.job_id, row);
+  }
+
+  const computedByJobId = new Map<string, ReturnType<typeof computeVibeFromCommits>>();
+  for (const jobId of missingJobIds) {
+    const row = metricsByJobId.get(jobId);
+    const commits = row ? toCommitEvents(row.events_json) : null;
+    if (!commits) continue;
+    computedByJobId.set(jobId, computeVibeFromCommits({ commits, episodeGapHours: 4 }));
+  }
+
+  const commitCountByJobId = new Map<string, number>();
+  for (const row of (metricsData ?? []) as MetricsRow[]) {
+    const metricsJson = row.metrics_json;
+    if (typeof metricsJson !== "object" || metricsJson === null) continue;
+    const totalCommits = (metricsJson as { total_commits?: unknown }).total_commits;
+    if (typeof totalCommits === "number") commitCountByJobId.set(row.job_id, totalCommits);
+  }
+
+  const repoInsights: RepoInsightSummary[] = [];
+
+  for (const job of dedupedJobs) {
+    const repoName = repoNameById.get(job.repo_id) ?? "Unknown";
+    const commitCount = job.commit_count ?? commitCountByJobId.get(job.id) ?? 0;
+
+    const vibeInsight = vibeInsightByJobId.get(job.id);
+    if (vibeInsight) {
+      repoInsights.push({
+        jobId: job.id,
+        repoName,
+        commitCount,
+        axes: vibeInsight.axes_json as VibeAxes,
+        persona: {
+          id: vibeInsight.persona_id,
+          name: vibeInsight.persona_name,
+          tagline: vibeInsight.persona_tagline ?? "",
+          confidence: vibeInsight.persona_confidence as "high" | "medium" | "low",
+          score: vibeInsight.persona_score ?? 0,
+          matched_rules: [],
+          why: [],
+          caveats: [],
+        } as VibePersona,
+        analyzedAt: job.completed_at ?? new Date().toISOString(),
+      });
+      continue;
+    }
+
+    const computed = computedByJobId.get(job.id);
+    if (computed) {
+      repoInsights.push({
+        jobId: job.id,
+        repoName,
+        commitCount,
+        axes: computed.axes,
+        persona: computed.persona,
+        analyzedAt: job.completed_at ?? new Date().toISOString(),
+      });
+    }
+  }
+
+  if (repoInsights.length === 0) return;
+
+  const profile = aggregateUserProfile(repoInsights);
+
+  await supabase.from("user_profiles").upsert(
+    {
+      user_id: args.userId,
+      total_commits: profile.totalCommits,
+      total_repos: profile.totalRepos,
+      job_ids: profile.jobIds,
+      axes_json: profile.axes,
+      persona_id: profile.persona.id,
+      persona_name: profile.persona.name,
+      persona_tagline: profile.persona.tagline,
+      persona_confidence: profile.persona.confidence,
+      persona_score: profile.persona.score,
+      repo_personas_json: profile.repoBreakdown,
+      cards_json: profile.cards,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+
+  const triggerJobId =
+    dedupedJobs
+      .slice()
+      .sort((a, b) =>
+        String(b.completed_at ?? b.created_at).localeCompare(
+          String(a.completed_at ?? a.created_at)
+        )
+      )[0]?.id ?? null;
+
+  await supabase.from("user_profile_history").insert({
+    user_id: args.userId,
+    profile_snapshot: profile,
+    trigger_job_id: triggerJobId,
+  });
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?:
+    | Promise<Record<string, string | string[] | undefined>>
+    | Record<string, string | string[] | undefined>;
+}) {
+  const resolvedSearchParams = (await searchParams) ?? {};
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -104,7 +373,7 @@ export default async function Home() {
     completedJobsRowsResult,
     latestJobResult,
     latestInsightResult,
-    personaHistoryResult,
+    recentDoneJobsResult,
     userProfileResult,
   ] =
     await Promise.all([
@@ -130,9 +399,10 @@ export default async function Home() {
         .in("status", ["queued", "running"]),
       supabase
         .from("analysis_jobs")
-        .select("repo_id, commit_count")
+        .select("repo_id, commit_count, created_at, completed_at")
         .eq("user_id", user.id)
-        .eq("status", "done"),
+        .eq("status", "done")
+        .order("created_at", { ascending: false }),
       supabase
         .from("analysis_jobs")
         .select("status,created_at,started_at,completed_at,repo_id")
@@ -150,15 +420,16 @@ export default async function Home() {
         .limit(1)
         .maybeSingle(),
       supabase
-        .from("analysis_insights")
-        .select("persona_label, generated_at, analysis_jobs(created_at)")
-        .eq("analysis_jobs.user_id", user.id)
-        .order("analysis_jobs.created_at", { ascending: false })
-        .limit(5),
+        .from("analysis_jobs")
+        .select("id, created_at")
+        .eq("user_id", user.id)
+        .eq("status", "done")
+        .order("created_at", { ascending: false })
+        .limit(25),
       supabase
         .from("user_profiles")
         .select(
-          "persona_name, persona_tagline, persona_confidence, total_repos, total_commits, axes_json, repo_personas_json, updated_at"
+          "persona_name, persona_tagline, persona_confidence, total_repos, total_commits, axes_json, repo_personas_json, updated_at, job_ids"
         )
         .eq("user_id", user.id)
         .maybeSingle(),
@@ -166,8 +437,99 @@ export default async function Home() {
 
   const latestJob = (latestJobResult.data ?? null) as unknown as LatestJobRow | null;
   const latestInsight = (latestInsightResult.data ?? null) as unknown as LatestInsightRow | null;
-  const personaHistoryRows = (personaHistoryResult.data ?? []) as unknown as PersonaHistoryRow[];
-  const userProfileData = userProfileResult.data as {
+  const completedJobsCount = typeof completedJobsResult.count === "number" ? completedJobsResult.count : 0;
+  const recentDoneJobs = (recentDoneJobsResult.data ?? []) as Array<{
+    id: string;
+    created_at: string;
+  }>;
+
+  const maybeProfileData = userProfileResult.data as {
+    persona_name: string;
+    persona_tagline: string | null;
+    persona_confidence: string;
+    total_repos: number;
+    total_commits: number;
+    axes_json: Record<string, { score: number; level: string; why: string[] }>;
+    repo_personas_json: Array<{
+      repoName: string;
+      personaId: string;
+      personaName: string;
+      commitCount: number;
+    }>;
+    updated_at: string | null;
+    job_ids: unknown;
+  } | null;
+
+  const profileJobIds = Array.isArray(maybeProfileData?.job_ids)
+    ? maybeProfileData?.job_ids.filter((v): v is string => typeof v === "string")
+    : null;
+
+  const connectedRepoIdRows = (connectedRepoIdsResult.data ?? []) as Array<{
+    repo_id: string | null;
+  }>;
+  const connectedRepoIds = new Set(
+    connectedRepoIdRows
+      .map((r) => r.repo_id)
+      .filter((id): id is string => Boolean(id))
+  );
+
+  const completedJobsRows = (completedJobsRowsResult.data ?? []) as Array<{
+    repo_id: string | null;
+    commit_count: number | null;
+    created_at: string;
+    completed_at: string | null;
+  }>;
+
+  const latestDoneJobByRepoId = new Map<
+    string,
+    { repo_id: string; commit_count: number | null; created_at: string; completed_at: string | null }
+  >();
+  for (const row of completedJobsRows) {
+    if (!row.repo_id) continue;
+    if (!connectedRepoIds.has(row.repo_id)) continue;
+    if (!latestDoneJobByRepoId.has(row.repo_id)) {
+      latestDoneJobByRepoId.set(row.repo_id, {
+        repo_id: row.repo_id,
+        commit_count: row.commit_count,
+        created_at: row.created_at,
+        completed_at: row.completed_at,
+      });
+    }
+  }
+
+  const analyzedJobs = Array.from(latestDoneJobByRepoId.values());
+  const analyzedRepos = analyzedJobs.length;
+  const analyzedCommits = analyzedJobs.reduce((sum, j) => sum + (j.commit_count ?? 0), 0);
+
+  const latestCompletedAt =
+    latestJob?.status === "done" && typeof latestJob.completed_at === "string" ? latestJob.completed_at : null;
+
+  const profileRepoCountMismatch =
+    typeof maybeProfileData?.total_repos === "number" && maybeProfileData.total_repos !== analyzedRepos;
+
+  const profileIsStale =
+    completedJobsCount > 0 &&
+    (!maybeProfileData ||
+      profileRepoCountMismatch ||
+      (profileJobIds && profileJobIds.length < analyzedRepos) ||
+      (latestCompletedAt &&
+        (!maybeProfileData.updated_at || String(maybeProfileData.updated_at) < String(latestCompletedAt))));
+
+  if (profileIsStale) {
+    await rebuildUserProfileIfNeeded({ userId: user.id });
+  }
+
+  const refreshedProfileResult = profileIsStale
+    ? await supabase
+        .from("user_profiles")
+        .select(
+          "persona_name, persona_tagline, persona_confidence, total_repos, total_commits, axes_json, repo_personas_json, updated_at"
+        )
+        .eq("user_id", user.id)
+        .maybeSingle()
+    : null;
+
+  const userProfileData = (profileIsStale ? refreshedProfileResult?.data ?? null : maybeProfileData) as {
     persona_name: string;
     persona_tagline: string | null;
     persona_confidence: string;
@@ -183,10 +545,42 @@ export default async function Home() {
     updated_at: string | null;
   } | null;
 
-  const personaHistory = personaHistoryRows.map((row) => ({
-    label: row.persona_label,
-    generatedAt: row.generated_at,
-  }));
+  const recentDoneJobIds = recentDoneJobs.map((job) => job.id);
+  const recentInsightsResult =
+    recentDoneJobIds.length > 0
+      ? await supabase
+          .from("analysis_insights")
+          .select("job_id, persona_label, generated_at")
+          .in("job_id", recentDoneJobIds)
+      : null;
+
+  const insightByJobId = new Map<
+    string,
+    { persona_label: string | null; generated_at: string | null }
+  >();
+  for (const row of (recentInsightsResult?.data ?? []) as Array<{
+    job_id: string;
+    persona_label: string | null;
+    generated_at: string | null;
+  }>) {
+    if (!insightByJobId.has(row.job_id)) {
+      insightByJobId.set(row.job_id, {
+        persona_label: row.persona_label,
+        generated_at: row.generated_at,
+      });
+    }
+  }
+
+  const personaHistory: AuthStats["personaHistory"] = [];
+  for (const job of recentDoneJobs) {
+    const insight = insightByJobId.get(job.id);
+    if (!insight) continue;
+    personaHistory.push({
+      label: insight.persona_label,
+      generatedAt: insight.generated_at,
+    });
+    if (personaHistory.length >= 5) break;
+  }
 
   const repoNameResult = latestJob?.repo_id
     ? await supabase
@@ -209,28 +603,9 @@ export default async function Home() {
   const latestInsightRepoName = (latestInsightRepoNameResult?.data ??
     null) as unknown as RepoNameRow | null;
 
-  const connectedRepoIdRows = (connectedRepoIdsResult.data ?? []) as Array<{
-    repo_id: string | null;
-  }>;
-  const connectedRepoIds = new Set(
-    connectedRepoIdRows
-      .map((r) => r.repo_id)
-      .filter((id): id is string => Boolean(id))
-  );
-
-  const completedJobsRows = (completedJobsRowsResult.data ?? []) as Array<{
-    repo_id: string | null;
-    commit_count: number | null;
-  }>;
-
-  const analyzedJobs = completedJobsRows.filter(
-    (j) => j.repo_id && connectedRepoIds.has(j.repo_id)
-  );
-  const analyzedRepos = new Set(analyzedJobs.map((j) => j.repo_id)).size;
-  const analyzedCommits = analyzedJobs.reduce(
-    (sum, j) => sum + (j.commit_count ?? 0),
-    0
-  );
+  const debugParam = resolvedSearchParams.debug;
+  const debugEnabled =
+    debugParam === "1" || (Array.isArray(debugParam) && debugParam.includes("1"));
 
   const stats: AuthStats = {
     connectedRepos: connectedReposResult.count ?? 0,
@@ -272,7 +647,48 @@ export default async function Home() {
       : undefined,
   };
 
-  return <AuthenticatedDashboard stats={stats} />;
+  const debugInfo = debugEnabled
+    ? {
+        userId: user.id,
+        email: user.email ?? null,
+        profileIsStale,
+        completedJobsCount,
+        connectedReposCount: connectedReposResult.count ?? 0,
+        connectedRepoIdsCount: connectedRepoIds.size,
+        analyzedReposFallback: analyzedRepos,
+        analyzedCommitsFallback: analyzedCommits,
+        latestCompletedAt,
+        profileBefore: maybeProfileData
+          ? {
+              totalRepos: maybeProfileData.total_repos,
+              totalCommits: maybeProfileData.total_commits,
+              personaName: maybeProfileData.persona_name,
+              personaConfidence: maybeProfileData.persona_confidence,
+              updatedAt: maybeProfileData.updated_at,
+              jobIdsCount: profileJobIds?.length ?? null,
+            }
+          : null,
+        profileAfter: userProfileData
+          ? {
+              totalRepos: userProfileData.total_repos,
+              totalCommits: userProfileData.total_commits,
+              personaName: userProfileData.persona_name,
+              personaConfidence: userProfileData.persona_confidence,
+              updatedAt: userProfileData.updated_at,
+            }
+          : null,
+        statsRendered: {
+          primaryVibe: stats.userProfile?.personaName ?? stats.latestPersona?.label ?? null,
+          profileRepos: stats.userProfile?.totalRepos ?? null,
+          profileCommits: stats.userProfile?.totalCommits ?? null,
+          completedJobs: stats.completedJobs,
+          queuedJobs: stats.queuedJobs,
+        },
+        completedJobsRowsSample: completedJobsRows.slice(0, 12),
+      }
+    : null;
+
+  return <AuthenticatedDashboard stats={stats} debugInfo={debugInfo} />;
 }
 
 function MarketingLanding() {
@@ -417,7 +833,13 @@ function MarketingLanding() {
   );
 }
 
-function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
+function AuthenticatedDashboard({
+  stats,
+  debugInfo,
+}: {
+  stats: AuthStats;
+  debugInfo: Record<string, unknown> | null;
+}) {
   function clarityScore(): number {
     if (stats.completedJobs === 0) return 0;
     if (stats.connectedRepos <= 1) return 35;
@@ -611,6 +1033,19 @@ function AuthenticatedDashboard({ stats }: { stats: AuthStats }) {
               </p>
             </div>
           </div>
+
+          {debugInfo ? (
+            <div className="mt-6 rounded-2xl border border-black/5 bg-white/70 p-4 backdrop-blur">
+              <details open>
+                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
+                  Debug
+                </summary>
+                <pre className="mt-3 overflow-x-auto whitespace-pre rounded-xl bg-zinc-950 p-4 text-xs text-zinc-50">
+                  {JSON.stringify(debugInfo, null, 2)}
+                </pre>
+              </details>
+            </div>
+          ) : null}
 
           {stats.completedJobs === 0 ? (
             <div className="mt-8 flex flex-wrap gap-3">

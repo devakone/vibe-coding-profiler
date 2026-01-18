@@ -4,6 +4,7 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import {
   aggregateUserProfile,
   computeVibeFromCommits,
+  detectVibePersona,
   type RepoInsightSummary,
   type VibeAxes,
   type VibeCommitEvent,
@@ -351,6 +352,7 @@ export async function POST(request: Request) {
   }
 
   const repoInsights: RepoInsightSummary[] = [];
+  const legacyRepoInsights: RepoInsightSummary[] = [];
 
   for (const job of completedJobs) {
     if (!job.repo_id) continue;
@@ -360,21 +362,13 @@ export async function POST(request: Request) {
 
     const vibeInsight = vibeInsightByJobId.get(job.id);
     if (vibeInsight) {
+      const axes = vibeInsight.axes_json as VibeAxes;
       repoInsights.push({
         jobId: job.id,
         repoName,
         commitCount,
-        axes: vibeInsight.axes_json as VibeAxes,
-        persona: {
-          id: vibeInsight.persona_id,
-          name: vibeInsight.persona_name,
-          tagline: vibeInsight.persona_tagline ?? "",
-          confidence: vibeInsight.persona_confidence as "high" | "medium" | "low",
-          score: vibeInsight.persona_score ?? 0,
-          matched_rules: [],
-          why: [],
-          caveats: [],
-        } as VibePersona,
+        axes,
+        persona: detectVibePersona(axes, { commitCount, prCount: 0 }),
         analyzedAt: job.completed_at ?? new Date().toISOString(),
       });
       continue;
@@ -400,7 +394,7 @@ export async function POST(request: Request) {
         level: "medium" as const,
         why: ["Legacy insight - no detailed axis data available"],
       };
-      repoInsights.push({
+      legacyRepoInsights.push({
         jobId: job.id,
         repoName,
         commitCount,
@@ -414,7 +408,7 @@ export async function POST(request: Request) {
         },
         persona: {
           id: legacyInsight.persona_id ?? "balanced_builder",
-          name: legacyInsight.persona_label ?? "Balanced Builder",
+          name: legacyInsight.persona_label ?? "Reflective Balancer",
           tagline: "",
           confidence: (legacyInsight.persona_confidence as "high" | "medium" | "low") ?? "low",
           score: 50,
@@ -427,11 +421,13 @@ export async function POST(request: Request) {
     }
   }
 
-  if (repoInsights.length === 0) {
+  const effectiveRepoInsights = repoInsights.length > 0 ? repoInsights : legacyRepoInsights;
+
+  if (effectiveRepoInsights.length === 0) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  const profile = aggregateUserProfile(repoInsights);
+  const profile = aggregateUserProfile(effectiveRepoInsights);
 
   const triggerJobId =
     completedJobs
