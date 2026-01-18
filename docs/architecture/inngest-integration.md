@@ -185,11 +185,26 @@ onFailure: async ({ error, event }) => {
 }
 ```
 
-## Fallback
+## Fallback Worker
 
-The original polling worker (`apps/worker`) still works as a fallback:
-- If Inngest fails to trigger, the worker will eventually pick up queued jobs
-- Useful for local development without Inngest dev server
+The standalone worker (`apps/worker`) serves as a fallback for self-hosted deployments:
+
+| Feature | Inngest | Worker |
+|---------|---------|--------|
+| Processing model | Event-driven | Polling (5s interval) |
+| Platform LLM keys | ✅ | ✅ |
+| User API keys (BYOK) | ✅ | ❌ |
+| Free tier tracking | ✅ | ❌ |
+| LLM usage recording | ✅ | ❌ |
+| Automatic retries | ✅ (up to 5) | ❌ |
+| Checkpoint/resume | ✅ | ❌ |
+
+**When to use the worker:**
+- Self-hosted deployments without Inngest
+- Development/testing without Inngest dev server
+- Backup if Inngest is unavailable
+
+**Important:** User API keys (BYOK) only work with Inngest. The worker uses platform keys from environment variables exclusively. See [LLM Setup Guide](../llm-setup.md#processing-architecture) for details.
 
 ## Rate Limiting
 

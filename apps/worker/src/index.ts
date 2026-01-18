@@ -1,14 +1,29 @@
 /**
  * Vibed Coding Worker
  *
- * Background job processor for git analysis.
+ * Self-hosted fallback job processor for git analysis.
+ *
+ * ARCHITECTURE NOTE:
+ * This worker is a FALLBACK for self-hosted deployments without Inngest.
+ * The primary processing path is via Inngest (see /apps/web/src/inngest/functions/analyze-repo.ts).
+ *
+ * Key differences from Inngest:
+ * - Uses only platform LLM keys from environment variables
+ * - Does NOT support user API keys (BYOK) - use Inngest for BYOK
+ * - Does NOT track free tier limits or record LLM usage
+ * - Polls database instead of event-driven processing
+ *
+ * When to use this worker:
+ * - Self-hosted deployments without Inngest
+ * - Development/testing environments
+ * - Backup processing if Inngest is unavailable
  *
  * This worker:
  * 1. Polls the analysis_jobs table for queued jobs
  * 2. Claims a job using FOR UPDATE SKIP LOCKED
- * 3. Fetches commits from GitHub API (or clones for deep analysis)
+ * 3. Fetches commits from GitHub API
  * 4. Computes metrics using @vibed/core
- * 5. Optionally generates narrative via LLM
+ * 5. Generates narrative via LLM (platform key only)
  * 6. Writes results back to database
  */
 

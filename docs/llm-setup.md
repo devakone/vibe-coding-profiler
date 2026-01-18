@@ -124,6 +124,53 @@ This is useful for:
 
 ---
 
+## Processing Architecture
+
+Vibed Coding has two job processing paths with different LLM capabilities:
+
+### Inngest (Primary - Recommended)
+
+The default processing path for Vercel/serverless deployments.
+
+| Feature | Support |
+|---------|---------|
+| Platform LLM keys | ✅ Yes |
+| User API keys (BYOK) | ✅ Yes |
+| Free tier tracking | ✅ Yes |
+| LLM usage recording | ✅ Yes |
+| Automatic retries | ✅ Yes (up to 5) |
+
+**How it works:**
+1. User triggers analysis → Job created in database
+2. Inngest event fired immediately
+3. Inngest function processes with full LLM resolution (user keys, free tier, platform fallback)
+
+### Worker (Self-Hosted Fallback)
+
+A standalone background worker for self-hosted deployments without Inngest.
+
+| Feature | Support |
+|---------|---------|
+| Platform LLM keys | ✅ Yes |
+| User API keys (BYOK) | ❌ No |
+| Free tier tracking | ❌ No |
+| LLM usage recording | ❌ No |
+| Automatic retries | ❌ Manual |
+
+**How it works:**
+1. Worker polls database every 5 seconds for queued jobs
+2. Claims jobs atomically using `FOR UPDATE SKIP LOCKED`
+3. Processes using only environment variable LLM keys
+
+**When to use the worker:**
+- Self-hosted deployments without Inngest
+- Development/testing environments
+- Backup processing if Inngest is unavailable
+
+> **Note:** User API keys (BYOK) only work with Inngest deployments. The worker uses platform keys exclusively.
+
+---
+
 ## Self-Hosting Checklist
 
 When self-hosting Vibed Coding, configure LLM based on your needs:
