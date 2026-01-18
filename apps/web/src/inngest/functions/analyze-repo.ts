@@ -6,6 +6,7 @@ import {
   computeAnalysisInsights,
   computeAnalysisMetrics,
   computeVibeFromCommits,
+  detectVibePersona,
   decryptString,
   type AnalysisReport,
   type CommitEvent,
@@ -650,6 +651,7 @@ export const analyzeRepo = inngest.createFunction(
 
       // Build RepoInsightSummary array
       const repoInsights: RepoInsightSummary[] = [];
+      const legacyRepoInsights: RepoInsightSummary[] = [];
 
       for (const job of includedJobs) {
         const repoName = repoNameById.get(job.repo_id) ?? "Unknown";
@@ -658,21 +660,13 @@ export const analyzeRepo = inngest.createFunction(
         // Check vibe_insights first
         const vibeInsight = vibeInsightByJobId.get(job.id);
         if (vibeInsight) {
+          const axes = vibeInsight.axes_json as VibeAxes;
           repoInsights.push({
             jobId: job.id,
             repoName,
             commitCount,
-            axes: vibeInsight.axes_json as VibeAxes,
-            persona: {
-              id: vibeInsight.persona_id,
-              name: vibeInsight.persona_name,
-              tagline: vibeInsight.persona_tagline ?? "",
-              confidence: vibeInsight.persona_confidence as "high" | "medium" | "low",
-              score: vibeInsight.persona_score ?? 0,
-              matched_rules: [],
-              why: [],
-              caveats: [],
-            } as VibePersona,
+            axes,
+            persona: detectVibePersona(axes, { commitCount, prCount: 0 }),
             analyzedAt: job.completed_at ?? new Date().toISOString(),
           });
           continue;
@@ -696,7 +690,7 @@ export const analyzeRepo = inngest.createFunction(
         if (legacyInsight) {
           // Create default axes for legacy insights (AxisValue type: score, level, why)
           const defaultAxis = { score: 50, level: "medium" as const, why: ["Legacy insight - no detailed axis data available"] };
-          repoInsights.push({
+          legacyRepoInsights.push({
             jobId: job.id,
             repoName,
             commitCount,
@@ -710,7 +704,7 @@ export const analyzeRepo = inngest.createFunction(
             },
             persona: {
               id: legacyInsight.persona_id ?? "balanced_builder",
-              name: legacyInsight.persona_label ?? "Balanced Builder",
+              name: legacyInsight.persona_label ?? "Reflective Balancer",
               tagline: "",
               confidence: (legacyInsight.persona_confidence as "high" | "medium" | "low") ?? "low",
               score: 50,
@@ -723,13 +717,15 @@ export const analyzeRepo = inngest.createFunction(
         }
       }
 
-      if (repoInsights.length === 0) {
+      const effectiveRepoInsights = repoInsights.length > 0 ? repoInsights : legacyRepoInsights;
+
+      if (effectiveRepoInsights.length === 0) {
         console.log("No insights to aggregate");
         return;
       }
 
       // Aggregate profile
-      const profile = aggregateUserProfile(repoInsights);
+      const profile = aggregateUserProfile(effectiveRepoInsights);
 
       // Upsert user_profiles
       const { error: profileError } = await supabase.from("user_profiles").upsert(

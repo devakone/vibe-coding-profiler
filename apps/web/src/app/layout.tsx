@@ -52,6 +52,17 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Check if user is admin
+  let isAdmin = false;
+  if (user) {
+    const { data: userData } = await supabase
+      .from("users")
+      .select("is_admin")
+      .eq("id", user.id)
+      .single();
+    isAdmin = (userData as { is_admin: boolean } | null)?.is_admin === true;
+  }
+
   async function signOut() {
     "use server";
 
@@ -71,7 +82,7 @@ export default async function RootLayout({
           <div className={wrappedTheme.backgroundOrbs.orbC} />
           <div className={wrappedTheme.backgroundOrbs.vignette} />
         </div>
-        <AppHeader isAuthed={Boolean(user)} signOut={signOut} />
+        <AppHeader isAuthed={Boolean(user)} isAdmin={isAdmin} signOut={signOut} />
         {children}
         <Toaster />
       </body>

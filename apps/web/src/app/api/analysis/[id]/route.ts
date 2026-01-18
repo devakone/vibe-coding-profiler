@@ -4,10 +4,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   aggregateUserProfile,
   computeVibeFromCommits,
+  detectVibePersona,
   type RepoInsightSummary,
   type VibeAxes,
   type VibeCommitEvent,
-  type VibePersona,
 } from "@vibed/core";
 
 export const runtime = "nodejs";
@@ -205,21 +205,13 @@ async function rebuildUserProfileIfNeeded(args: {
 
     const vibeInsight = vibeInsightByJobId.get(job.id);
     if (vibeInsight) {
+      const axes = vibeInsight.axes_json as VibeAxes;
       repoInsights.push({
         jobId: job.id,
         repoName,
         commitCount,
-        axes: vibeInsight.axes_json as VibeAxes,
-        persona: {
-          id: vibeInsight.persona_id,
-          name: vibeInsight.persona_name,
-          tagline: vibeInsight.persona_tagline ?? "",
-          confidence: vibeInsight.persona_confidence as "high" | "medium" | "low",
-          score: vibeInsight.persona_score ?? 0,
-          matched_rules: [],
-          why: [],
-          caveats: [],
-        } as VibePersona,
+        axes,
+        persona: detectVibePersona(axes, { commitCount, prCount: 0 }),
         analyzedAt: job.completed_at ?? new Date().toISOString(),
       });
       continue;

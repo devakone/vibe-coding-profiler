@@ -11,13 +11,14 @@ function isActiveLink(pathname: string, href: string): boolean {
 
 export default function AppHeader(props: {
   isAuthed: boolean;
+  isAdmin?: boolean;
   signOut: () => Promise<void>;
 }) {
   const pathname = usePathname();
 
   if (pathname === "/login") return null;
 
-  const links = props.isAuthed
+  const baseLinks = props.isAuthed
     ? [
         { href: "/", label: "My Vibed" },
         { href: "/repos", label: "Repos" },
@@ -28,6 +29,10 @@ export default function AppHeader(props: {
         { href: "/", label: "Home" },
         { href: "/security", label: "Security" },
       ];
+
+  const links = props.isAdmin
+    ? [...baseLinks, { href: "/admin", label: "Admin" }]
+    : baseLinks;
 
   return (
     <header className="sticky top-0 z-50 bg-white/75 backdrop-blur">

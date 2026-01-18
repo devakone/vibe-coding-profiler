@@ -61,7 +61,26 @@ export type VibePersonaId =
   | "fix_loop_hacker"
   | "toolsmith_viber"
   | "infra_weaver"
+  | "rapid_risk_taker"
   | "balanced_builder";
+
+export interface PersonaRuleDiagnostic {
+  id: VibePersonaId;
+  name: string;
+  satisfiedConditions: string[];
+  failedConditions: string[];
+  satisfiedRatio: number; // 0-1
+  score: number;
+}
+
+export interface PersonaDiagnostics {
+  isFallback: boolean;
+  selection: "strict" | "loose" | "fallback";
+  nearMisses: PersonaRuleDiagnostic[]; // rules that were close to matching
+  allRuleScores: PersonaRuleDiagnostic[];
+  axes: { A: number; B: number; C: number; D: number; E: number; F: number };
+  suggestion?: string; // hint if this looks like a missing persona pattern
+}
 
 export interface VibePersona {
   id: VibePersonaId;
@@ -72,6 +91,7 @@ export interface VibePersona {
   matched_rules: string[];
   why: string[]; // evidence ids
   caveats: string[];
+  diagnostics?: PersonaDiagnostics;
 }
 
 export type InsightCardType =
@@ -875,6 +895,20 @@ export function detectVibePersona(
       score: () => Math.round((C + F + (100 - B)) / 3),
       matched_rules: () => ["C>=80", "F>=60"],
     },
+    {
+      id: "rapid_risk_taker",
+      name: "Rapid Risk-Taker",
+      tagline: "You vibe with AI and ship fast — guardrails can wait.",
+      conditions: [
+        { id: "A>=65", ok: () => A >= 65 },
+        { id: "B<45", ok: () => B < 45 },
+        { id: "D<50", ok: () => D < 50 },
+        { id: "F>=40", ok: () => F >= 40 },
+      ],
+      match: () => A >= 65 && B < 45 && D < 50 && F >= 40,
+      score: () => Math.round((A + (100 - B) + (100 - D) + F) / 4),
+      matched_rules: () => ["A>=65", "B<45", "D<50", "F>=40"],
+    },
   ];
 
   const matched = rules.filter((r) => r.match());
@@ -926,6 +960,15 @@ export function detectVibePersona(
     const prOk = meta.prCount >= 15;
     const qualityOk = (meta.dataQualityScore ?? 60) >= 70;
 
+    // For Balanced Builder (fallback), confidence is based on data quality alone
+    // since the persona score is just the average of axes (which can be low even with good data)
+    const isFallback = chosenRule === null;
+    if (isFallback) {
+      if ((commitOk || prOk) && qualityOk) return "high";
+      if (meta.commitCount >= 80 || meta.prCount >= 6) return "medium";
+      return "low";
+    }
+
     if ((commitOk || prOk) && qualityOk && personaScore >= 75) return "high";
     if ((meta.commitCount >= 80 || meta.prCount >= 6) && personaScore >= 65)
       return "medium";
@@ -950,6 +993,85 @@ export function detectVibePersona(
     return Array.from(new Set(ids)).slice(0, 6);
   })();
 
+  // Build diagnostics to help identify missing persona patterns
+  const allRuleScores: PersonaRuleDiagnostic[] = rules.map((rule) => {
+    const satisfied = rule.conditions.filter((c) => c.ok());
+    const failed = rule.conditions.filter((c) => !c.ok());
+    return {
+      id: rule.id,
+      name: rule.name,
+      satisfiedConditions: satisfied.map((c) => c.id),
+      failedConditions: failed.map((c) => c.id),
+      satisfiedRatio: rule.conditions.length > 0 ? satisfied.length / rule.conditions.length : 0,
+      score: rule.score(),
+    };
+  });
+
+  // Near misses: rules with >= 50% conditions satisfied but didn't fully match
+  const nearMisses = allRuleScores
+    .filter((r) => r.satisfiedRatio >= 0.5 && r.satisfiedRatio < 1)
+    .sort((a, b) => b.satisfiedRatio - a.satisfiedRatio);
+
+  const isFallback = chosenRule === null;
+  const selection: "strict" | "loose" | "fallback" = chosenStrict
+    ? "strict"
+    : chosenLoose
+      ? "loose"
+      : "fallback";
+
+  // Generate suggestion for potential missing personas
+  const suggestion = (() => {
+    if (!isFallback) return undefined;
+
+    // Check for distinct patterns that might warrant a new persona
+    const patterns: string[] = [];
+
+    // High automation without matching any existing persona
+    if (A >= 60 && nearMisses.length === 0) {
+      patterns.push(`High automation (${A}) with no near-miss rules`);
+    }
+
+    // Identify dominant axes (score >= 60)
+    const dominantAxes: string[] = [];
+    if (A >= 60) dominantAxes.push(`A=${A}`);
+    if (B >= 60) dominantAxes.push(`B=${B}`);
+    if (C >= 60) dominantAxes.push(`C=${C}`);
+    if (D >= 60) dominantAxes.push(`D=${D}`);
+    if (E >= 60) dominantAxes.push(`E=${E}`);
+    if (F >= 60) dominantAxes.push(`F=${F}`);
+
+    // Identify low axes (score < 40)
+    const lowAxes: string[] = [];
+    if (A < 40) lowAxes.push(`A=${A}`);
+    if (B < 40) lowAxes.push(`B=${B}`);
+    if (C < 40) lowAxes.push(`C=${C}`);
+    if (D < 40) lowAxes.push(`D=${D}`);
+    if (E < 40) lowAxes.push(`E=${E}`);
+    if (F < 40) lowAxes.push(`F=${F}`);
+
+    if (dominantAxes.length > 0 || lowAxes.length > 0) {
+      const parts: string[] = [];
+      if (dominantAxes.length > 0) parts.push(`high: ${dominantAxes.join(", ")}`);
+      if (lowAxes.length > 0) parts.push(`low: ${lowAxes.join(", ")}`);
+      patterns.push(`Distinct pattern: ${parts.join("; ")}`);
+    }
+
+    if (patterns.length > 0) {
+      return `POTENTIAL MISSING PERSONA: ${patterns.join(". ")}. Consider adding a new persona rule.`;
+    }
+
+    return undefined;
+  })();
+
+  const diagnostics: PersonaDiagnostics = {
+    isFallback,
+    selection,
+    nearMisses,
+    allRuleScores,
+    axes: { A, B, C, D, E, F },
+    suggestion,
+  };
+
   return {
     id: chosenId,
     name: chosenName,
@@ -965,6 +1087,101 @@ export function detectVibePersona(
       "Inferred from GitHub metadata (commits/PRs), not IDE prompts.",
       "Unpushed local work and private discussions are not visible.",
     ],
+    diagnostics,
+  };
+}
+
+// =============================================================================
+// Persona Coverage Analysis
+// =============================================================================
+
+export interface PersonaCoverageResult {
+  totalCombinations: number;
+  fallbackCount: number;
+  fallbackPercentage: number;
+  personaCounts: Record<string, number>;
+  sampleFallbacks: Array<{
+    axes: { A: number; B: number; C: number; D: number; E: number; F: number };
+    suggestion?: string;
+  }>;
+}
+
+/**
+ * Analyzes persona rule coverage by testing sample axes combinations.
+ * Helps identify gaps where users might fall into the fallback persona.
+ *
+ * @param step - The step size for iterating axes (default 20, meaning 0/20/40/60/80/100)
+ * @param maxFallbackSamples - Maximum number of fallback examples to include
+ */
+export function analyzePersonaCoverage(
+  step = 20,
+  maxFallbackSamples = 10
+): PersonaCoverageResult {
+  const personaCounts: Record<string, number> = {};
+  const fallbackSamples: PersonaCoverageResult["sampleFallbacks"] = [];
+  let totalCombinations = 0;
+  let fallbackCount = 0;
+
+  // Generate axes combinations at the specified step intervals
+  const values = [];
+  for (let v = 0; v <= 100; v += step) {
+    values.push(v);
+  }
+
+  // Create a dummy AxisValue for testing
+  const makeAxis = (score: number): AxisValue => ({
+    score,
+    level: score < 35 ? "low" : score < 65 ? "medium" : "high",
+    why: [],
+  });
+
+  for (const A of values) {
+    for (const B of values) {
+      for (const C of values) {
+        for (const D of values) {
+          for (const E of values) {
+            for (const F of values) {
+              totalCombinations++;
+
+              const axes: VibeAxes = {
+                automation_heaviness: makeAxis(A),
+                guardrail_strength: makeAxis(B),
+                iteration_loop_intensity: makeAxis(C),
+                planning_signal: makeAxis(D),
+                surface_area_per_change: makeAxis(E),
+                shipping_rhythm: makeAxis(F),
+              };
+
+              const result = detectVibePersona(axes, {
+                commitCount: 200,
+                prCount: 0,
+                dataQualityScore: 80,
+              });
+
+              personaCounts[result.id] = (personaCounts[result.id] ?? 0) + 1;
+
+              if (result.diagnostics?.isFallback) {
+                fallbackCount++;
+                if (fallbackSamples.length < maxFallbackSamples && result.diagnostics.suggestion) {
+                  fallbackSamples.push({
+                    axes: { A, B, C, D, E, F },
+                    suggestion: result.diagnostics.suggestion,
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    totalCombinations,
+    fallbackCount,
+    fallbackPercentage: Math.round((fallbackCount / totalCombinations) * 100),
+    personaCounts,
+    sampleFallbacks: fallbackSamples,
   };
 }
 

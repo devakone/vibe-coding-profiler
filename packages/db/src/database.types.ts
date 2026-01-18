@@ -249,6 +249,56 @@ export type Database = {
           },
         ]
       }
+      persona_coverage_reports: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fallback_count: number
+          fallback_percentage: number
+          id: string
+          notes: string | null
+          persona_counts: Json
+          real_user_fallbacks: Json
+          sample_fallbacks: Json
+          step_size: number
+          total_combinations: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fallback_count: number
+          fallback_percentage: number
+          id?: string
+          notes?: string | null
+          persona_counts: Json
+          real_user_fallbacks?: Json
+          sample_fallbacks: Json
+          step_size?: number
+          total_combinations: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fallback_count?: number
+          fallback_percentage?: number
+          id?: string
+          notes?: string | null
+          persona_counts?: Json
+          real_user_fallbacks?: Json
+          sample_fallbacks?: Json
+          step_size?: number
+          total_combinations?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persona_coverage_reports_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       repos: {
         Row: {
           created_at: string
@@ -281,6 +331,44 @@ export type Database = {
           owner?: string
         }
         Relationships: []
+      }
+      user_action_rate_limits: {
+        Row: {
+          action: string
+          count: number
+          created_at: string
+          updated_at: string
+          user_id: string
+          window_key: number
+          window_seconds: number
+        }
+        Insert: {
+          action: string
+          count?: number
+          created_at?: string
+          updated_at?: string
+          user_id: string
+          window_key: number
+          window_seconds: number
+        }
+        Update: {
+          action?: string
+          count?: number
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+          window_key?: number
+          window_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_action_rate_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_profile_history: {
         Row: {
@@ -433,6 +521,7 @@ export type Database = {
           github_id: number | null
           github_username: string | null
           id: string
+          is_admin: boolean
           updated_at: string
         }
         Insert: {
@@ -442,6 +531,7 @@ export type Database = {
           github_id?: number | null
           github_username?: string | null
           id: string
+          is_admin?: boolean
           updated_at?: string
         }
         Update: {
@@ -451,6 +541,7 @@ export type Database = {
           github_id?: number | null
           github_username?: string | null
           id?: string
+          is_admin?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -520,6 +611,16 @@ export type Database = {
         Args: { p_analyzer_version: string }
         Returns: string
       }
+      consume_user_action_rate_limit: {
+        Args: {
+          p_action: string
+          p_max_count: number
+          p_user_id: string
+          p_window_seconds: number
+        }
+        Returns: boolean
+      }
+      is_current_user_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

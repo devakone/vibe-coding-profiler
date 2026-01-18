@@ -6,10 +6,10 @@ import { createClient } from "@supabase/supabase-js";
 import {
   aggregateUserProfile,
   computeVibeFromCommits,
+  detectVibePersona,
   type RepoInsightSummary,
   type VibeAxes,
   type VibeCommitEvent,
-  type VibePersona,
 } from "@vibed/core";
 
 const heroFeatures = [
@@ -262,6 +262,21 @@ async function rebuildUserProfileIfNeeded(args: { userId: string }): Promise<voi
     computedByJobId.set(jobId, computeVibeFromCommits({ commits, episodeGapHours: 4 }));
   }
 
+  // Backfill computed vibes to vibe_insights table
+  if (computedByJobId.size > 0) {
+    const backfillRows = Array.from(computedByJobId.entries()).map(([jobId, v]) => ({
+      job_id: jobId,
+      version: v.version,
+      axes_json: v.axes,
+      persona_id: v.persona.id,
+      persona_name: v.persona.name,
+      persona_tagline: v.persona.tagline,
+      persona_confidence: v.persona.confidence,
+      persona_score: v.persona.score,
+    }));
+    await supabase.from("vibe_insights").upsert(backfillRows, { onConflict: "job_id" });
+  }
+
   const commitCountByJobId = new Map<string, number>();
   for (const row of (metricsData ?? []) as MetricsRow[]) {
     const metricsJson = row.metrics_json;
@@ -278,21 +293,13 @@ async function rebuildUserProfileIfNeeded(args: { userId: string }): Promise<voi
 
     const vibeInsight = vibeInsightByJobId.get(job.id);
     if (vibeInsight) {
+      const axes = vibeInsight.axes_json as VibeAxes;
       repoInsights.push({
         jobId: job.id,
         repoName,
         commitCount,
-        axes: vibeInsight.axes_json as VibeAxes,
-        persona: {
-          id: vibeInsight.persona_id,
-          name: vibeInsight.persona_name,
-          tagline: vibeInsight.persona_tagline ?? "",
-          confidence: vibeInsight.persona_confidence as "high" | "medium" | "low",
-          score: vibeInsight.persona_score ?? 0,
-          matched_rules: [],
-          why: [],
-          caveats: [],
-        } as VibePersona,
+        axes,
+        persona: detectVibePersona(axes, { commitCount, prCount: 0 }),
         analyzedAt: job.completed_at ?? new Date().toISOString(),
       });
       continue;
@@ -647,6 +654,44 @@ export default async function Home({
       : undefined,
   };
 
+  const isAxisValue = (v: unknown): v is { score: number; level: string; why: string[] } => {
+    if (typeof v !== "object" || v === null) return false;
+    const r = v as Record<string, unknown>;
+    if (typeof r.score !== "number") return false;
+    if (typeof r.level !== "string") return false;
+    if (!Array.isArray(r.why)) return false;
+    return r.why.every((id) => typeof id === "string");
+  };
+
+  const isVibeAxes = (v: unknown): v is VibeAxes => {
+    if (typeof v !== "object" || v === null) return false;
+    const r = v as Record<string, unknown>;
+    return (
+      isAxisValue(r.automation_heaviness) &&
+      isAxisValue(r.guardrail_strength) &&
+      isAxisValue(r.iteration_loop_intensity) &&
+      isAxisValue(r.planning_signal) &&
+      isAxisValue(r.surface_area_per_change) &&
+      isAxisValue(r.shipping_rhythm)
+    );
+  };
+
+  const computedPersonaFromProfileAxes =
+    userProfileData && isVibeAxes(userProfileData.axes_json)
+      ? (() => {
+          const totalCommits = userProfileData.total_commits ?? 0;
+          const totalRepos = userProfileData.total_repos ?? 0;
+          const repoFactor = Math.min(1, totalRepos / 5);
+          const commitFactor = Math.min(1, totalCommits / 500);
+          const dataQualityScore = Math.round(100 * (0.4 * repoFactor + 0.6 * commitFactor));
+          return detectVibePersona(userProfileData.axes_json, {
+            commitCount: totalCommits,
+            prCount: 0,
+            dataQualityScore,
+          });
+        })()
+      : null;
+
   const debugInfo = debugEnabled
     ? {
         userId: user.id,
@@ -684,6 +729,7 @@ export default async function Home({
           completedJobs: stats.completedJobs,
           queuedJobs: stats.queuedJobs,
         },
+        computedPersonaFromProfileAxes,
         completedJobsRowsSample: completedJobsRows.slice(0, 12),
       }
     : null;
