@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { isCurrentUserAdmin } from "@/lib/admin";
 import { wrappedTheme } from "@/lib/theme";
-import { getAdminStats, getCoverageReports } from "./actions";
-import AdminClient from "./AdminClient";
+import { getAdminStats } from "./actions";
 
 export default async function AdminPage() {
   const isAdmin = await isCurrentUserAdmin();
@@ -11,10 +11,7 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [stats, reportsResult] = await Promise.all([
-    getAdminStats(),
-    getCoverageReports(10),
-  ]);
+  const stats = await getAdminStats();
 
   return (
     <div className={`${wrappedTheme.container} ${wrappedTheme.pageY}`}>
@@ -24,12 +21,34 @@ export default async function AdminPage() {
             Admin Dashboard
           </p>
           <h1 className="text-4xl font-semibold tracking-tight text-zinc-950">
-            Persona Diagnostics
+            System Overview
           </h1>
           <p className="max-w-2xl text-lg text-zinc-700">
-            Monitor persona rule coverage and identify patterns that need new rules.
+            Monitor users, jobs, and persona coverage across the platform.
           </p>
         </header>
+
+        {/* Admin Navigation */}
+        <nav className="flex flex-wrap gap-3">
+          <Link
+            href="/admin/users"
+            className={wrappedTheme.secondaryButton}
+          >
+            Manage Users
+          </Link>
+          <Link
+            href="/admin/jobs"
+            className={wrappedTheme.secondaryButton}
+          >
+            Browse Jobs
+          </Link>
+          <Link
+            href="/admin/diagnostics"
+            className={wrappedTheme.secondaryButton}
+          >
+            Diagnostics
+          </Link>
+        </nav>
 
         {stats && (
           <section className="grid gap-4 md:grid-cols-4">
@@ -61,8 +80,6 @@ export default async function AdminPage() {
             </div>
           </section>
         )}
-
-        <AdminClient initialReports={reportsResult.reports} />
       </div>
     </div>
   );

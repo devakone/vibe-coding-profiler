@@ -886,6 +886,28 @@ function AuthenticatedDashboard({
   stats: AuthStats;
   debugInfo: Record<string, unknown> | null;
 }) {
+  const isAxisValue = (v: unknown): v is { score: number; level: string; why: string[] } => {
+    if (typeof v !== "object" || v === null) return false;
+    const r = v as Record<string, unknown>;
+    if (typeof r.score !== "number") return false;
+    if (typeof r.level !== "string") return false;
+    if (!Array.isArray(r.why)) return false;
+    return r.why.every((id) => typeof id === "string");
+  };
+
+  const isVibeAxes = (v: unknown): v is VibeAxes => {
+    if (typeof v !== "object" || v === null) return false;
+    const r = v as Record<string, unknown>;
+    return (
+      isAxisValue(r.automation_heaviness) &&
+      isAxisValue(r.guardrail_strength) &&
+      isAxisValue(r.iteration_loop_intensity) &&
+      isAxisValue(r.planning_signal) &&
+      isAxisValue(r.surface_area_per_change) &&
+      isAxisValue(r.shipping_rhythm)
+    );
+  };
+
   function clarityScore(): number {
     if (stats.completedJobs === 0) return 0;
     if (stats.connectedRepos <= 1) return 35;
@@ -896,6 +918,40 @@ function AuthenticatedDashboard({
   }
 
   const clarity = clarityScore();
+
+  const personaExplanation = (() => {
+    const profile = stats.userProfile;
+    if (!profile) return null;
+    if (!isVibeAxes(profile.axes)) return null;
+
+    const repoFactor = Math.min(1, profile.totalRepos / 5);
+    const commitFactor = Math.min(1, profile.totalCommits / 500);
+    const dataQualityScore = Math.round(100 * (0.4 * repoFactor + 0.6 * commitFactor));
+
+    return detectVibePersona(profile.axes, {
+      commitCount: profile.totalCommits,
+      prCount: 0,
+      dataQualityScore,
+    });
+  })();
+
+  const ruleAxisLegend = {
+    A: "Automation",
+    B: "Guardrails",
+    C: "Iteration",
+    D: "Planning",
+    E: "Surface Area",
+    F: "Rhythm",
+  } as const;
+
+  const formatMatchedRule = (rule: string): string => {
+    const m = rule.match(/^([A-F])\s*([<>]=?|=)\s*(\d+)\s*$/);
+    if (!m) return rule;
+    const axis = m[1] as keyof typeof ruleAxisLegend;
+    const op = m[2];
+    const value = m[3];
+    return `${ruleAxisLegend[axis]} ${op} ${value}`;
+  };
 
   const recentLabels = stats.personaHistory
     .map((entry) => entry.label)
@@ -1079,6 +1135,92 @@ function AuthenticatedDashboard({
               </p>
             </div>
           </div>
+
+          {personaExplanation && stats.userProfile ? (
+            <div className="mt-6 w-full rounded-2xl border border-black/5 bg-white/70 p-4 text-sm text-zinc-700 backdrop-blur">
+              <details>
+                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
+                  How we got this
+                </summary>
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
+                      Matched signals
+                    </p>
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      {personaExplanation.matched_rules.length > 0 ? (
+                        personaExplanation.matched_rules.map((rule) => (
+                          <li key={rule} className="text-sm text-zinc-700">
+                            {formatMatchedRule(rule)}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="text-sm text-zinc-700">
+                          No strict rule matched; selected by nearest-fit across signals.
+                        </li>
+                      )}
+                    </ul>
+                    <p className="mt-2 text-xs text-zinc-500">
+                      A–F map to the six axes in “Your signals” below.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-600">
+                      {Object.entries(ruleAxisLegend).map(([k, v]) => (
+                        <span key={k}>
+                          {k}={v}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-3">
+                      <Link
+                        href="/methodology"
+                        className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-700 underline decoration-zinc-400 underline-offset-4"
+                      >
+                        Methodology
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
+                      Your signals
+                    </p>
+                    <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {axisKeys.map((key) => {
+                        const axis = stats.userProfile!.axes[key];
+                        return (
+                          <li
+                            key={key}
+                            className="rounded-xl border border-black/5 bg-white/70 p-3 text-sm text-zinc-700"
+                          >
+                            <p className="font-semibold text-zinc-950">{axisMeta[key].name}</p>
+                            <p className="mt-1 text-xs text-zinc-600">{axisMeta[key].description}</p>
+                            <p className="mt-2 text-sm text-zinc-800">
+                              {axis.score} · {axis.level}
+                            </p>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+
+                  {personaExplanation.caveats.length > 0 ? (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
+                        Caveats
+                      </p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5">
+                        {personaExplanation.caveats.map((caveat) => (
+                          <li key={caveat} className="text-sm text-zinc-700">
+                            {caveat}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              </details>
+            </div>
+          ) : null}
 
           {debugInfo ? (
             <div className="mt-6 rounded-2xl border border-black/5 bg-white/70 p-4 backdrop-blur">

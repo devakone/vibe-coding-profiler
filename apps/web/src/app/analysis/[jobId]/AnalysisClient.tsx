@@ -555,6 +555,51 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                 ))}
               </div>
 
+              <div className="mt-5 rounded-2xl border border-black/5 bg-white/60 p-4 backdrop-blur">
+                <details>
+                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
+                    How we got this
+                  </summary>
+                  <div className="mt-3 space-y-3 text-sm text-zinc-700">
+                    <p>
+                      This report is inferred from Git/PR metadata (commit timing, commit size,
+                      file paths, and message patterns). We do not use your prompts, IDE workflow,
+                      PR comments, or code content—so this is an informed guess based on what lands
+                      in Git.
+                    </p>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
+                        Matched criteria
+                      </p>
+                      {matchedCriteria.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {matchedCriteria.map((c) => (
+                            <span
+                              key={c}
+                              className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-zinc-700"
+                            >
+                              {c}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-sm text-zinc-600">
+                          This report didn’t include explicit matched criteria.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Link
+                        href="/methodology"
+                        className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-700 underline decoration-zinc-400 underline-offset-4"
+                      >
+                        Methodology
+                      </Link>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
               <div className="mt-6 grid gap-3 rounded-2xl border border-black/5 bg-white/60 p-4 backdrop-blur sm:grid-cols-2 lg:grid-cols-5">
                 <div className="text-center">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Streak</p>

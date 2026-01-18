@@ -23,10 +23,12 @@ export default function AppHeader(props: {
         { href: "/", label: "My Vibed" },
         { href: "/repos", label: "Repos" },
         { href: "/analysis", label: "Reports" },
+        { href: "/methodology", label: "Methodology" },
         { href: "/security", label: "Security" },
       ]
     : [
         { href: "/", label: "Home" },
+        { href: "/methodology", label: "Methodology" },
         { href: "/security", label: "Security" },
       ];
 

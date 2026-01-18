@@ -15,12 +15,15 @@ export default function LoginPage() {
         <div className="mt-6">
           <LoginButton />
         </div>
-        <div className="mt-6 flex items-center justify-between text-xs text-zinc-500">
-          <Link href="/security" className="underline underline-offset-2">
-            Security notes
-          </Link>
+        <div className="mt-6 flex items-center justify-between gap-4 text-xs text-zinc-500">
           <Link href="/" className="underline underline-offset-2">
             Home
+          </Link>
+          <Link href="/methodology" className="underline underline-offset-2">
+            Methodology
+          </Link>
+          <Link href="/security" className="underline underline-offset-2">
+            Security notes
           </Link>
         </div>
       </div>
