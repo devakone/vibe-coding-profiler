@@ -452,13 +452,44 @@ Share your coding vibe
 [Download image]  [Copy link]
 
 [One-click share buttons]
-[Twitter] [LinkedIn] [Copy to clipboard]
+- [Twitter/X] prefilled caption + link
+- [Facebook] share dialog with link + optional quote
+- [LinkedIn] share dialog with link
+- [WhatsApp] prefilled caption + link
+- [Reddit] prefilled title + link
+- [System share] (mobile) uses native share sheet when available
 
 Pre-written caption:
 "Just discovered I'm a Vibe Prototyper — I build to
 think. What's your coding personality?
 vibed.coding #CodingVibe"
 ```
+
+**Share asset requirements (v1):**
+- Export is image-first: PNG download is the default, SVG is optional.
+- Provide 3 platform-friendly sizes:
+  - OpenGraph / X / LinkedIn: 1200×630 (safe for summary_large_image)
+  - Instagram square: 1080×1080
+  - Instagram story: 1080×1920
+- Maintain a safe area margin (no critical text) of at least 8% of the shorter edge.
+- Headline must wrap to max 2 lines with ellipsis if needed.
+- Subhead must wrap to max 2 lines with ellipsis if needed.
+- Metrics display must remain readable when scaled down to 50% (mobile feed).
+- Include a subtle watermark (e.g. `vibed.coding`) that survives cropping.
+- Never include raw commit SHAs, file paths, or repo names in share assets by default.
+
+**Share copy requirements (v1):**
+- Provide a copyable text summary (headline + subhead + 2–3 metrics + hashtag).
+- Provide a short suggested caption optimized for X/LinkedIn (<= 240 chars, includes link).
+
+**Privacy defaults:**
+- Sharing is opt-in, and share assets contain only high-level persona/metrics.
+- Private repo names are never shown unless the user explicitly enables it per share.
+
+**Success criteria:**
+- User can export a PNG that uploads cleanly to X/LinkedIn/Instagram without manual edits.
+- Exported assets remain readable after platform recompression.
+- No sensitive repository-identifying data appears in the exported image by default.
 
 ### 3.7 History & Return Visits
 

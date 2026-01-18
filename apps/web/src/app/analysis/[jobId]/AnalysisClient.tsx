@@ -323,36 +323,183 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function createShareSvg(template: AnalysisInsights["share_template"]): string {
-  const width = 1200;
-  const height = 630;
+type ShareFormat = "og" | "square" | "story";
+
+const SHARE_FORMATS: Record<
+  ShareFormat,
+  {
+    label: string;
+    width: number;
+    height: number;
+    pad: number;
+    headlineSize: number;
+    subheadSize: number;
+    metricsSize: number;
+    metaSize: number;
+    watermarkSize: number;
+    cardRadius: number;
+  }
+> = {
+  og: {
+    label: "OpenGraph 1200×630",
+    width: 1200,
+    height: 630,
+    pad: 80,
+    headlineSize: 64,
+    subheadSize: 28,
+    metricsSize: 24,
+    metaSize: 18,
+    watermarkSize: 18,
+    cardRadius: 48,
+  },
+  square: {
+    label: "Square 1080×1080",
+    width: 1080,
+    height: 1080,
+    pad: 88,
+    headlineSize: 72,
+    subheadSize: 32,
+    metricsSize: 28,
+    metaSize: 20,
+    watermarkSize: 20,
+    cardRadius: 64,
+  },
+  story: {
+    label: "Story 1080×1920",
+    width: 1080,
+    height: 1920,
+    pad: 96,
+    headlineSize: 84,
+    subheadSize: 36,
+    metricsSize: 30,
+    metaSize: 22,
+    watermarkSize: 22,
+    cardRadius: 64,
+  },
+};
+
+function wrapTextLines(
+  text: string,
+  maxCharsPerLine: number,
+  maxLines: number
+): { lines: string[]; truncated: boolean } {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length <= maxCharsPerLine) {
+      current = next;
+      continue;
+    }
+
+    if (current) {
+      lines.push(current);
+      current = word;
+      if (lines.length >= maxLines) {
+        return { lines, truncated: true };
+      }
+      continue;
+    }
+
+    lines.push(word.slice(0, Math.max(1, maxCharsPerLine)));
+    if (lines.length >= maxLines) {
+      return { lines, truncated: true };
+    }
+    current = "";
+  }
+
+  if (current) lines.push(current);
+
+  if (lines.length > maxLines) {
+    return { lines: lines.slice(0, maxLines), truncated: true };
+  }
+
+  return { lines, truncated: false };
+}
+
+function withEllipsis(text: string): string {
+  const t = text.trim();
+  return t.length === 0 ? t : `${t}…`;
+}
+
+function createShareSvg(template: AnalysisInsights["share_template"], format: ShareFormat): string {
+  const cfg = SHARE_FORMATS[format];
   const metricsText = template.metrics
+    .slice(0, 3)
     .map((metric) => `${metric.label}: ${metric.value}`)
     .join(" · ");
-  const archetypes = template.persona_archetype.archetypes.join(", ");
+  const archetypes = template.persona_archetype.archetypes.slice(0, 3).join(", ");
+
+  const headlineChars = format === "og" ? 26 : format === "square" ? 22 : 18;
+  const subheadChars = format === "og" ? 46 : format === "square" ? 36 : 30;
+  const metricsChars = format === "og" ? 72 : format === "square" ? 60 : 46;
+
+  const headlineWrapped = wrapTextLines(template.headline, headlineChars, 2);
+  const subheadWrapped = wrapTextLines(template.subhead, subheadChars, 2);
+  const metricsWrapped = wrapTextLines(metricsText, metricsChars, format === "story" ? 2 : 1);
+
+  const headlineLines = headlineWrapped.lines.map((l, idx) =>
+    escapeXml(idx === headlineWrapped.lines.length - 1 && headlineWrapped.truncated ? withEllipsis(l) : l)
+  );
+  const subheadLines = subheadWrapped.lines.map((l, idx) =>
+    escapeXml(idx === subheadWrapped.lines.length - 1 && subheadWrapped.truncated ? withEllipsis(l) : l)
+  );
+  const metricsLines = metricsWrapped.lines.map((l, idx) =>
+    escapeXml(idx === metricsWrapped.lines.length - 1 && metricsWrapped.truncated ? withEllipsis(l) : l)
+  );
+
+  const startY =
+    format === "story" ? Math.round(cfg.height * 0.34) : cfg.pad + Math.round(cfg.headlineSize * 0.9);
+
+  const headlineY = startY;
+  const subheadY = headlineY + Math.round(cfg.headlineSize * 0.95) + 18;
+  const metricsY = subheadY + Math.round(cfg.subheadSize * 0.95) + 18;
+  const metaY =
+    format === "story" ? Math.round(cfg.height * 0.72) : metricsY + Math.round(cfg.metricsSize * 0.95) + 28;
+  const hashY = metaY + Math.round(cfg.metaSize * 1.6);
+  const watermarkY = cfg.height - Math.round(cfg.pad * 0.6);
+
+  const x = cfg.pad;
+  const watermarkX = cfg.width - cfg.pad;
+
+  const headlineTspans = headlineLines
+    .map((line, idx) => `<tspan x="${x}" dy="${idx === 0 ? 0 : Math.round(cfg.headlineSize * 1.1)}">${line}</tspan>`)
+    .join("");
+  const subheadTspans = subheadLines
+    .map((line, idx) => `<tspan x="${x}" dy="${idx === 0 ? 0 : Math.round(cfg.subheadSize * 1.25)}">${line}</tspan>`)
+    .join("");
+  const metricsTspans = metricsLines
+    .map((line, idx) => `<tspan x="${x}" dy="${idx === 0 ? 0 : Math.round(cfg.metricsSize * 1.25)}">${line}</tspan>`)
+    .join("");
+
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${cfg.width}" height="${cfg.height}" viewBox="0 0 ${cfg.width} ${cfg.height}">
   <defs>
     <linearGradient id="g" x1="0%" x2="100%" y1="0%" y2="100%">
       <stop offset="0%" stop-color="${template.colors.primary}" />
       <stop offset="100%" stop-color="${template.colors.accent}" />
     </linearGradient>
   </defs>
-  <rect width="100%" height="100%" rx="48" fill="url(#g)" />
-  <text x="80" y="140" font-size="64" font-weight="700" fill="#fff" font-family="Space Grotesk, sans-serif">
-    ${escapeXml(template.headline)}
+  <rect width="${cfg.width}" height="${cfg.height}" rx="${cfg.cardRadius}" fill="url(#g)" />
+  <text x="${x}" y="${headlineY}" font-size="${cfg.headlineSize}" font-weight="700" fill="#FFFFFF" font-family="Space Grotesk, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+    ${headlineTspans}
   </text>
-  <text x="80" y="210" font-size="28" fill="#F8FAFC" font-family="Space Grotesk, sans-serif">
-    ${escapeXml(template.subhead)}
+  <text x="${x}" y="${subheadY}" font-size="${cfg.subheadSize}" fill="rgba(255,255,255,0.85)" font-family="Space Grotesk, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+    ${subheadTspans}
   </text>
-  <text x="80" y="280" font-size="24" fill="#F8FAFC" font-family="Space Grotesk, sans-serif">
-    ${escapeXml(metricsText)}
+  <text x="${x}" y="${metricsY}" font-size="${cfg.metricsSize}" fill="rgba(255,255,255,0.85)" font-family="Space Grotesk, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+    ${metricsTspans}
   </text>
-  <text x="80" y="340" font-size="18" fill="#E0F2FE" font-family="Space Grotesk, sans-serif" opacity="0.9">
+  <text x="${x}" y="${metaY}" font-size="${cfg.metaSize}" fill="rgba(224,242,254,0.9)" font-family="Space Grotesk, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
     Persona: ${escapeXml(template.persona_archetype.label)} · ${escapeXml(archetypes)}
   </text>
-  <text x="80" y="420" font-size="16" fill="#E0F2FE" font-family="Space Grotesk, sans-serif" opacity="0.8">
+  <text x="${x}" y="${hashY}" font-size="${cfg.metaSize}" fill="rgba(224,242,254,0.85)" font-family="Space Grotesk, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
     #Vibed
+  </text>
+  <text x="${watermarkX}" y="${watermarkY}" font-size="${cfg.watermarkSize}" text-anchor="end" fill="rgba(255,255,255,0.75)" font-family="Geist, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+    vibed.coding
   </text>
 </svg>`;
 }
@@ -368,9 +515,20 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [shareFormat, setShareFormat] = useState<ShareFormat>("og");
+  const [shareDownloadError, setShareDownloadError] = useState<string | null>(null);
+  const [downloadingShare, setDownloadingShare] = useState(false);
+  const [shareOrigin, setShareOrigin] = useState<string>("");
+  const [supportsNativeShare, setSupportsNativeShare] = useState(false);
   const [regeneratingStory, setRegeneratingStory] = useState(false);
   const [regenerateStoryError, setRegenerateStoryError] = useState<string | null>(null);
   const [regenerateStoryMeta, setRegenerateStoryMeta] = useState<StoryMeta | null>(null);
+
+  useEffect(() => {
+    setShareOrigin(window.location.origin);
+    setSupportsNativeShare(typeof navigator !== "undefined" && "share" in navigator);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -439,6 +597,20 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
     return `${shareTemplate.headline}\n${shareTemplate.subhead}\n${metricsLine}\n#Vibed`;
   }, [shareTemplate]);
 
+  const shareUrl = useMemo(() => {
+    if (!shareOrigin) return "";
+    return `${shareOrigin}/analysis/${jobId}`;
+  }, [jobId, shareOrigin]);
+
+  const shareCaption = useMemo(() => {
+    if (!shareTemplate) return "";
+    const metricsLine = shareTemplate.metrics
+      .slice(0, 3)
+      .map((metric) => `${metric.label}: ${metric.value}`)
+      .join(" · ");
+    return `${shareTemplate.headline} — ${shareTemplate.subhead}\n${metricsLine}\n#Vibed`;
+  }, [shareTemplate]);
+
   const handleCopyShare = async () => {
     try {
       await navigator.clipboard.writeText(shareText);
@@ -449,18 +621,132 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
     }
   };
 
-  const handleDownloadShare = () => {
-    if (!shareTemplate) return;
-    const svg = createShareSvg(shareTemplate);
-    const blob = new Blob([svg], { type: "image/svg+xml" });
+  const handleCopyLink = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      setCopiedLink(false);
+    }
+  };
+
+  const openSharePopup = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer,width=800,height=600");
+  };
+
+  const handleShareTwitter = () => {
+    if (!shareUrl) return;
+    const u = new URL("https://twitter.com/intent/tweet");
+    u.searchParams.set("text", shareCaption);
+    u.searchParams.set("url", shareUrl);
+    openSharePopup(u.toString());
+  };
+
+  const handleShareFacebook = () => {
+    if (!shareUrl) return;
+    const u = new URL("https://www.facebook.com/sharer/sharer.php");
+    u.searchParams.set("u", shareUrl);
+    if (shareCaption) u.searchParams.set("quote", shareCaption);
+    openSharePopup(u.toString());
+  };
+
+  const handleShareLinkedIn = () => {
+    if (!shareUrl) return;
+    const u = new URL("https://www.linkedin.com/sharing/share-offsite/");
+    u.searchParams.set("url", shareUrl);
+    openSharePopup(u.toString());
+  };
+
+  const handleShareReddit = () => {
+    if (!shareUrl) return;
+    const u = new URL("https://www.reddit.com/submit");
+    u.searchParams.set("url", shareUrl);
+    if (shareTemplate?.headline) u.searchParams.set("title", shareTemplate.headline);
+    openSharePopup(u.toString());
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!shareUrl) return;
+    const u = new URL("https://wa.me/");
+    u.searchParams.set("text", `${shareCaption}\n${shareUrl}`.trim());
+    openSharePopup(u.toString());
+  };
+
+  const handleNativeShare = async () => {
+    if (!shareUrl || !shareTemplate) return;
+    if (!("share" in navigator)) return;
+    try {
+      await navigator.share({
+        title: shareTemplate.headline,
+        text: shareCaption,
+        url: shareUrl,
+      });
+    } catch {
+      // no-op
+    }
+  };
+
+  const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `vibed-coding-${jobId}.svg`;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadShareSvg = (format: ShareFormat) => {
+    if (!shareTemplate) return;
+    setShareDownloadError(null);
+    const svg = createShareSvg(shareTemplate, format);
+    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    downloadBlob(blob, `vibed-coding-${jobId}-${format}.svg`);
+  };
+
+  const handleDownloadSharePng = async (format: ShareFormat) => {
+    if (!shareTemplate) return;
+    setShareDownloadError(null);
+    setDownloadingShare(true);
+    let svgUrl: string | null = null;
+    try {
+      const svg = createShareSvg(shareTemplate, format);
+      const cfg = SHARE_FORMATS[format];
+
+      const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+      svgUrl = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+      const loaded = new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("image_load_failed"));
+      });
+      img.src = svgUrl;
+      await loaded;
+
+      const scale = 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = cfg.width * scale;
+      canvas.height = cfg.height * scale;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("canvas_unsupported");
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      ctx.drawImage(img, 0, 0, cfg.width, cfg.height);
+
+      const pngBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("png_encode_failed"))), "image/png");
+      });
+
+      downloadBlob(pngBlob, `vibed-coding-${jobId}-${format}.png`);
+    } catch (e) {
+      setShareDownloadError(e instanceof Error ? e.message : "download_failed");
+    } finally {
+      if (svgUrl) URL.revokeObjectURL(svgUrl);
+      setDownloadingShare(false);
+    }
   };
 
   const handleRegenerateStory = async () => {
@@ -863,8 +1149,34 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                           </div>
                         ))}
                       </div>
+                      {shareDownloadError ? (
+                        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.25em] text-white/80">
+                          Download failed
+                        </p>
+                      ) : null}
                     </div>
-                    <div className="flex shrink-0 gap-2">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      <select
+                        className="h-9 rounded-full border border-white/60 bg-white/10 px-3 text-xs font-semibold uppercase tracking-[0.25em] text-white"
+                        value={shareFormat}
+                        onChange={(e) => setShareFormat(e.target.value as ShareFormat)}
+                      >
+                        {Object.entries(SHARE_FORMATS).map(([key, f]) => (
+                          <option key={key} value={key} className="text-zinc-900">
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
+                      {supportsNativeShare ? (
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                          onClick={handleNativeShare}
+                          disabled={!shareUrl}
+                        >
+                          Share
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
@@ -875,11 +1187,69 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                       <button
                         type="button"
                         className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
-                        onClick={handleDownloadShare}
+                        onClick={handleCopyLink}
+                        disabled={!shareUrl}
+                      >
+                        {copiedLink ? "Copied" : "Copy link"}
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                        onClick={() => handleDownloadSharePng(shareFormat)}
+                        disabled={downloadingShare}
+                      >
+                        {downloadingShare ? "PNG…" : "PNG"}
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                        onClick={() => handleDownloadShareSvg(shareFormat)}
                       >
                         SVG
                       </button>
                     </div>
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                      onClick={handleShareTwitter}
+                      disabled={!shareUrl}
+                    >
+                      Twitter / X
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                      onClick={handleShareFacebook}
+                      disabled={!shareUrl}
+                    >
+                      Facebook
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                      onClick={handleShareLinkedIn}
+                      disabled={!shareUrl}
+                    >
+                      LinkedIn
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                      onClick={handleShareReddit}
+                      disabled={!shareUrl}
+                    >
+                      Reddit
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                      onClick={handleShareWhatsApp}
+                      disabled={!shareUrl}
+                    >
+                      WhatsApp
+                    </button>
                   </div>
                 </div>
               ) : null}
