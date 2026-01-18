@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
-import { assignVibeType, computeAnalysisInsights, computeAnalysisMetrics, type CommitEvent } from "@vibed/core";
+import {
+  assignVibeType,
+  computeAnalysisInsights,
+  computeAnalysisMetrics,
+  getModelCandidates,
+  type CommitEvent,
+  type LLMKeySource,
+} from "@vibed/core";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { generateNarrativeWithClaude, toNarrativeFallback } from "@/inngest/functions/analyze-repo";
+import { resolveLLMConfig, recordLLMUsage, getFreeTierLimit, countFreeAnalysesUsed } from "@/lib/llm-config";
 
 export const runtime = "nodejs";
 
@@ -17,29 +25,6 @@ type RateLimitRpcLike = {
     }
   ) => Promise<{ data: unknown; error: unknown }>;
 };
-
-async function probeAnthropicKey(params: { anthropicApiKey: string }): Promise<number | null> {
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "anthropic-version": "2023-06-01",
-        "x-api-key": params.anthropicApiKey,
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1,
-        temperature: 0,
-        system: "Return a single character.",
-        messages: [{ role: "user", content: "ping" }],
-      }),
-    });
-    return res.status;
-  } catch {
-    return null;
-  }
-}
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return Boolean(v) && typeof v === "object";
@@ -132,10 +117,12 @@ export async function POST(
   if (job.user_id !== user.id) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (job.status !== "done") return NextResponse.json({ error: "job_not_done" }, { status: 409 });
 
+  const repoId = job.repo_id;
+
   const { data: repo, error: repoError } = await service
     .from("repos")
     .select("full_name")
-    .eq("id", job.repo_id)
+    .eq("id", repoId)
     .single();
 
   if (repoError || !repo?.full_name) {
@@ -162,48 +149,61 @@ export async function POST(
   const insights = computeAnalysisInsights(events);
 
   const fallbackNarrative = toNarrativeFallback({ metrics, events });
-  const llmKey = process.env.ANTHROPIC_API_KEY;
-  const llmKeyValue = llmKey?.trim() ?? "";
-  const llmKeyPresent = llmKeyValue.length > 0;
 
-  const preferredModel = process.env.ANTHROPIC_MODEL?.trim() ?? "";
-  const modelCandidates = [
-    preferredModel.length > 0 ? preferredModel : "claude-sonnet-4-20250514",
-    "claude-3-haiku-20240307",
-  ];
-
+  // Resolve LLM config (user key, platform key, or none)
+  const llmResolution = await resolveLLMConfig(user.id, repoId);
   let llmNarrative: Awaited<ReturnType<typeof generateNarrativeWithClaude>> = null;
   let llmModelUsed: string | null = null;
+  let llmKeySource: LLMKeySource = llmResolution.source;
 
-  if (llmKeyPresent) {
+  if (llmResolution.config) {
+    const llmConfig = llmResolution.config;
+    const modelCandidates = getModelCandidates(llmConfig.provider);
+
     for (const candidate of modelCandidates) {
-      const attempt = await generateNarrativeWithClaude({
-        anthropicApiKey: llmKeyValue,
-        model: candidate,
-        repoFullName: repo.full_name,
-        vibeType: assignment.vibe_type,
-        confidence: assignment.confidence,
-        matchedCriteria: assignment.matched_criteria,
-        metrics,
-        insights,
-        events,
-      });
-      if (attempt) {
-        llmNarrative = attempt;
-        llmModelUsed = candidate;
-        break;
+      try {
+        // For now, only Anthropic has the full narrative generation
+        if (llmConfig.provider === "anthropic") {
+          const attempt = await generateNarrativeWithClaude({
+            anthropicApiKey: llmConfig.apiKey,
+            model: candidate,
+            repoFullName: repo.full_name,
+            vibeType: assignment.vibe_type,
+            confidence: assignment.confidence,
+            matchedCriteria: assignment.matched_criteria,
+            metrics,
+            insights,
+            events,
+          });
+          if (attempt) {
+            llmNarrative = attempt;
+            llmModelUsed = candidate;
+            break;
+          }
+        }
+        // TODO: Add support for OpenAI/Gemini narrative generation
+      } catch (error) {
+        console.warn(`LLM model ${candidate} failed:`, error);
+        continue;
       }
+    }
+
+    // Record LLM usage
+    if (llmModelUsed) {
+      await recordLLMUsage({
+        userId: user.id,
+        jobId: id,
+        repoId,
+        provider: llmConfig.provider,
+        model: llmModelUsed,
+        keySource: llmKeySource,
+        success: Boolean(llmNarrative),
+      });
     }
   }
 
   const llmUsed = Boolean(llmNarrative);
-  const llmReason = await (async (): Promise<string> => {
-    if (llmUsed) return "ok";
-    if (!llmKeyPresent) return "missing_api_key";
-    const status = await probeAnthropicKey({ anthropicApiKey: llmKeyValue });
-    if (typeof status === "number") return `anthropic_http_${status}`;
-    return "anthropic_unreachable";
-  })();
+  const llmReason = llmResolution.reason;
 
   const nextNarrative = llmNarrative ?? fallbackNarrative;
   const nextGeneratedAt = new Date().toISOString();
@@ -216,6 +216,7 @@ export async function POST(
       narrative_json: nextNarrative,
       evidence_json: assignment.matched_criteria,
       llm_model: nextLlmModel,
+      llm_key_source: llmKeySource,
       generated_at: nextGeneratedAt,
     },
     { onConflict: "job_id" }
@@ -224,6 +225,10 @@ export async function POST(
   if (reportError) {
     return NextResponse.json({ error: "report_update_failed" }, { status: 500 });
   }
+
+  // Get free tier status for UI
+  const freeUsed = await countFreeAnalysesUsed(user.id, repoId);
+  const freeLimit = getFreeTierLimit();
 
   return NextResponse.json({
     report: {
@@ -236,6 +241,14 @@ export async function POST(
     story: {
       llm_used: llmUsed,
       llm_reason: llmReason,
+      llm_source: llmKeySource,
+      llm_provider: llmResolution.config?.provider ?? null,
+      prompt_add_key: llmKeySource === "none" && llmReason === "free_tier_exhausted",
+    },
+    freeTier: {
+      used: freeUsed,
+      limit: freeLimit,
+      exhausted: freeUsed >= freeLimit,
     },
   });
 }
