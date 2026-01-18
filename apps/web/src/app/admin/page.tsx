@@ -48,6 +48,12 @@ export default async function AdminPage() {
           >
             Diagnostics
           </Link>
+          <Link
+            href="/admin/llm-status"
+            className={wrappedTheme.secondaryButton}
+          >
+            LLM Status
+          </Link>
         </nav>
 
         {stats && (
