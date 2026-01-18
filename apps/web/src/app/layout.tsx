@@ -17,24 +17,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:8108";
+
 export const metadata: Metadata = {
-  title: "Vibed Coding · Discover your coding vibe",
+  title: "Vibed Coding · Your AI coding profile",
   description:
-    "Vibed Coding analyzes your GitHub history to generate a vibe profile, persona snapshot, and narratives with evidence SHAs.",
-  metadataBase: new URL("http://localhost:8108"),
+    "Turn your commit history into a Vibed Coding Profile — persona, patterns, and shareable vibe stories grounded in commit evidence.",
+  metadataBase: new URL(appUrl),
   openGraph: {
-    title: "Vibed Coding · Discover your coding vibe",
+    title: "Vibed Coding · Your AI coding profile",
     description:
-      "Vibe profiles and personas grounded in commit history metrics and evidence SHAs.",
-    url: "https://vibed.coding",
+      "A shareable Vibed Coding Profile from your commit history — persona, patterns, and stories grounded in evidence.",
+    url: appUrl,
     locale: "en_US",
     type: "website",
+    siteName: "Vibed Coding",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Vibed Coding · Discover your coding vibe",
+    title: "Vibed Coding · Your AI coding profile",
     description:
-      "Solo-focused vibe profiles and personas grounded in commit evidence.",
+      "A shareable Vibed Coding Profile from your commit history — persona, patterns, and stories grounded in evidence.",
   },
 };
 
