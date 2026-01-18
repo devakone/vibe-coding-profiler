@@ -22,6 +22,11 @@ type ApiResponse = {
   profileContribution?: unknown | null;
 };
 
+type StoryMeta = {
+  llm_used: boolean;
+  llm_reason: string;
+};
+
 type ProfileContribution = {
   repoName: string | null;
   jobCommitCount: number | null;
@@ -147,6 +152,11 @@ function isReportRow(v: unknown): v is ReportRow {
   if (v.llm_model !== undefined && typeof v.llm_model !== "string") return false;
   if (v.generated_at !== undefined && typeof v.generated_at !== "string") return false;
   return true;
+}
+
+function isStoryMeta(v: unknown): v is StoryMeta {
+  if (!isRecord(v)) return false;
+  return typeof v.llm_used === "boolean" && typeof v.llm_reason === "string";
 }
 
 function isCommitEvent(v: unknown): v is CommitEvent {
@@ -358,6 +368,9 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [regeneratingStory, setRegeneratingStory] = useState(false);
+  const [regenerateStoryError, setRegenerateStoryError] = useState<string | null>(null);
+  const [regenerateStoryMeta, setRegenerateStoryMeta] = useState<StoryMeta | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -448,6 +461,27 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleRegenerateStory = async () => {
+    setRegenerateStoryError(null);
+    setRegenerateStoryMeta(null);
+    setRegeneratingStory(true);
+    try {
+      const res = await fetch(`/api/analysis/${jobId}/regenerate-story`, { method: "POST" });
+      const payload = (await res.json()) as { report?: unknown; story?: unknown; error?: string };
+      if (!res.ok) throw new Error(payload.error ?? "Failed to regenerate story");
+      if (payload.report) {
+        setData((prev) => (prev ? { ...prev, report: payload.report } : prev));
+      }
+      if (payload.story && isStoryMeta(payload.story)) {
+        setRegenerateStoryMeta(payload.story);
+      }
+    } catch (e) {
+      setRegenerateStoryError(e instanceof Error ? e.message : "Failed to regenerate story");
+    } finally {
+      setRegeneratingStory(false);
+    }
   };
 
   useEffect(() => {
@@ -664,6 +698,88 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                           : "files/commit"}
                   </p>
                 </div>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-black/5 bg-white/60 p-5 backdrop-blur">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Story</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-xs text-zinc-500">
+                      {parsedReport?.llm_model && parsedReport.llm_model !== "none"
+                        ? `Generated with ${parsedReport.llm_model}`
+                        : "Generated from metrics"}
+                    </p>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={handleRegenerateStory}
+                      disabled={regeneratingStory}
+                    >
+                      {regeneratingStory ? "Regenerating…" : "Regenerate story"}
+                    </button>
+                  </div>
+                </div>
+                {regenerateStoryMeta && regenerateStoryMeta.llm_used === false ? (
+                  <p className="mt-2 text-xs text-zinc-500">
+                    LLM narrative unavailable: {regenerateStoryMeta.llm_reason}
+                  </p>
+                ) : null}
+                {regenerateStoryError ? (
+                  <p className="mt-3 text-sm text-red-600">{regenerateStoryError}</p>
+                ) : null}
+                {sections.length > 0 ? (
+                  <div className="mt-4 flex flex-col gap-5">
+                    {sections.slice(0, 3).map((s, idx) => (
+                      <section key={`${s.title ?? "section"}-${idx}`} className="space-y-2">
+                        <h4 className="text-base font-semibold text-zinc-900">{s.title ?? "Untitled"}</h4>
+                        <p className="text-sm text-zinc-700">{s.content ?? "—"}</p>
+                        {Array.isArray(s.evidence) && s.evidence.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {s.evidence.map((sha) => (
+                              <span
+                                key={sha}
+                                className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-zinc-700"
+                              >
+                                {sha.slice(0, 10)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </section>
+                    ))}
+                    {sections.length > 3 ? (
+                      <details className="rounded-2xl border border-black/5 bg-white/60 p-4">
+                        <summary className="cursor-pointer text-sm font-semibold text-zinc-900">
+                          More story sections
+                        </summary>
+                        <div className="mt-4 flex flex-col gap-5">
+                          {sections.slice(3).map((s, idx) => (
+                            <section key={`${s.title ?? "section"}-${idx + 3}`} className="space-y-2">
+                              <h4 className="text-base font-semibold text-zinc-900">
+                                {s.title ?? "Untitled"}
+                              </h4>
+                              <p className="text-sm text-zinc-700">{s.content ?? "—"}</p>
+                              {Array.isArray(s.evidence) && s.evidence.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {s.evidence.map((sha) => (
+                                    <span
+                                      key={sha}
+                                      className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-zinc-700"
+                                    >
+                                      {sha.slice(0, 10)}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </section>
+                          ))}
+                        </div>
+                      </details>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-zinc-600">No story is available for this job yet.</p>
+                )}
               </div>
 
               {profileContribution ? (

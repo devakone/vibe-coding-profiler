@@ -18,6 +18,8 @@ import {
   computeAnalysisInsights,
   computeAnalysisMetrics,
   decryptString,
+  filterAutomationCommits,
+  classifyCommit,
   type AnalysisReport,
   type CommitEvent,
   type JobStatus,
@@ -94,6 +96,293 @@ interface WorkerConfig {
   supabaseServiceKey: string;
   githubTokenEncryptionKey?: string;
   anthropicApiKey?: string;
+}
+
+function safeJsonParse(value: string): unknown {
+  try {
+    const trimmed = value.trim();
+    if (trimmed.startsWith("```")) {
+      const firstNewline = trimmed.indexOf("\n");
+      const afterFence = firstNewline === -1 ? "" : trimmed.slice(firstNewline + 1);
+      const endFence = afterFence.lastIndexOf("```");
+      const inside = (endFence === -1 ? afterFence : afterFence.slice(0, endFence)).trim();
+      return JSON.parse(inside) as unknown;
+    }
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function toNarrativeFallback(params: {
+  metrics: ReturnType<typeof computeAnalysisMetrics>;
+  events: CommitEvent[];
+}): AnalysisReport["narrative"] {
+  const { metrics, events } = params;
+  return {
+    summary: `Analyzed ${metrics.total_commits} commits over ${metrics.active_days} active days across ${metrics.span_days} days.`,
+    sections: [
+      {
+        title: "Build rhythm",
+        content: `Median gap between commits: ${metrics.hours_between_commits_p50.toFixed(1)}h. Burstiness score: ${metrics.burstiness_score.toFixed(2)}.`,
+        evidence: events.slice(0, 5).map((e) => e.sha),
+      },
+      {
+        title: "Iteration",
+        content: `Fix ratio: ${(metrics.fix_commit_ratio * 100).toFixed(0)}%. Fix-after-feature sequences: ${metrics.fixup_sequence_count}.`,
+        evidence: events.slice(0, 5).map((e) => e.sha),
+      },
+    ],
+    highlights: [
+      {
+        metric: "commits",
+        value: String(metrics.total_commits),
+        interpretation: "Total commits included in this analysis.",
+      },
+      {
+        metric: "active_days",
+        value: String(metrics.active_days),
+        interpretation: "Days with at least one commit.",
+      },
+      {
+        metric: "commit_size_p50",
+        value: String(metrics.commit_size_p50.toFixed(0)),
+        interpretation: "Median commit size (additions + deletions).",
+      },
+    ],
+  };
+}
+
+function buildCommitLines(events: CommitEvent[], maxLines: number): string[] {
+  const byTimeAsc = [...events].sort(
+    (a, b) =>
+      new Date(a.committer_date).getTime() - new Date(b.committer_date).getTime()
+  );
+
+  const trimmed = byTimeAsc.map((e) => {
+    const subject = e.message.split("\n")[0]?.trim() ?? "";
+    const category = classifyCommit(e.message);
+    const size = e.additions + e.deletions;
+    const when = new Date(e.committer_date).toISOString().slice(0, 19) + "Z";
+    return `${when} ${e.sha.slice(0, 10)} ${category} ${size}ch ${e.files_changed}f ${subject}`;
+  });
+
+  if (trimmed.length <= maxLines) return trimmed;
+
+  const headCount = Math.floor(maxLines / 2);
+  const tailCount = maxLines - headCount;
+  return [...trimmed.slice(0, headCount), ...trimmed.slice(-tailCount)];
+}
+
+function computeEpisodeSummary(events: CommitEvent[]): Array<{
+  start: string;
+  end: string;
+  commits: number;
+  spanHours: number;
+}> {
+  const byTimeAsc = [...events].sort(
+    (a, b) =>
+      new Date(a.committer_date).getTime() - new Date(b.committer_date).getTime()
+  );
+
+  const episodes: Array<{
+    start: Date;
+    end: Date;
+    commits: number;
+  }> = [];
+
+  const gapHoursThreshold = 8;
+
+  for (const e of byTimeAsc) {
+    const t = new Date(e.committer_date);
+    const last = episodes[episodes.length - 1];
+    if (!last) {
+      episodes.push({ start: t, end: t, commits: 1 });
+      continue;
+    }
+    const gapHours = (t.getTime() - last.end.getTime()) / (1000 * 60 * 60);
+    if (gapHours > gapHoursThreshold) {
+      episodes.push({ start: t, end: t, commits: 1 });
+      continue;
+    }
+    last.end = t;
+    last.commits += 1;
+  }
+
+  return episodes.slice(0, 12).map((ep) => {
+    const spanHours = (ep.end.getTime() - ep.start.getTime()) / (1000 * 60 * 60);
+    const start = ep.start.toISOString().slice(0, 19) + "Z";
+    const end = ep.end.toISOString().slice(0, 19) + "Z";
+    return { start, end, commits: ep.commits, spanHours };
+  });
+}
+
+async function generateNarrativeWithClaude(params: {
+  anthropicApiKey: string;
+  repoFullName: string;
+  vibeType: string | null;
+  confidence: AnalysisReport["confidence"];
+  matchedCriteria: string[];
+  metrics: ReturnType<typeof computeAnalysisMetrics>;
+  insights: ReturnType<typeof computeAnalysisInsights>;
+  events: CommitEvent[];
+}): Promise<AnalysisReport["narrative"] | null> {
+  const {
+    anthropicApiKey,
+    repoFullName,
+    vibeType,
+    confidence,
+    matchedCriteria,
+    metrics,
+    insights,
+    events,
+  } = params;
+
+  const nonBotEvents = filterAutomationCommits(events);
+  const commitLines = buildCommitLines(nonBotEvents, 120);
+  const episodes = computeEpisodeSummary(nonBotEvents);
+
+  const firstLast = (() => {
+    const byTimeAsc = [...nonBotEvents].sort(
+      (a, b) =>
+        new Date(a.committer_date).getTime() - new Date(b.committer_date).getTime()
+    );
+    return {
+      first: byTimeAsc[0]?.committer_date ?? null,
+      last: byTimeAsc[byTimeAsc.length - 1]?.committer_date ?? null,
+    };
+  })();
+
+  const system = [
+    "You write a narrative report about how a feature/repo was built using ONLY the data provided.",
+    "Never infer intent, skill, or code quality. Avoid speculation and motivational language.",
+    "Every claim must cite at least one specific metric name and value (e.g. burstiness_score=0.42) or a specific commit subject line provided.",
+    "Each section must include evidence: 2-6 commit SHAs that support the section.",
+    "Output must be STRICT JSON with this schema:",
+    '{"summary":"...","sections":[{"title":"...","content":"...","evidence":["sha", "..."]}],"highlights":[{"metric":"...","value":"...","interpretation":"..."}]}',
+  ].join("\n");
+
+  const user = [
+    `Repo: ${repoFullName}`,
+    `Vibe type: ${vibeType ?? "null"} (confidence=${confidence})`,
+    matchedCriteria.length > 0 ? `Matched criteria: ${matchedCriteria.join(", ")}` : "Matched criteria: (none)",
+    `Window: first_commit=${firstLast.first ?? "null"}, last_commit=${firstLast.last ?? "null"}`,
+    "",
+    "Metrics (JSON):",
+    JSON.stringify(
+      {
+        total_commits: metrics.total_commits,
+        active_days: metrics.active_days,
+        span_days: metrics.span_days,
+        commits_per_active_day_mean: metrics.commits_per_active_day_mean,
+        commits_per_active_day_max: metrics.commits_per_active_day_max,
+        commit_size_p50: metrics.commit_size_p50,
+        commit_size_p90: metrics.commit_size_p90,
+        hours_between_commits_p50: metrics.hours_between_commits_p50,
+        hours_between_commits_p90: metrics.hours_between_commits_p90,
+        burstiness_score: metrics.burstiness_score,
+        merge_commit_ratio: metrics.merge_commit_ratio,
+        conventional_commit_ratio: metrics.conventional_commit_ratio,
+        fix_commit_ratio: metrics.fix_commit_ratio,
+        fixup_sequence_count: metrics.fixup_sequence_count,
+        category_first_occurrence: metrics.category_first_occurrence,
+        category_distribution: metrics.category_distribution,
+        data_quality_score: metrics.data_quality_score,
+      },
+      null,
+      2
+    ),
+    "",
+    "Insights (JSON):",
+    JSON.stringify(
+      {
+        persona: insights.persona,
+        timing: insights.timing,
+        streak: insights.streak,
+        commits: insights.commits,
+        chunkiness: insights.chunkiness,
+        patterns: insights.patterns,
+        tech: insights.tech,
+        disclaimers: insights.disclaimers,
+      },
+      null,
+      2
+    ),
+    "",
+    "Episode summary (JSON):",
+    JSON.stringify(episodes, null, 2),
+    "",
+    "Commit lines (oldest→newest, compact):",
+    ...commitLines,
+    "",
+    "Produce a concise story of how work progressed (what landed first, iteration loops, stabilization phases). Prefer 4-6 sections.",
+  ].join("\n");
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "anthropic-version": "2023-06-01",
+      "x-api-key": anthropicApiKey,
+    },
+    body: JSON.stringify({
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 1300,
+      temperature: 0.3,
+      system,
+      messages: [{ role: "user", content: user }],
+    }),
+  });
+
+  if (!res.ok) {
+    await res.text();
+    return null;
+  }
+
+  const payload = (await res.json()) as unknown;
+  if (!payload || typeof payload !== "object") return null;
+  const content = (payload as { content?: Array<{ type?: string; text?: string }> }).content;
+  const text = Array.isArray(content)
+    ? content
+        .filter((c) => c && c.type === "text" && typeof c.text === "string")
+        .map((c) => c.text)
+        .join("\n")
+    : "";
+
+  const parsed = typeof text === "string" ? safeJsonParse(text) : null;
+  if (!parsed || typeof parsed !== "object") return null;
+
+  const obj = parsed as {
+    summary?: unknown;
+    sections?: unknown;
+    highlights?: unknown;
+  };
+
+  if (typeof obj.summary !== "string") return null;
+  if (!Array.isArray(obj.sections)) return null;
+  if (!Array.isArray(obj.highlights)) return null;
+
+  const sections: AnalysisReport["narrative"]["sections"] = [];
+  for (const s of obj.sections) {
+    if (!s || typeof s !== "object") return null;
+    const sec = s as { title?: unknown; content?: unknown; evidence?: unknown };
+    if (typeof sec.title !== "string") return null;
+    if (typeof sec.content !== "string") return null;
+    if (!Array.isArray(sec.evidence) || !sec.evidence.every((e) => typeof e === "string")) return null;
+    sections.push({ title: sec.title, content: sec.content, evidence: sec.evidence });
+  }
+
+  const highlights: AnalysisReport["narrative"]["highlights"] = [];
+  for (const h of obj.highlights) {
+    if (!h || typeof h !== "object") return null;
+    const hi = h as { metric?: unknown; value?: unknown; interpretation?: unknown };
+    if (typeof hi.metric !== "string") return null;
+    if (typeof hi.value !== "string") return null;
+    if (typeof hi.interpretation !== "string") return null;
+    highlights.push({ metric: hi.metric, value: hi.value, interpretation: hi.interpretation });
+  }
+
+  return { summary: obj.summary, sections, highlights };
 }
 
 async function claimJob(config: WorkerConfig): Promise<string | null> {
@@ -193,46 +482,26 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
     const assignment = assignVibeType(metrics);
     const insights = computeAnalysisInsights(events);
 
+    const fallbackNarrative = toNarrativeFallback({ metrics, events });
+    const llmNarrative =
+      config.anthropicApiKey && config.anthropicApiKey.trim().length > 0
+        ? await generateNarrativeWithClaude({
+            anthropicApiKey: config.anthropicApiKey,
+            repoFullName: repo.full_name,
+            vibeType: assignment.vibe_type,
+            confidence: assignment.confidence,
+            matchedCriteria: assignment.matched_criteria,
+            metrics,
+            insights,
+            events,
+          })
+        : null;
+
     const report: AnalysisReport = {
       vibe_type: assignment.vibe_type,
       confidence: assignment.confidence,
       matched_criteria: assignment.matched_criteria,
-      narrative: {
-        summary: `Analyzed ${metrics.total_commits} commits over ${metrics.active_days} active days across ${metrics.span_days} days.`,
-        sections: [
-          {
-            title: "Build rhythm",
-            content: `Median gap between commits: ${metrics.hours_between_commits_p50.toFixed(
-              1
-            )}h. Burstiness score: ${metrics.burstiness_score.toFixed(2)}.`,
-            evidence: events.slice(0, 3).map((e) => e.sha),
-          },
-          {
-            title: "Iteration",
-            content: `Fix ratio: ${(metrics.fix_commit_ratio * 100).toFixed(
-              0
-            )}%. Fix-after-feature sequences: ${metrics.fixup_sequence_count}.`,
-            evidence: events.slice(0, 3).map((e) => e.sha),
-          },
-        ],
-        highlights: [
-          {
-            metric: "commits",
-            value: String(metrics.total_commits),
-            interpretation: "Total commits included in this analysis.",
-          },
-          {
-            metric: "active_days",
-            value: String(metrics.active_days),
-            interpretation: "Days with at least one commit.",
-          },
-          {
-            metric: "commit_size_p50",
-            value: String(metrics.commit_size_p50.toFixed(0)),
-            interpretation: "Median commit size (additions + deletions).",
-          },
-        ],
-      },
+      narrative: llmNarrative ?? fallbackNarrative,
     };
 
     const { error: metricsError } = await supabase.from("analysis_metrics").upsert(
@@ -254,7 +523,7 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
           vibe_type: report.vibe_type,
           narrative_json: report.narrative as unknown as Json,
           evidence_json: report.matched_criteria as unknown as Json,
-          llm_model: "none",
+          llm_model: llmNarrative ? "claude-3-5-sonnet-20241022" : "none",
         },
       ],
       { onConflict: "job_id" }

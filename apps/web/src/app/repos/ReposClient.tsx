@@ -38,22 +38,6 @@ type ConnectedRepo = {
 
 const GITHUB_REPO_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 
-type GithubSyncMeta = {
-  tokenScopes: string[];
-  storedScopes: string[];
-  orgLogins: string[];
-  repoCount: number;
-  ownerCount: number;
-  orgReposInUserRepos: number;
-  orgRepoDebug: Array<{
-    org: string;
-    status: number;
-    sso?: string | null;
-    repoCount?: number | null;
-    sampleFullNames?: string[];
-  }> | null;
-};
-
 type PendingJob = {
   jobId: string;
   repoName: string | null;
@@ -69,7 +53,6 @@ export default function ReposClient(props: {
   const [repos, setRepos] = useState<GithubRepo[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [syncMeta, setSyncMeta] = useState<GithubSyncMeta | null>(null);
   const [pendingJobs, setPendingJobs] = useState<PendingJob[]>([]);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [selectedFullName, setSelectedFullName] = useState<string | null>(null);
@@ -122,7 +105,6 @@ export default function ReposClient(props: {
     const res = await fetch(url, { method: "POST" });
     const data = (await res.json()) as {
       repos?: GithubRepo[];
-      meta?: GithubSyncMeta;
       error?: string;
     };
     if (!res.ok) throw new Error(data.error || "Failed to load repos");
@@ -132,7 +114,6 @@ export default function ReposClient(props: {
     writeCachedRepos(nextRepos);
     setIsPickerOpen(false);
     setSelectedFullName((prev) => prev ?? nextRepos[0]?.full_name ?? null);
-    if (data.meta) setSyncMeta(data.meta);
   }, [writeCachedRepos]);
 
   const loadRepos = useCallback(
@@ -355,37 +336,12 @@ export default function ReposClient(props: {
           Force refresh from GitHub
         </button>
         <p className="text-sm text-zinc-700">
-          Choose a safe repo. Avoid work, NDA, or sensitive repos.
-          {" "}Repos are cached for 24 hours.
-          {lastSyncedAt ? ` · Last synced ${new Date(lastSyncedAt).toLocaleDateString()}` : ""}
-          {syncMeta
-            ? ` · Token scopes: ${syncMeta.tokenScopes.join(", ") || "none"} · Orgs: ${syncMeta.orgLogins.length} · Org repos in list: ${syncMeta.orgReposInUserRepos}/${syncMeta.repoCount}`
-            : ""}
+          Only connect repos you&apos;re comfortable analyzing.
+          {lastSyncedAt ? ` · Synced ${new Date(lastSyncedAt).toLocaleDateString()}` : ""}
         </p>
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {syncMeta?.orgRepoDebug ? (
-        <div className="rounded-2xl border border-black/5 bg-white/70 p-4 text-sm text-zinc-800 shadow-sm backdrop-blur">
-          <p className="font-semibold text-zinc-950">GitHub org repo debug</p>
-          <div className="mt-2 space-y-2">
-            {syncMeta.orgRepoDebug.map((row) => (
-              <div key={row.org} className="space-y-1">
-                <p>
-                  {row.org}: HTTP {row.status}
-                  {row.sso ? ` · ${row.sso}` : ""}
-                  {typeof row.repoCount === "number" ? ` · repos returned: ${row.repoCount}` : ""}
-                </p>
-                {row.sampleFullNames && row.sampleFullNames.length > 0 ? (
-                  <p className="text-xs text-zinc-600">
-                    Sample: {row.sampleFullNames.join(", ")}
-                  </p>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-zinc-950">Your repos</h2>

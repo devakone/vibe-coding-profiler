@@ -13,7 +13,7 @@
     "type-check": "turbo type-check",
     "clean": "turbo clean && rm -rf node_modules",
     "dev:web": "turbo dev --filter=@vibed/web",
-    "dev:worker": "turbo dev --filter=@vibed/worker",
+    "dev:worker": "sh -c 'turbo dev --filter=@vibed/worker & npx inngest-cli@latest dev; wait'",
     "supabase:start": "node scripts/supabase.mjs start",
     "supabase:stop": "node scripts/supabase.mjs stop",
     "supabase:status": "node scripts/supabase.mjs status",
