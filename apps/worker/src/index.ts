@@ -20,9 +20,12 @@ import {
   decryptString,
   filterAutomationCommits,
   classifyCommit,
+  createLLMClient,
+  getModelCandidates,
   type AnalysisReport,
   type CommitEvent,
   type JobStatus,
+  type LLMProvider,
 } from "@vibed/core";
 import { fetchCommitDetail, fetchCommitList, mapWithConcurrency } from "./github";
 import fs from "node:fs";
@@ -95,7 +98,9 @@ interface WorkerConfig {
   supabaseUrl: string;
   supabaseServiceKey: string;
   githubTokenEncryptionKey?: string;
-  anthropicApiKey?: string;
+  // LLM configuration - supports multiple providers
+  llmProvider?: LLMProvider;
+  llmApiKey?: string;
 }
 
 function safeJsonParse(value: string): unknown {
@@ -217,8 +222,21 @@ function computeEpisodeSummary(events: CommitEvent[]): Array<{
   });
 }
 
-async function generateNarrativeWithClaude(params: {
-  anthropicApiKey: string;
+/**
+ * Result from narrative generation including token usage and model used
+ */
+interface NarrativeResult {
+  narrative: AnalysisReport["narrative"];
+  model: string;
+}
+
+/**
+ * Generate a narrative report using any supported LLM provider.
+ * Uses the LLM abstraction layer for consistent behavior across providers.
+ */
+async function generateNarrativeWithLLM(params: {
+  provider: LLMProvider;
+  apiKey: string;
   repoFullName: string;
   vibeType: string | null;
   confidence: AnalysisReport["confidence"];
@@ -226,9 +244,10 @@ async function generateNarrativeWithClaude(params: {
   metrics: ReturnType<typeof computeAnalysisMetrics>;
   insights: ReturnType<typeof computeAnalysisInsights>;
   events: CommitEvent[];
-}): Promise<AnalysisReport["narrative"] | null> {
+}): Promise<NarrativeResult | null> {
   const {
-    anthropicApiKey,
+    provider,
+    apiKey,
     repoFullName,
     vibeType,
     confidence,
@@ -253,7 +272,7 @@ async function generateNarrativeWithClaude(params: {
     };
   })();
 
-  const system = [
+  const systemPrompt = [
     "You write a narrative report about how a feature/repo was built using ONLY the data provided.",
     "Never infer intent, skill, or code quality. Avoid speculation and motivational language.",
     "Every claim must cite at least one specific metric name and value (e.g. burstiness_score=0.42) or a specific commit subject line provided.",
@@ -262,7 +281,7 @@ async function generateNarrativeWithClaude(params: {
     '{"summary":"...","sections":[{"title":"...","content":"...","evidence":["sha", "..."]}],"highlights":[{"metric":"...","value":"...","interpretation":"..."}]}',
   ].join("\n");
 
-  const user = [
+  const userPrompt = [
     `Repo: ${repoFullName}`,
     `Vibe type: ${vibeType ?? "null"} (confidence=${confidence})`,
     matchedCriteria.length > 0 ? `Matched criteria: ${matchedCriteria.join(", ")}` : "Matched criteria: (none)",
@@ -318,71 +337,72 @@ async function generateNarrativeWithClaude(params: {
     "Produce a concise story of how work progressed (what landed first, iteration loops, stabilization phases). Prefer 4-6 sections.",
   ].join("\n");
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "anthropic-version": "2023-06-01",
-      "x-api-key": anthropicApiKey,
-    },
-    body: JSON.stringify({
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 1300,
-      temperature: 0.3,
-      system,
-      messages: [{ role: "user", content: user }],
-    }),
-  });
+  // Use model candidates for automatic fallback
+  const modelCandidates = getModelCandidates(provider);
 
-  if (!res.ok) {
-    await res.text();
-    return null;
+  for (const model of modelCandidates) {
+    try {
+      const client = createLLMClient({
+        provider,
+        apiKey,
+        model,
+        maxTokens: 1300,
+        temperature: 0.3,
+      });
+
+      const response = await client.chat([
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ]);
+
+      const parsed = safeJsonParse(response.content);
+      if (!parsed || typeof parsed !== "object") continue;
+
+      const obj = parsed as {
+        summary?: unknown;
+        sections?: unknown;
+        highlights?: unknown;
+      };
+
+      if (typeof obj.summary !== "string") continue;
+      if (!Array.isArray(obj.sections)) continue;
+      if (!Array.isArray(obj.highlights)) continue;
+
+      const sections: AnalysisReport["narrative"]["sections"] = [];
+      let sectionsValid = true;
+      for (const s of obj.sections) {
+        if (!s || typeof s !== "object") { sectionsValid = false; break; }
+        const sec = s as { title?: unknown; content?: unknown; evidence?: unknown };
+        if (typeof sec.title !== "string") { sectionsValid = false; break; }
+        if (typeof sec.content !== "string") { sectionsValid = false; break; }
+        if (!Array.isArray(sec.evidence) || !sec.evidence.every((e) => typeof e === "string")) { sectionsValid = false; break; }
+        sections.push({ title: sec.title, content: sec.content, evidence: sec.evidence });
+      }
+      if (!sectionsValid) continue;
+
+      const highlights: AnalysisReport["narrative"]["highlights"] = [];
+      let highlightsValid = true;
+      for (const h of obj.highlights) {
+        if (!h || typeof h !== "object") { highlightsValid = false; break; }
+        const hi = h as { metric?: unknown; value?: unknown; interpretation?: unknown };
+        if (typeof hi.metric !== "string") { highlightsValid = false; break; }
+        if (typeof hi.value !== "string") { highlightsValid = false; break; }
+        if (typeof hi.interpretation !== "string") { highlightsValid = false; break; }
+        highlights.push({ metric: hi.metric, value: hi.value, interpretation: hi.interpretation });
+      }
+      if (!highlightsValid) continue;
+
+      return {
+        narrative: { summary: obj.summary, sections, highlights },
+        model,
+      };
+    } catch (error) {
+      console.warn(`LLM model ${model} failed, trying next:`, error);
+      continue;
+    }
   }
 
-  const payload = (await res.json()) as unknown;
-  if (!payload || typeof payload !== "object") return null;
-  const content = (payload as { content?: Array<{ type?: string; text?: string }> }).content;
-  const text = Array.isArray(content)
-    ? content
-        .filter((c) => c && c.type === "text" && typeof c.text === "string")
-        .map((c) => c.text)
-        .join("\n")
-    : "";
-
-  const parsed = typeof text === "string" ? safeJsonParse(text) : null;
-  if (!parsed || typeof parsed !== "object") return null;
-
-  const obj = parsed as {
-    summary?: unknown;
-    sections?: unknown;
-    highlights?: unknown;
-  };
-
-  if (typeof obj.summary !== "string") return null;
-  if (!Array.isArray(obj.sections)) return null;
-  if (!Array.isArray(obj.highlights)) return null;
-
-  const sections: AnalysisReport["narrative"]["sections"] = [];
-  for (const s of obj.sections) {
-    if (!s || typeof s !== "object") return null;
-    const sec = s as { title?: unknown; content?: unknown; evidence?: unknown };
-    if (typeof sec.title !== "string") return null;
-    if (typeof sec.content !== "string") return null;
-    if (!Array.isArray(sec.evidence) || !sec.evidence.every((e) => typeof e === "string")) return null;
-    sections.push({ title: sec.title, content: sec.content, evidence: sec.evidence });
-  }
-
-  const highlights: AnalysisReport["narrative"]["highlights"] = [];
-  for (const h of obj.highlights) {
-    if (!h || typeof h !== "object") return null;
-    const hi = h as { metric?: unknown; value?: unknown; interpretation?: unknown };
-    if (typeof hi.metric !== "string") return null;
-    if (typeof hi.value !== "string") return null;
-    if (typeof hi.interpretation !== "string") return null;
-    highlights.push({ metric: hi.metric, value: hi.value, interpretation: hi.interpretation });
-  }
-
-  return { summary: obj.summary, sections, highlights };
+  return null;
 }
 
 async function claimJob(config: WorkerConfig): Promise<string | null> {
@@ -483,25 +503,27 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
     const insights = computeAnalysisInsights(events);
 
     const fallbackNarrative = toNarrativeFallback({ metrics, events });
-    const llmNarrative =
-      config.anthropicApiKey && config.anthropicApiKey.trim().length > 0
-        ? await generateNarrativeWithClaude({
-            anthropicApiKey: config.anthropicApiKey,
-            repoFullName: repo.full_name,
-            vibeType: assignment.vibe_type,
-            confidence: assignment.confidence,
-            matchedCriteria: assignment.matched_criteria,
-            metrics,
-            insights,
-            events,
-          })
-        : null;
+    let llmResult: NarrativeResult | null = null;
+
+    if (config.llmProvider && config.llmApiKey && config.llmApiKey.trim().length > 0) {
+      llmResult = await generateNarrativeWithLLM({
+        provider: config.llmProvider,
+        apiKey: config.llmApiKey,
+        repoFullName: repo.full_name,
+        vibeType: assignment.vibe_type,
+        confidence: assignment.confidence,
+        matchedCriteria: assignment.matched_criteria,
+        metrics,
+        insights,
+        events,
+      });
+    }
 
     const report: AnalysisReport = {
       vibe_type: assignment.vibe_type,
       confidence: assignment.confidence,
       matched_criteria: assignment.matched_criteria,
-      narrative: llmNarrative ?? fallbackNarrative,
+      narrative: llmResult?.narrative ?? fallbackNarrative,
     };
 
     const { error: metricsError } = await supabase.from("analysis_metrics").upsert(
@@ -523,7 +545,7 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
           vibe_type: report.vibe_type,
           narrative_json: report.narrative as unknown as Json,
           evidence_json: report.matched_criteria as unknown as Json,
-          llm_model: llmNarrative ? "claude-3-5-sonnet-20241022" : "none",
+          llm_model: llmResult?.model ?? "none",
         },
       ],
       { onConflict: "job_id" }
@@ -596,12 +618,28 @@ async function runWorker(config: WorkerConfig): Promise<void> {
   }
 }
 
+// Detect LLM provider from environment variables (priority: Anthropic > OpenAI > Gemini)
+function detectLLMConfig(): { provider: LLMProvider; apiKey: string } | null {
+  if (process.env.ANTHROPIC_API_KEY) {
+    return { provider: "anthropic", apiKey: process.env.ANTHROPIC_API_KEY };
+  }
+  if (process.env.OPENAI_API_KEY) {
+    return { provider: "openai", apiKey: process.env.OPENAI_API_KEY };
+  }
+  if (process.env.GEMINI_API_KEY) {
+    return { provider: "gemini", apiKey: process.env.GEMINI_API_KEY };
+  }
+  return null;
+}
+
 // Entry point
+const llmConfig = detectLLMConfig();
 const config: WorkerConfig = {
   supabaseUrl: process.env.SUPABASE_URL || "",
   supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   githubTokenEncryptionKey: process.env.GITHUB_TOKEN_ENCRYPTION_KEY,
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+  llmProvider: llmConfig?.provider,
+  llmApiKey: llmConfig?.apiKey,
 };
 
 if (!config.supabaseUrl || !config.supabaseServiceKey) {
