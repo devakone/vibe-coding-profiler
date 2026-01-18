@@ -17,6 +17,7 @@ import {
   type JobStatus,
   type LLMConfig,
   type LLMKeySource,
+  type LLMProvider,
   type RepoInsightSummary,
   type VibeAxes,
   type VibeCommitEvent,
@@ -140,8 +141,22 @@ function computeEpisodeSummary(events: CommitEvent[]): Array<{
   });
 }
 
-export async function generateNarrativeWithClaude(params: {
-  anthropicApiKey: string;
+/**
+ * Result from narrative generation including token usage for tracking
+ */
+interface NarrativeResult {
+  narrative: AnalysisReport["narrative"];
+  inputTokens: number;
+  outputTokens: number;
+}
+
+/**
+ * Generate a narrative report using any supported LLM provider.
+ * Uses the LLM abstraction layer for consistent behavior across providers.
+ */
+export async function generateNarrativeWithLLM(params: {
+  provider: LLMProvider;
+  apiKey: string;
   model: string;
   repoFullName: string;
   vibeType: string | null;
@@ -150,9 +165,10 @@ export async function generateNarrativeWithClaude(params: {
   metrics: ReturnType<typeof computeAnalysisMetrics>;
   insights: ReturnType<typeof computeAnalysisInsights>;
   events: CommitEvent[];
-}): Promise<AnalysisReport["narrative"] | null> {
+}): Promise<NarrativeResult | null> {
   const {
-    anthropicApiKey,
+    provider,
+    apiKey,
     model,
     repoFullName,
     vibeType,
@@ -178,7 +194,7 @@ export async function generateNarrativeWithClaude(params: {
     };
   })();
 
-  const system = [
+  const systemPrompt = [
     "You write a narrative report about how a feature/repo was built using ONLY the data provided.",
     "Never infer intent, skill, or code quality. Avoid speculation and motivational language.",
     "Every claim must cite at least one specific metric name and value (e.g. burstiness_score=0.42) or a specific commit subject line provided.",
@@ -187,7 +203,7 @@ export async function generateNarrativeWithClaude(params: {
     '{"summary":"...","sections":[{"title":"...","content":"...","evidence":["sha", "..."]}],"highlights":[{"metric":"...","value":"...","interpretation":"..."}]}',
   ].join("\n");
 
-  const user = [
+  const userPrompt = [
     `Repo: ${repoFullName}`,
     `Vibe type: ${vibeType ?? "null"} (confidence=${confidence})`,
     matchedCriteria.length > 0 ? `Matched criteria: ${matchedCriteria.join(", ")}` : "Matched criteria: (none)",
@@ -243,38 +259,21 @@ export async function generateNarrativeWithClaude(params: {
     "Produce a concise story of how work progressed (what landed first, iteration loops, stabilization phases). Prefer 4-6 sections.",
   ].join("\n");
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "anthropic-version": "2023-06-01",
-      "x-api-key": anthropicApiKey,
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 1300,
-      temperature: 0.3,
-      system,
-      messages: [{ role: "user", content: user }],
-    }),
+  // Use the LLM abstraction layer
+  const client = createLLMClient({
+    provider,
+    apiKey,
+    model,
+    maxTokens: 1300,
+    temperature: 0.3,
   });
 
-  if (!res.ok) {
-    await res.text();
-    return null;
-  }
+  const response = await client.chat([
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt },
+  ]);
 
-  const payload = (await res.json()) as unknown;
-  if (!payload || typeof payload !== "object") return null;
-  const content = (payload as { content?: Array<{ type?: string; text?: string }> }).content;
-  const text = Array.isArray(content)
-    ? content
-        .filter((c) => c && c.type === "text" && typeof c.text === "string")
-        .map((c) => c.text)
-        .join("\n")
-    : "";
-
-  const parsed = typeof text === "string" ? safeJsonParse(text) : null;
+  const parsed = safeJsonParse(response.content);
   if (!parsed || typeof parsed !== "object") return null;
 
   const obj = parsed as {
@@ -307,7 +306,11 @@ export async function generateNarrativeWithClaude(params: {
     highlights.push({ metric: hi.metric, value: hi.value, interpretation: hi.interpretation });
   }
 
-  return { summary: obj.summary, sections, highlights };
+  return {
+    narrative: { summary: obj.summary, sections, highlights },
+    inputTokens: response.inputTokens,
+    outputTokens: response.outputTokens,
+  };
 }
 
 /**
@@ -634,103 +637,64 @@ export const analyzeRepo = inngest.createFunction(
       const llmResolution = await resolveLLMConfig(userId, repoId);
       let llmNarrative: AnalysisReport["narrative"] | null = null;
       let llmModelUsed: string | null = null;
-      let llmKeySource: LLMKeySource = llmResolution.source;
-      let llmConfig: LLMConfig | null = llmResolution.config;
+      const llmKeySource: LLMKeySource = llmResolution.source;
+      const llmConfig: LLMConfig | null = llmResolution.config;
 
       if (llmConfig) {
-        // Try models in order of preference
+        // Try models in order of preference (primary, then fallbacks)
         const modelCandidates = getModelCandidates(llmConfig.provider);
 
         for (const candidate of modelCandidates) {
           try {
-            // Use the provider-agnostic generateNarrativeWithClaude for Anthropic
-            // For other providers, we'd use createLLMClient directly
-            if (llmConfig.provider === "anthropic") {
-              const attempt = await generateNarrativeWithClaude({
-                anthropicApiKey: llmConfig.apiKey,
+            // Use unified generateNarrativeWithLLM for all providers
+            const result = await generateNarrativeWithLLM({
+              provider: llmConfig.provider,
+              apiKey: llmConfig.apiKey,
+              model: candidate,
+              repoFullName: repo.full_name,
+              vibeType: assignment.vibe_type,
+              confidence: assignment.confidence,
+              matchedCriteria: assignment.matched_criteria,
+              metrics,
+              insights,
+              events: reportEvents,
+            });
+
+            if (result) {
+              llmNarrative = result.narrative;
+              llmModelUsed = candidate;
+
+              // Record successful usage with token counts
+              await recordLLMUsage({
+                userId,
+                jobId,
+                repoId,
+                provider: llmConfig.provider,
                 model: candidate,
-                repoFullName: repo.full_name,
-                vibeType: assignment.vibe_type,
-                confidence: assignment.confidence,
-                matchedCriteria: assignment.matched_criteria,
-                metrics,
-                insights,
-                events: reportEvents,
+                keySource: llmKeySource,
+                inputTokens: result.inputTokens,
+                outputTokens: result.outputTokens,
+                success: true,
               });
-              if (attempt) {
-                llmNarrative = attempt;
-                llmModelUsed = candidate;
-                break;
-              }
-            } else {
-              // For OpenAI/Gemini, use the LLM client directly
-              const client = createLLMClient({ ...llmConfig, model: candidate });
-              const response = await client.chat([
-                {
-                  role: "system",
-                  content: [
-                    "You write a narrative report about how a feature/repo was built using ONLY the data provided.",
-                    "Never infer intent, skill, or code quality. Avoid speculation and motivational language.",
-                    "Every claim must cite at least one specific metric name and value or a specific commit subject line provided.",
-                    "Output must be STRICT JSON with this schema:",
-                    '{"summary":"...","sections":[{"title":"...","content":"...","evidence":["sha", "..."]}],"highlights":[{"metric":"...","value":"...","interpretation":"..."}]}',
-                  ].join("\n"),
-                },
-                {
-                  role: "user",
-                  content: [
-                    `Repo: ${repo.full_name}`,
-                    `Vibe type: ${assignment.vibe_type ?? "null"} (confidence=${assignment.confidence})`,
-                    `Matched criteria: ${assignment.matched_criteria.join(", ") || "(none)"}`,
-                    "",
-                    "Metrics (JSON):",
-                    JSON.stringify(metrics, null, 2),
-                    "",
-                    "Produce a concise story of how work progressed. Prefer 4-6 sections.",
-                  ].join("\n"),
-                },
-              ]);
-
-              const parsed = safeJsonParse(response.content);
-              if (parsed && typeof parsed === "object") {
-                const obj = parsed as { summary?: string; sections?: unknown[]; highlights?: unknown[] };
-                if (typeof obj.summary === "string" && Array.isArray(obj.sections)) {
-                  llmNarrative = obj as AnalysisReport["narrative"];
-                  llmModelUsed = candidate;
-
-                  // Record usage
-                  await recordLLMUsage({
-                    userId,
-                    jobId,
-                    repoId,
-                    provider: llmConfig.provider,
-                    model: candidate,
-                    keySource: llmKeySource,
-                    inputTokens: response.inputTokens,
-                    outputTokens: response.outputTokens,
-                    success: true,
-                  });
-                  break;
-                }
-              }
+              break;
             }
           } catch (error) {
-            console.warn(`LLM model ${candidate} failed:`, error);
+            // Record failed attempt for observability
+            const errorMessage = error instanceof Error ? error.message : "Unknown error";
+            console.warn(`LLM model ${candidate} failed:`, errorMessage);
+
+            await recordLLMUsage({
+              userId,
+              jobId,
+              repoId,
+              provider: llmConfig.provider,
+              model: candidate,
+              keySource: llmKeySource,
+              success: false,
+              errorMessage,
+            });
             continue;
           }
-        }
-
-        // Record LLM usage for Anthropic (done inside generateNarrativeWithClaude for others)
-        if (llmConfig.provider === "anthropic" && llmModelUsed) {
-          await recordLLMUsage({
-            userId,
-            jobId,
-            repoId,
-            provider: llmConfig.provider,
-            model: llmModelUsed,
-            keySource: llmKeySource,
-            success: Boolean(llmNarrative),
-          });
         }
       }
 

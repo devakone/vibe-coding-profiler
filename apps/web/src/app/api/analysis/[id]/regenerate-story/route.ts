@@ -4,12 +4,13 @@ import {
   computeAnalysisInsights,
   computeAnalysisMetrics,
   getModelCandidates,
+  type AnalysisReport,
   type CommitEvent,
   type LLMKeySource,
 } from "@vibed/core";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { generateNarrativeWithClaude, toNarrativeFallback } from "@/inngest/functions/analyze-repo";
+import { generateNarrativeWithLLM, toNarrativeFallback } from "@/inngest/functions/analyze-repo";
 import { resolveLLMConfig, recordLLMUsage, getFreeTierLimit, countFreeAnalysesUsed } from "@/lib/llm-config";
 
 export const runtime = "nodejs";
@@ -152,9 +153,9 @@ export async function POST(
 
   // Resolve LLM config (user key, platform key, or none)
   const llmResolution = await resolveLLMConfig(user.id, repoId);
-  let llmNarrative: Awaited<ReturnType<typeof generateNarrativeWithClaude>> = null;
+  let llmNarrative: AnalysisReport["narrative"] | null = null;
   let llmModelUsed: string | null = null;
-  let llmKeySource: LLMKeySource = llmResolution.source;
+  const llmKeySource: LLMKeySource = llmResolution.source;
 
   if (llmResolution.config) {
     const llmConfig = llmResolution.config;
@@ -162,43 +163,55 @@ export async function POST(
 
     for (const candidate of modelCandidates) {
       try {
-        // For now, only Anthropic has the full narrative generation
-        if (llmConfig.provider === "anthropic") {
-          const attempt = await generateNarrativeWithClaude({
-            anthropicApiKey: llmConfig.apiKey,
+        // Use unified generateNarrativeWithLLM for all providers
+        const result = await generateNarrativeWithLLM({
+          provider: llmConfig.provider,
+          apiKey: llmConfig.apiKey,
+          model: candidate,
+          repoFullName: repo.full_name,
+          vibeType: assignment.vibe_type,
+          confidence: assignment.confidence,
+          matchedCriteria: assignment.matched_criteria,
+          metrics,
+          insights,
+          events,
+        });
+
+        if (result) {
+          llmNarrative = result.narrative;
+          llmModelUsed = candidate;
+
+          // Record successful usage with token counts
+          await recordLLMUsage({
+            userId: user.id,
+            jobId: id,
+            repoId,
+            provider: llmConfig.provider,
             model: candidate,
-            repoFullName: repo.full_name,
-            vibeType: assignment.vibe_type,
-            confidence: assignment.confidence,
-            matchedCriteria: assignment.matched_criteria,
-            metrics,
-            insights,
-            events,
+            keySource: llmKeySource,
+            inputTokens: result.inputTokens,
+            outputTokens: result.outputTokens,
+            success: true,
           });
-          if (attempt) {
-            llmNarrative = attempt;
-            llmModelUsed = candidate;
-            break;
-          }
+          break;
         }
-        // TODO: Add support for OpenAI/Gemini narrative generation
       } catch (error) {
-        console.warn(`LLM model ${candidate} failed:`, error);
+        // Record failed attempt for observability
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        console.warn(`LLM model ${candidate} failed:`, errorMessage);
+
+        await recordLLMUsage({
+          userId: user.id,
+          jobId: id,
+          repoId,
+          provider: llmConfig.provider,
+          model: candidate,
+          keySource: llmKeySource,
+          success: false,
+          errorMessage,
+        });
         continue;
       }
-    }
-
-    // Record LLM usage
-    if (llmModelUsed) {
-      await recordLLMUsage({
-        userId: user.id,
-        jobId: id,
-        repoId,
-        provider: llmConfig.provider,
-        model: llmModelUsed,
-        keySource: llmKeySource,
-        success: Boolean(llmNarrative),
-      });
     }
   }
 

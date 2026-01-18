@@ -43,6 +43,12 @@ export default async function AdminPage() {
             Browse Jobs
           </Link>
           <Link
+            href="/admin/llm"
+            className={wrappedTheme.secondaryButton}
+          >
+            LLM Settings
+          </Link>
+          <Link
             href="/admin/diagnostics"
             className={wrappedTheme.secondaryButton}
           >
