@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  aggregateUserProfile,
+  computeVibeFromCommits,
+  type RepoInsightSummary,
+  type VibeAxes,
+  type VibeCommitEvent,
+  type VibePersona,
+} from "@vibed/core";
 
 export const runtime = "nodejs";
 
@@ -32,6 +41,234 @@ type AnalysisQuery = {
 type SupabaseQueryLike = {
   from: (table: string) => AnalysisQuery;
 };
+
+type DoneJobRow = {
+  id: string;
+  repo_id: string;
+  commit_count: number | null;
+  completed_at: string | null;
+};
+
+type RepoNameRow = { id: string; full_name: string };
+
+type VibeInsightsRow = {
+  job_id: string;
+  axes_json: unknown;
+  persona_id: string;
+  persona_name: string;
+  persona_tagline: string | null;
+  persona_confidence: string;
+  persona_score: number | null;
+  cards_json: unknown;
+};
+
+type MetricsRow = {
+  job_id: string;
+  events_json: unknown;
+  metrics_json: unknown;
+};
+
+function toCommitEvents(input: unknown): VibeCommitEvent[] | null {
+  if (!Array.isArray(input)) return null;
+
+  const commits: VibeCommitEvent[] = [];
+  for (const row of input) {
+    if (typeof row !== "object" || row === null) return null;
+    const r = row as Record<string, unknown>;
+
+    const sha = r.sha;
+    const message = r.message;
+    const author_date = r.author_date;
+    const committer_date = r.committer_date;
+    const author_email = r.author_email;
+    const files_changed = r.files_changed;
+    const additions = r.additions;
+    const deletions = r.deletions;
+
+    if (
+      typeof sha !== "string" ||
+      typeof message !== "string" ||
+      typeof author_date !== "string" ||
+      typeof committer_date !== "string" ||
+      typeof author_email !== "string" ||
+      typeof files_changed !== "number" ||
+      typeof additions !== "number" ||
+      typeof deletions !== "number"
+    ) {
+      return null;
+    }
+
+    const parentsRaw = r.parents;
+    const parents = Array.isArray(parentsRaw)
+      ? parentsRaw.filter((p): p is string => typeof p === "string")
+      : [];
+
+    const filePathsRaw = r.file_paths;
+    const file_paths = Array.isArray(filePathsRaw)
+      ? filePathsRaw.filter((p): p is string => typeof p === "string")
+      : undefined;
+
+    commits.push({
+      sha,
+      message,
+      author_date,
+      committer_date,
+      author_email,
+      files_changed,
+      additions,
+      deletions,
+      parents,
+      ...(file_paths ? { file_paths } : {}),
+    });
+  }
+
+  return commits;
+}
+
+async function rebuildUserProfileIfNeeded(args: {
+  userId: string;
+  triggerJobId: string;
+}): Promise<{ profileJobIds: string[]; profile: ReturnType<typeof aggregateUserProfile> } | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return null;
+
+  const supabase = createClient(url, serviceKey);
+
+  const { data: completedJobsData, error: jobsError } = await supabase
+    .from("analysis_jobs")
+    .select("id, repo_id, commit_count, completed_at")
+    .eq("user_id", args.userId)
+    .eq("status", "done");
+
+  if (jobsError || !completedJobsData || completedJobsData.length === 0) return null;
+
+  const completedJobs = completedJobsData as DoneJobRow[];
+
+  const repoIds = Array.from(
+    new Set(completedJobs.map((j) => j.repo_id).filter((id): id is string => typeof id === "string"))
+  );
+
+  const { data: reposData } = await supabase.from("repos").select("id, full_name").in("id", repoIds);
+  const repoNameById = new Map<string, string>();
+  for (const r of (reposData ?? []) as RepoNameRow[]) {
+    repoNameById.set(r.id, r.full_name);
+  }
+
+  const jobIds = completedJobs.map((j) => j.id);
+
+  const { data: vibeInsightsData } = await supabase
+    .from("vibe_insights")
+    .select(
+      "job_id, axes_json, persona_id, persona_name, persona_tagline, persona_confidence, persona_score, cards_json"
+    )
+    .in("job_id", jobIds);
+
+  const vibeInsights = (vibeInsightsData ?? []) as VibeInsightsRow[];
+  const vibeInsightByJobId = new Map<string, VibeInsightsRow>();
+  for (const insight of vibeInsights) {
+    vibeInsightByJobId.set(insight.job_id, insight);
+  }
+
+  const missingJobIds = jobIds.filter((jobId) => !vibeInsightByJobId.has(jobId));
+  const { data: metricsData } =
+    missingJobIds.length > 0
+      ? await supabase.from("analysis_metrics").select("job_id, events_json, metrics_json").in("job_id", missingJobIds)
+      : { data: [] as MetricsRow[] };
+
+  const metricsByJobId = new Map<string, MetricsRow>();
+  for (const row of (metricsData ?? []) as MetricsRow[]) {
+    metricsByJobId.set(row.job_id, row);
+  }
+
+  const computedByJobId = new Map<string, ReturnType<typeof computeVibeFromCommits>>();
+  for (const jobId of missingJobIds) {
+    const row = metricsByJobId.get(jobId);
+    const commits = row ? toCommitEvents(row.events_json) : null;
+    if (!commits) continue;
+    computedByJobId.set(jobId, computeVibeFromCommits({ commits, episodeGapHours: 4 }));
+  }
+
+  const commitCountByJobId = new Map<string, number>();
+  for (const row of (metricsData ?? []) as MetricsRow[]) {
+    const metricsJson = row.metrics_json;
+    if (typeof metricsJson !== "object" || metricsJson === null) continue;
+    const totalCommits = (metricsJson as { total_commits?: unknown }).total_commits;
+    if (typeof totalCommits === "number") commitCountByJobId.set(row.job_id, totalCommits);
+  }
+
+  const repoInsights: RepoInsightSummary[] = [];
+
+  for (const job of completedJobs) {
+    const repoName = repoNameById.get(job.repo_id) ?? "Unknown";
+    const commitCount = job.commit_count ?? commitCountByJobId.get(job.id) ?? 0;
+
+    const vibeInsight = vibeInsightByJobId.get(job.id);
+    if (vibeInsight) {
+      repoInsights.push({
+        jobId: job.id,
+        repoName,
+        commitCount,
+        axes: vibeInsight.axes_json as VibeAxes,
+        persona: {
+          id: vibeInsight.persona_id,
+          name: vibeInsight.persona_name,
+          tagline: vibeInsight.persona_tagline ?? "",
+          confidence: vibeInsight.persona_confidence as "high" | "medium" | "low",
+          score: vibeInsight.persona_score ?? 0,
+          matched_rules: [],
+          why: [],
+          caveats: [],
+        } as VibePersona,
+        analyzedAt: job.completed_at ?? new Date().toISOString(),
+      });
+      continue;
+    }
+
+    const computed = computedByJobId.get(job.id);
+    if (computed) {
+      repoInsights.push({
+        jobId: job.id,
+        repoName,
+        commitCount,
+        axes: computed.axes,
+        persona: computed.persona,
+        analyzedAt: job.completed_at ?? new Date().toISOString(),
+      });
+    }
+  }
+
+  if (repoInsights.length === 0) return null;
+
+  const profile = aggregateUserProfile(repoInsights);
+
+  await supabase.from("user_profiles").upsert(
+    {
+      user_id: args.userId,
+      total_commits: profile.totalCommits,
+      total_repos: profile.totalRepos,
+      job_ids: profile.jobIds,
+      axes_json: profile.axes,
+      persona_id: profile.persona.id,
+      persona_name: profile.persona.name,
+      persona_tagline: profile.persona.tagline,
+      persona_confidence: profile.persona.confidence,
+      persona_score: profile.persona.score,
+      repo_personas_json: profile.repoBreakdown,
+      cards_json: profile.cards,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+
+  await supabase.from("user_profile_history").insert({
+    user_id: args.userId,
+    profile_snapshot: profile,
+    trigger_job_id: args.triggerJobId,
+  });
+
+  return { profileJobIds: profile.jobIds, profile };
+}
 
 export async function GET(
   _request: Request,
@@ -102,9 +339,16 @@ export async function GET(
       .single();
 
     const profile = profileData as UserProfileRow | null;
-    const profileJobIds = Array.isArray(profile?.job_ids)
+    let profileJobIds = Array.isArray(profile?.job_ids)
       ? profile?.job_ids.filter((v): v is string => typeof v === "string")
       : null;
+
+    if (!profileJobIds || !profileJobIds.includes(id)) {
+      const rebuilt = await rebuildUserProfileIfNeeded({ userId: user.id, triggerJobId: id });
+      if (rebuilt) {
+        profileJobIds = rebuilt.profileJobIds;
+      }
+    }
 
     const metricsTotalCommits = (() => {
       if (!m || typeof m !== "object") return null;
