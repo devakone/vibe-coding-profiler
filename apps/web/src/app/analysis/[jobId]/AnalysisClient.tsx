@@ -27,6 +27,16 @@ type StoryMeta = {
   llm_reason: string;
 };
 
+type ProfileMeta = {
+  needsRebuild: boolean;
+  willUseLlm: boolean;
+  llmExhausted: boolean;
+  reposWithLlm: number;
+  repoLimit: number;
+  llmSource: string;
+  llmReason: string;
+};
+
 type ProfileContribution = {
   repoName: string | null;
   jobCommitCount: number | null;
@@ -157,6 +167,19 @@ function isReportRow(v: unknown): v is ReportRow {
 function isStoryMeta(v: unknown): v is StoryMeta {
   if (!isRecord(v)) return false;
   return typeof v.llm_used === "boolean" && typeof v.llm_reason === "string";
+}
+
+function isProfileMeta(v: unknown): v is ProfileMeta {
+  if (!isRecord(v)) return false;
+  return (
+    typeof v.needsRebuild === "boolean" &&
+    typeof v.willUseLlm === "boolean" &&
+    typeof v.llmExhausted === "boolean" &&
+    typeof v.reposWithLlm === "number" &&
+    typeof v.repoLimit === "number" &&
+    typeof v.llmSource === "string" &&
+    typeof v.llmReason === "string"
+  );
 }
 
 function isCommitEvent(v: unknown): v is CommitEvent {
@@ -524,6 +547,10 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
   const [regeneratingStory, setRegeneratingStory] = useState(false);
   const [regenerateStoryError, setRegenerateStoryError] = useState<string | null>(null);
   const [regenerateStoryMeta, setRegenerateStoryMeta] = useState<StoryMeta | null>(null);
+  const [showLlmWarningModal, setShowLlmWarningModal] = useState(false);
+  const [pendingProfileMeta, setPendingProfileMeta] = useState<ProfileMeta | null>(null);
+  const [rebuildingProfile, setRebuildingProfile] = useState(false);
+  const [profileRebuildStatus, setProfileRebuildStatus] = useState<"idle" | "success" | "error">("idle");
 
   useEffect(() => {
     setShareOrigin(window.location.origin);
@@ -749,13 +776,37 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
     }
   };
 
-  const handleRegenerateStory = async () => {
+  const triggerProfileRebuild = async () => {
+    setRebuildingProfile(true);
+    setProfileRebuildStatus("idle");
+    try {
+      const res = await fetch("/api/profile/rebuild", { method: "POST" });
+      if (!res.ok) {
+        setProfileRebuildStatus("error");
+      } else {
+        setProfileRebuildStatus("success");
+      }
+    } catch {
+      setProfileRebuildStatus("error");
+    } finally {
+      setRebuildingProfile(false);
+      // Auto-clear success status after 4 seconds
+      setTimeout(() => setProfileRebuildStatus("idle"), 4000);
+    }
+  };
+
+  const executeRegenerateStory = async () => {
     setRegenerateStoryError(null);
     setRegenerateStoryMeta(null);
     setRegeneratingStory(true);
     try {
       const res = await fetch(`/api/analysis/${jobId}/regenerate-story`, { method: "POST" });
-      const payload = (await res.json()) as { report?: unknown; story?: unknown; error?: string };
+      const payload = (await res.json()) as {
+        report?: unknown;
+        story?: unknown;
+        profile?: unknown;
+        error?: string;
+      };
       if (!res.ok) throw new Error(payload.error ?? "Failed to regenerate story");
       if (payload.report) {
         setData((prev) => (prev ? { ...prev, report: payload.report } : prev));
@@ -763,11 +814,65 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
       if (payload.story && isStoryMeta(payload.story)) {
         setRegenerateStoryMeta(payload.story);
       }
+      // Auto-trigger profile rebuild after story regeneration
+      if (payload.profile && isProfileMeta(payload.profile) && payload.profile.needsRebuild) {
+        triggerProfileRebuild();
+      }
     } catch (e) {
       setRegenerateStoryError(e instanceof Error ? e.message : "Failed to regenerate story");
     } finally {
       setRegeneratingStory(false);
     }
+  };
+
+  const handleRegenerateStory = async () => {
+    // Check if we need to show warning modal first
+    // We need to get profile status before regenerating
+    setRegenerateStoryError(null);
+    setRegenerateStoryMeta(null);
+    setRegeneratingStory(true);
+    try {
+      const res = await fetch(`/api/analysis/${jobId}/regenerate-story`, { method: "POST" });
+      const payload = (await res.json()) as {
+        report?: unknown;
+        story?: unknown;
+        profile?: unknown;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(payload.error ?? "Failed to regenerate story");
+
+      // Check if profile will lose LLM and show warning
+      const profileInfo = payload.profile && isProfileMeta(payload.profile) ? payload.profile : null;
+      if (profileInfo && profileInfo.llmExhausted && !profileInfo.willUseLlm) {
+        // Show warning modal for future regenerations
+        setPendingProfileMeta(profileInfo);
+      }
+
+      if (payload.report) {
+        setData((prev) => (prev ? { ...prev, report: payload.report } : prev));
+      }
+      if (payload.story && isStoryMeta(payload.story)) {
+        setRegenerateStoryMeta(payload.story);
+      }
+      // Auto-trigger profile rebuild after story regeneration
+      if (profileInfo && profileInfo.needsRebuild) {
+        triggerProfileRebuild();
+      }
+    } catch (e) {
+      setRegenerateStoryError(e instanceof Error ? e.message : "Failed to regenerate story");
+    } finally {
+      setRegeneratingStory(false);
+    }
+  };
+
+  const handleConfirmRegenerateWithWarning = () => {
+    setShowLlmWarningModal(false);
+    executeRegenerateStory();
+  };
+
+  const handleCancelRegenerateWithWarning = () => {
+    setShowLlmWarningModal(false);
+    setPendingProfileMeta(null);
   };
 
   useEffect(() => {
@@ -838,6 +943,86 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* LLM Warning Modal */}
+      {showLlmWarningModal && pendingProfileMeta ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-black/5 bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-zinc-900">Profile LLM Limit Reached</h3>
+            <p className="mt-3 text-sm text-zinc-600">
+              You have analyzed {pendingProfileMeta.reposWithLlm} repos with LLM-generated reports,
+              exceeding the free limit of {pendingProfileMeta.repoLimit} repos.
+            </p>
+            <p className="mt-3 text-sm text-zinc-600">
+              Regenerating this story will rebuild your Vibed profile using a{" "}
+              <span className="font-semibold">non-LLM generated narrative</span>. Your previous
+              LLM-generated profile versions will remain accessible in your profile history.
+            </p>
+            <p className="mt-3 text-sm text-zinc-700">
+              To continue using LLM-generated narratives, add your own API key in Settings.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                className="flex-1 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                onClick={handleCancelRegenerateWithWarning}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95"
+                onClick={handleConfirmRegenerateWithWarning}
+              >
+                Continue anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Profile Rebuild Notification */}
+      {(rebuildingProfile || profileRebuildStatus !== "idle") ? (
+        <div
+          className={`rounded-2xl border p-4 ${
+            profileRebuildStatus === "error"
+              ? "border-red-200 bg-red-50"
+              : profileRebuildStatus === "success"
+                ? "border-green-200 bg-green-50"
+                : "border-fuchsia-200 bg-fuchsia-50"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            {rebuildingProfile ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-fuchsia-200 border-t-fuchsia-500" />
+                <p className="text-sm font-medium text-fuchsia-800">
+                  Rebuilding your Vibed profile with latest analysis...
+                </p>
+              </>
+            ) : profileRebuildStatus === "success" ? (
+              <p className="text-sm font-medium text-green-800">
+                Your Vibed profile has been updated with the latest analysis.
+              </p>
+            ) : profileRebuildStatus === "error" ? (
+              <p className="text-sm font-medium text-red-800">
+                Failed to rebuild your Vibed profile. Please try again later.
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Pending Profile LLM Warning Banner */}
+      {pendingProfileMeta && !showLlmWarningModal && pendingProfileMeta.llmExhausted && !pendingProfileMeta.willUseLlm ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-medium text-amber-800">
+            Your Vibed profile is now using a non-LLM narrative because you've exceeded the
+            free limit of {pendingProfileMeta.repoLimit} repos. Add your own API key in Settings
+            to restore LLM-generated profiles.
+          </p>
+        </div>
+      ) : null}
+
       {job.status === "done" && events.length > 0 ? (
         <>
           <div className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-white shadow-sm">

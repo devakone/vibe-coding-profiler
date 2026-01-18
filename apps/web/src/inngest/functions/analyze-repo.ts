@@ -23,7 +23,12 @@ import {
   type VibeCommitEvent,
   type VibePersona,
 } from "@vibed/core";
-import { resolveLLMConfig, recordLLMUsage } from "@/lib/llm-config";
+import { resolveLLMConfig, resolveProfileLLMConfig, recordLLMUsage } from "@/lib/llm-config";
+import {
+  generateProfileNarrativeWithLLM,
+  toProfileNarrativeFallback,
+  type ProfileNarrative,
+} from "@/lib/profile-narrative";
 
 const ANALYZER_VERSION = "0.2.0-inngest";
 
@@ -1075,7 +1080,69 @@ export const analyzeRepo = inngest.createFunction(
       // Aggregate profile
       const profile = aggregateUserProfile(effectiveRepoInsights);
 
-      // Upsert user_profiles
+      // Resolve LLM config for profile narrative generation
+      const profileLlmResolution = await resolveProfileLLMConfig(userId);
+      let profileNarrative: ProfileNarrative | null = null;
+      let profileLlmModelUsed: string | null = null;
+      const profileLlmKeySource: LLMKeySource = profileLlmResolution.source;
+
+      // Generate LLM narrative if available
+      if (profileLlmResolution.config) {
+        const llmConfig = profileLlmResolution.config;
+        const modelCandidates = getModelCandidates(llmConfig.provider);
+
+        for (const candidate of modelCandidates) {
+          try {
+            const result = await generateProfileNarrativeWithLLM({
+              provider: llmConfig.provider,
+              apiKey: llmConfig.apiKey,
+              model: candidate,
+              profile,
+            });
+
+            if (result) {
+              profileNarrative = result.narrative;
+              profileLlmModelUsed = candidate;
+
+              // Record successful usage
+              await recordLLMUsage({
+                userId,
+                provider: llmConfig.provider,
+                model: candidate,
+                keySource: profileLlmKeySource,
+                inputTokens: result.inputTokens,
+                outputTokens: result.outputTokens,
+                success: true,
+              });
+              break;
+            }
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Unknown error";
+            console.warn(`Profile LLM model ${candidate} failed:`, errorMessage);
+
+            await recordLLMUsage({
+              userId,
+              provider: llmConfig.provider,
+              model: candidate,
+              keySource: profileLlmKeySource,
+              success: false,
+              errorMessage,
+            });
+            continue;
+          }
+        }
+      }
+
+      // Use fallback narrative if LLM didn't generate one
+      const finalNarrative = profileNarrative ?? toProfileNarrativeFallback({
+        persona: profile.persona,
+        axes: profile.axes,
+        totalCommits: profile.totalCommits,
+        totalRepos: profile.totalRepos,
+        repoBreakdown: profile.repoBreakdown,
+      });
+
+      // Upsert user_profiles with LLM narrative
       const { error: profileError } = await supabase.from("user_profiles").upsert(
         {
           user_id: userId,
@@ -1090,6 +1157,9 @@ export const analyzeRepo = inngest.createFunction(
           persona_score: profile.persona.score,
           repo_personas_json: profile.repoBreakdown,
           cards_json: profile.cards,
+          narrative_json: finalNarrative,
+          llm_model: profileLlmModelUsed,
+          llm_key_source: profileLlmKeySource,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" }
@@ -1100,18 +1170,26 @@ export const analyzeRepo = inngest.createFunction(
         console.warn("Failed to save user profile:", profileError.message);
       }
 
-      // Save profile history snapshot
+      // Include narrative in the snapshot for history
+      const profileSnapshot = {
+        ...profile,
+        narrative: finalNarrative,
+      };
+
+      // Save profile history snapshot with LLM metadata
       const { error: historyError } = await supabase.from("user_profile_history").insert({
         user_id: userId,
-        profile_snapshot: profile,
+        profile_snapshot: profileSnapshot,
         trigger_job_id: jobId,
+        llm_model: profileLlmModelUsed,
+        llm_key_source: profileLlmKeySource,
       });
 
       if (historyError && !historyError.message.includes("does not exist")) {
         console.warn("Failed to save profile history:", historyError.message);
       }
 
-      console.log(`Updated profile for user ${userId}: ${profile.persona.name} (${profile.totalRepos} repos, ${profile.totalCommits} commits)`);
+      console.log(`Updated profile for user ${userId}: ${profile.persona.name} (${profile.totalRepos} repos, ${profile.totalCommits} commits), LLM: ${profileLlmModelUsed ?? "none"}`);
     });
 
     return {

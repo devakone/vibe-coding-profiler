@@ -127,11 +127,16 @@ export default async function AdminLLMStatusPage() {
           </p>
 
           {/* Platform Settings from Database */}
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl bg-white/50 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">Free Tier Limit</p>
               <p className="mt-1 text-2xl font-semibold text-zinc-950">{platformConfigFull.freeTierLimit}</p>
               <p className="text-xs text-zinc-500">per repo per user</p>
+            </div>
+            <div className="rounded-xl bg-white/50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">Profile LLM Limit</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-950">{platformConfigFull.profileLlmRepoLimit}</p>
+              <p className="text-xs text-zinc-500">repos for LLM profile</p>
             </div>
             <div className="rounded-xl bg-white/50 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">LLM Status</p>

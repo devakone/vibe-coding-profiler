@@ -5,12 +5,20 @@ import {
   aggregateUserProfile,
   computeVibeFromCommits,
   detectVibePersona,
+  getModelCandidates,
+  type LLMKeySource,
   type RepoInsightSummary,
   type VibeAxes,
   type VibeCommitEvent,
   type VibePersona,
 } from "@vibed/core";
 import type { Insertable, Json } from "@vibed/db";
+import { resolveProfileLLMConfig, recordLLMUsage } from "@/lib/llm-config";
+import {
+  generateProfileNarrativeWithLLM,
+  toProfileNarrativeFallback,
+  type ProfileNarrative,
+} from "@/lib/profile-narrative";
 
 export const runtime = "nodejs";
 
@@ -435,7 +443,71 @@ export async function POST(request: Request) {
       .sort((a, b) => (a.completed_at ?? "").localeCompare(b.completed_at ?? ""))
       .at(-1)?.id ?? null;
 
-  const profileRow: Insertable<"user_profiles"> = {
+  // Resolve LLM config for profile narrative generation
+  const llmResolution = await resolveProfileLLMConfig(user.id);
+  let llmNarrative: ProfileNarrative | null = null;
+  let llmModelUsed: string | null = null;
+  const llmKeySource: LLMKeySource = llmResolution.source;
+
+  // Generate LLM narrative if available
+  if (llmResolution.config) {
+    const llmConfig = llmResolution.config;
+    const modelCandidates = getModelCandidates(llmConfig.provider);
+
+    for (const candidate of modelCandidates) {
+      try {
+        const result = await generateProfileNarrativeWithLLM({
+          provider: llmConfig.provider,
+          apiKey: llmConfig.apiKey,
+          model: candidate,
+          profile,
+        });
+
+        if (result) {
+          llmNarrative = result.narrative;
+          llmModelUsed = candidate;
+
+          // Record successful usage
+          await recordLLMUsage({
+            userId: user.id,
+            provider: llmConfig.provider,
+            model: candidate,
+            keySource: llmKeySource,
+            inputTokens: result.inputTokens,
+            outputTokens: result.outputTokens,
+            success: true,
+          });
+          break;
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        console.warn(`Profile LLM model ${candidate} failed:`, errorMessage);
+
+        await recordLLMUsage({
+          userId: user.id,
+          provider: llmConfig.provider,
+          model: candidate,
+          keySource: llmKeySource,
+          success: false,
+          errorMessage,
+        });
+        continue;
+      }
+    }
+  }
+
+  // Use fallback narrative if LLM didn't generate one
+  const finalNarrative = llmNarrative ?? toProfileNarrativeFallback({
+    persona: profile.persona,
+    axes: profile.axes,
+    totalCommits: profile.totalCommits,
+    totalRepos: profile.totalRepos,
+    repoBreakdown: profile.repoBreakdown,
+  });
+
+  // Note: narrative_json, llm_model, llm_key_source columns added in migration 0017
+  // Type cast needed until DB types are regenerated
+  const profileRow = {
     user_id: user.id,
     total_commits: profile.totalCommits,
     total_repos: profile.totalRepos,
@@ -448,7 +520,14 @@ export async function POST(request: Request) {
     persona_score: profile.persona.score,
     repo_personas_json: profile.repoBreakdown as unknown as Json,
     cards_json: profile.cards as unknown as Json,
+    narrative_json: finalNarrative as unknown as Json,
+    llm_model: llmModelUsed,
+    llm_key_source: llmKeySource,
     updated_at: new Date().toISOString(),
+  } as Insertable<"user_profiles"> & {
+    narrative_json: Json;
+    llm_model: string | null;
+    llm_key_source: string;
   };
 
   const { error: profileError } = await service
@@ -459,10 +538,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "failed_to_save_profile" }, { status: 500 });
   }
 
+  // Include narrative in the snapshot for history
+  const profileSnapshot = {
+    ...profile,
+    narrative: finalNarrative,
+  };
+
   const { error: historyError } = await service.from("user_profile_history").insert({
     user_id: user.id,
-    profile_snapshot: profile as unknown as Json,
+    profile_snapshot: profileSnapshot as unknown as Json,
     trigger_job_id: triggerJobId,
+    llm_model: llmModelUsed,
+    llm_key_source: llmKeySource,
   });
 
   if (historyError && !historyError.message.toLowerCase().includes("does not exist")) {

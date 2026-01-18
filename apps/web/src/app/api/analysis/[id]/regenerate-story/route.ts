@@ -11,7 +11,15 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { generateNarrativeWithLLM, toNarrativeFallback } from "@/inngest/functions/analyze-repo";
-import { resolveLLMConfig, recordLLMUsage, getFreeTierLimit, countFreeAnalysesUsed } from "@/lib/llm-config";
+import {
+  resolveLLMConfig,
+  resolveProfileLLMConfig,
+  recordLLMUsage,
+  getFreeTierLimit,
+  countFreeAnalysesUsed,
+  countReposWithLlmReports,
+  getProfileLlmRepoLimit,
+} from "@/lib/llm-config";
 
 export const runtime = "nodejs";
 
@@ -243,6 +251,13 @@ export async function POST(
   const freeUsed = await countFreeAnalysesUsed(user.id, repoId);
   const freeLimit = await getFreeTierLimit();
 
+  // Get profile LLM status for UI
+  const profileLlmResolution = await resolveProfileLLMConfig(user.id);
+  const reposWithLlm = await countReposWithLlmReports(user.id);
+  const profileLlmRepoLimit = await getProfileLlmRepoLimit();
+  const profileWillUseLlm = profileLlmResolution.config !== null;
+  const profileLlmExhausted = reposWithLlm > profileLlmRepoLimit && profileLlmResolution.source !== "user";
+
   return NextResponse.json({
     report: {
       vibe_type: assignment.vibe_type,
@@ -262,6 +277,15 @@ export async function POST(
       used: freeUsed,
       limit: freeLimit,
       exhausted: freeUsed >= freeLimit,
+    },
+    profile: {
+      needsRebuild: true,
+      willUseLlm: profileWillUseLlm,
+      llmExhausted: profileLlmExhausted,
+      reposWithLlm,
+      repoLimit: profileLlmRepoLimit,
+      llmSource: profileLlmResolution.source,
+      llmReason: profileLlmResolution.reason,
     },
   });
 }
