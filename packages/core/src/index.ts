@@ -720,6 +720,7 @@ export function percentile(arr: number[], p: number): number {
 
 export * from "./crypto";
 export * from "./vibe";
+export * from "./llm";
 
 function mean(arr: number[]): number {
   if (arr.length === 0) return 0;
