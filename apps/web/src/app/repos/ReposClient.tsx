@@ -14,6 +14,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ToastAction } from "@/components/ui/toast";
+import { toast } from "@/components/ui/use-toast";
 
 type GithubRepo = {
   id: number;
@@ -34,18 +36,41 @@ type ConnectedRepo = {
   full_name: string;
 };
 
-const GITHUB_REPO_CACHE_KEY = "vibed.githubRepos.v1";
 const GITHUB_REPO_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 
+type GithubSyncMeta = {
+  tokenScopes: string[];
+  storedScopes: string[];
+  orgLogins: string[];
+  repoCount: number;
+  ownerCount: number;
+  orgReposInUserRepos: number;
+  orgRepoDebug: Array<{
+    org: string;
+    status: number;
+    sso?: string | null;
+    repoCount?: number | null;
+    sampleFullNames?: string[];
+  }> | null;
+};
+
+type PendingJob = {
+  jobId: string;
+  repoName: string | null;
+};
+
 export default function ReposClient(props: {
+  userId: string;
   initialConnected: ConnectedRepo[];
   latestJobByRepoId: Record<string, string>;
 }) {
   const router = useRouter();
-  const { initialConnected, latestJobByRepoId } = props;
+  const { userId, initialConnected, latestJobByRepoId } = props;
   const [repos, setRepos] = useState<GithubRepo[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncMeta, setSyncMeta] = useState<GithubSyncMeta | null>(null);
+  const [pendingJobs, setPendingJobs] = useState<PendingJob[]>([]);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [selectedFullName, setSelectedFullName] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
@@ -68,9 +93,11 @@ export default function ReposClient(props: {
     return repos.find((r) => r.full_name === selectedFullName) ?? null;
   }, [repos, selectedFullName]);
 
+  const cacheKey = useMemo(() => `vibed.githubRepos.v1.${userId}`, [userId]);
+
   const readCachedRepos = useCallback((): { repos: GithubRepo[]; syncedAt: number } | null => {
     try {
-      const raw = localStorage.getItem(GITHUB_REPO_CACHE_KEY);
+      const raw = localStorage.getItem(cacheKey);
       if (!raw) return null;
       const parsed: unknown = JSON.parse(raw);
       if (!parsed || typeof parsed !== "object") return null;
@@ -81,14 +108,32 @@ export default function ReposClient(props: {
     } catch {
       return null;
     }
-  }, []);
+  }, [cacheKey]);
 
   const writeCachedRepos = useCallback((nextRepos: GithubRepo[]) => {
     try {
       const payload = JSON.stringify({ syncedAt: Date.now(), repos: nextRepos });
-      localStorage.setItem(GITHUB_REPO_CACHE_KEY, payload);
+      localStorage.setItem(cacheKey, payload);
     } catch {}
-  }, []);
+  }, [cacheKey]);
+
+  const syncReposFromGithub = useCallback(async (opts?: { debug?: boolean }) => {
+    const url = opts?.debug ? "/api/github/sync-repos?debug=1" : "/api/github/sync-repos";
+    const res = await fetch(url, { method: "POST" });
+    const data = (await res.json()) as {
+      repos?: GithubRepo[];
+      meta?: GithubSyncMeta;
+      error?: string;
+    };
+    if (!res.ok) throw new Error(data.error || "Failed to load repos");
+    const nextRepos = data.repos ?? [];
+    setRepos(nextRepos);
+    setLastSyncedAt(Date.now());
+    writeCachedRepos(nextRepos);
+    setIsPickerOpen(false);
+    setSelectedFullName((prev) => prev ?? nextRepos[0]?.full_name ?? null);
+    if (data.meta) setSyncMeta(data.meta);
+  }, [writeCachedRepos]);
 
   const loadRepos = useCallback(
     async (opts?: { force?: boolean }) => {
@@ -101,59 +146,161 @@ export default function ReposClient(props: {
             setRepos(cached.repos);
             setLastSyncedAt(cached.syncedAt);
             setSelectedFullName((prev) => prev ?? cached.repos[0]?.full_name ?? null);
+            syncReposFromGithub().catch(() => {});
             return;
           }
         }
 
-        const res = await fetch("/api/github/sync-repos", { method: "POST" });
-        const data = (await res.json()) as { repos?: GithubRepo[]; error?: string };
-        if (!res.ok) throw new Error(data.error || "Failed to load repos");
-        const nextRepos = data.repos ?? [];
-        setRepos(nextRepos);
-        setLastSyncedAt(Date.now());
-        writeCachedRepos(nextRepos);
-        setIsPickerOpen(false);
-        setSelectedFullName((prev) => prev ?? nextRepos[0]?.full_name ?? null);
+        await syncReposFromGithub({ debug: Boolean(opts?.force) });
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load repos");
       } finally {
         setIsLoading(false);
       }
     },
-    [readCachedRepos, writeCachedRepos]
+    [readCachedRepos, syncReposFromGithub]
   );
 
   useEffect(() => {
-    const cached = readCachedRepos();
-    if (cached && Date.now() - cached.syncedAt < GITHUB_REPO_CACHE_TTL_MS) {
-      setRepos(cached.repos);
-      setLastSyncedAt(cached.syncedAt);
-      setSelectedFullName((prev) => prev ?? cached.repos[0]?.full_name ?? null);
-      return;
-    }
-
     void loadRepos();
-  }, [loadRepos, readCachedRepos]);
+  }, [loadRepos]);
+
+  async function ensureRepoConnected(repo: GithubRepo): Promise<string> {
+    const res = await fetch("/api/repos/connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        github_id: repo.id,
+        owner: repo.owner.login,
+        name: repo.name,
+        full_name: repo.full_name,
+        is_private: repo.private,
+        default_branch: repo.default_branch,
+      }),
+    });
+    const data = (await res.json()) as { repo_id?: string; error?: string };
+    if (!res.ok || !data.repo_id) throw new Error(data.error || "Failed to connect repo");
+    return data.repo_id;
+  }
+
+  async function startAnalysisJob(repoId: string, repoName?: string) {
+    const res = await fetch("/api/analysis/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repo_id: repoId }),
+    });
+    const data = (await res.json()) as { job_id?: string; error?: string };
+    if (!res.ok || !data.job_id) throw new Error(data.error || "Failed to start analysis");
+    const nextJobId = data.job_id;
+
+    setPendingJobs((prev) => [
+      { jobId: nextJobId, repoName: repoName ?? null },
+      ...prev.filter((p) => p.jobId !== nextJobId),
+    ]);
+    toast({
+      title: "Vibe check started",
+      description: repoName ? repoName : undefined,
+      action: (
+        <ToastAction altText="Open job" onClick={() => router.push(`/analysis/${nextJobId}`)}>
+          Open
+        </ToastAction>
+      ),
+    });
+  }
+
+  useEffect(() => {
+    if (pendingJobs.length === 0) return;
+
+    let cancelled = false;
+    const intervalId = window.setInterval(() => {
+      if (cancelled) return;
+
+      Promise.all(
+        pendingJobs.map(async (pending) => {
+          const res = await fetch(`/api/analysis/${pending.jobId}`, { cache: "no-store" });
+          const json = (await res.json()) as unknown;
+          if (!res.ok) return { jobId: pending.jobId, status: "error" as const, error: "not_found" };
+
+          const job = (json as { job?: unknown } | null)?.job;
+          if (!job || typeof job !== "object") {
+            return { jobId: pending.jobId, status: "error" as const, error: "invalid_response" };
+          }
+
+          const status = (job as { status?: unknown }).status;
+          const errorMessage = (job as { error_message?: unknown }).error_message;
+
+          return {
+            jobId: pending.jobId,
+            status: typeof status === "string" ? status : "error",
+            error:
+              typeof errorMessage === "string"
+                ? errorMessage
+                : typeof status === "string" && status === "error"
+                  ? "Analysis failed"
+                  : null,
+          };
+        })
+      )
+        .then((results) => {
+          if (cancelled) return;
+
+          const repoNameByJobId = new Map(pendingJobs.map((p) => [p.jobId, p.repoName]));
+          const completedJobIds = new Set(
+            results
+              .filter((r) => r.status === "done" || r.status === "error")
+              .map((r) => r.jobId)
+          );
+
+          if (completedJobIds.size === 0) return;
+
+          setPendingJobs((prev) => prev.filter((p) => !completedJobIds.has(p.jobId)));
+
+          const doneJobs = results.filter((r) => r.status === "done");
+          const errorJobs = results.filter((r) => r.status === "error");
+
+          if (doneJobs.length > 0) {
+            for (const done of doneJobs) {
+              const repoName = repoNameByJobId.get(done.jobId) ?? null;
+              toast({
+                title: "Vibe report is ready",
+                description: repoName ? repoName : undefined,
+                action: (
+                  <ToastAction altText="Open report" onClick={() => router.push(`/analysis/${done.jobId}`)}>
+                    Open
+                  </ToastAction>
+                ),
+              });
+            }
+            router.refresh();
+          }
+
+          if (errorJobs.length > 0) {
+            for (const err of errorJobs) {
+              const repoName = repoNameByJobId.get(err.jobId) ?? null;
+              toast({
+                variant: "destructive",
+                title: "Vibe check failed",
+                description: [repoName, err.error ?? "Analysis failed."].filter(Boolean).join(" · "),
+              });
+            }
+          }
+        })
+        .catch(() => {});
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [pendingJobs, router]);
 
   async function connectRepo(repo: GithubRepo) {
     setIsLoading(true);
     setError(null);
 
     try {
-      const res = await fetch("/api/repos/connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          github_id: repo.id,
-          owner: repo.owner.login,
-          name: repo.name,
-          full_name: repo.full_name,
-          is_private: repo.private,
-          default_branch: repo.default_branch,
-        }),
-      });
-      const data = (await res.json()) as { repo_id?: string; error?: string };
-      if (!res.ok || !data.repo_id) throw new Error(data.error || "Failed to connect repo");
+      await ensureRepoConnected(repo);
+      setSelectedFullName(null);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to connect repo");
@@ -162,18 +309,33 @@ export default function ReposClient(props: {
     }
   }
 
-  async function startAnalysis(repoId: string) {
+  async function disconnectRepo(repoId: string) {
     setIsLoading(true);
     setError(null);
+
     try {
-      const res = await fetch("/api/analysis/start", {
+      const res = await fetch("/api/repos/disconnect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ repo_id: repoId }),
       });
-      const data = (await res.json()) as { job_id?: string; error?: string };
-      if (!res.ok || !data.job_id) throw new Error(data.error || "Failed to start analysis");
-      router.push(`/analysis/${data.job_id}`);
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) throw new Error(data.error || "Failed to remove repo");
+
+      router.refresh();
+      fetch("/api/profile/rebuild", { method: "POST" }).catch(() => {});
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to remove repo");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function startAnalysis(repoId: string, repoName?: string) {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await startAnalysisJob(repoId, repoName);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to start analysis");
     } finally {
@@ -186,14 +348,6 @@ export default function ReposClient(props: {
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          className="rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
-          onClick={() => loadRepos()}
-          disabled={isLoading}
-        >
-          {isLoading ? "Loading..." : "Refresh"}
-        </button>
-        <button
-          type="button"
           className="rounded-full border border-black/10 bg-white/80 px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm backdrop-blur transition hover:bg-white disabled:opacity-60"
           onClick={() => loadRepos({ force: true })}
           disabled={isLoading}
@@ -204,10 +358,34 @@ export default function ReposClient(props: {
           Choose a safe repo. Avoid work, NDA, or sensitive repos.
           {" "}Repos are cached for 24 hours.
           {lastSyncedAt ? ` · Last synced ${new Date(lastSyncedAt).toLocaleDateString()}` : ""}
+          {syncMeta
+            ? ` · Token scopes: ${syncMeta.tokenScopes.join(", ") || "none"} · Orgs: ${syncMeta.orgLogins.length} · Org repos in list: ${syncMeta.orgReposInUserRepos}/${syncMeta.repoCount}`
+            : ""}
         </p>
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {syncMeta?.orgRepoDebug ? (
+        <div className="rounded-2xl border border-black/5 bg-white/70 p-4 text-sm text-zinc-800 shadow-sm backdrop-blur">
+          <p className="font-semibold text-zinc-950">GitHub org repo debug</p>
+          <div className="mt-2 space-y-2">
+            {syncMeta.orgRepoDebug.map((row) => (
+              <div key={row.org} className="space-y-1">
+                <p>
+                  {row.org}: HTTP {row.status}
+                  {row.sso ? ` · ${row.sso}` : ""}
+                  {typeof row.repoCount === "number" ? ` · repos returned: ${row.repoCount}` : ""}
+                </p>
+                {row.sampleFullNames && row.sampleFullNames.length > 0 ? (
+                  <p className="text-xs text-zinc-600">
+                    Sample: {row.sampleFullNames.join(", ")}
+                  </p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-zinc-950">Your repos</h2>
@@ -234,21 +412,39 @@ export default function ReposClient(props: {
                       <button
                         type="button"
                         className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur disabled:opacity-60"
-                        onClick={() => startAnalysis(r.repo_id)}
+                      onClick={() => startAnalysis(r.repo_id, r.full_name)}
                         disabled={isLoading}
                       >
                         Re-run
                       </button>
+                      <button
+                        type="button"
+                        className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur transition hover:bg-white disabled:opacity-60"
+                        onClick={() => disconnectRepo(r.repo_id)}
+                        disabled={isLoading}
+                      >
+                        Remove
+                      </button>
                     </>
                   ) : (
-                    <button
-                      type="button"
-                      className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur disabled:opacity-60"
-                      onClick={() => startAnalysis(r.repo_id)}
-                      disabled={isLoading}
-                    >
-                      Get vibe
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur disabled:opacity-60"
+                      onClick={() => startAnalysis(r.repo_id, r.full_name)}
+                        disabled={isLoading}
+                      >
+                        Get vibe
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur transition hover:bg-white disabled:opacity-60"
+                        onClick={() => disconnectRepo(r.repo_id)}
+                        disabled={isLoading}
+                      >
+                        Remove
+                      </button>
+                    </>
                   )}
                 </div>
               </li>
@@ -258,7 +454,7 @@ export default function ReposClient(props: {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-zinc-950">Find a GitHub repo</h2>
+        <h2 className="text-lg font-semibold text-zinc-950">Add a repo</h2>
         {repos === null ? (
           <p className="text-sm text-zinc-700">
             Loading your repositories…
@@ -335,78 +531,53 @@ export default function ReposClient(props: {
                 </Command>
               </PopoverContent>
             </Popover>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className={`${wrappedTheme.primaryButtonSm} disabled:opacity-60`}
+                onClick={() => {
+                  if (!selectedRepo) return;
+                  const connectedRepoId = connectedByFullName.get(selectedRepo.full_name);
+                  if (connectedRepoId) {
+                    void startAnalysis(connectedRepoId, selectedRepo.full_name);
+                    return;
+                  }
 
-            {selectedRepo ? (
-              <div className="rounded-2xl border border-black/5 bg-white/70 p-4 shadow-sm backdrop-blur">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-zinc-950">
-                      {selectedRepo.full_name}
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-600">
-                      {selectedRepo.private ? "Private" : "Public"}
-                      {selectedRepo.language ? ` · ${selectedRepo.language}` : ""}
-                      {formatWhen(selectedRepo.pushed_at ?? selectedRepo.updated_at)
-                        ? ` · Updated ${formatWhen(selectedRepo.pushed_at ?? selectedRepo.updated_at)}`
-                        : ""}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    {(() => {
-                      const connectedRepoId = connectedByFullName.get(selectedRepo.full_name);
-                      if (!connectedRepoId) {
-                        return (
-                          <button
-                            type="button"
-                            className={`${wrappedTheme.primaryButtonSm} disabled:opacity-60`}
-                            onClick={() => connectRepo(selectedRepo)}
-                            disabled={isLoading}
-                          >
-                            Add to profile
-                          </button>
-                        );
-                      }
-
-                      const jobId = latestJobByRepoId[connectedRepoId];
-                      if (jobId) {
-                        return (
-                          <>
-                            <button
-                              type="button"
-                              className={`${wrappedTheme.primaryButtonSm} disabled:opacity-60`}
-                              onClick={() => router.push(`/analysis/${jobId}`)}
-                              disabled={isLoading}
-                            >
-                              View vibe
-                            </button>
-                            <button
-                              type="button"
-                              className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur disabled:opacity-60"
-                              onClick={() => startAnalysis(connectedRepoId)}
-                              disabled={isLoading}
-                            >
-                              Re-run
-                            </button>
-                          </>
-                        );
-                      }
-
-                      return (
-                        <button
-                          type="button"
-                          className={`${wrappedTheme.primaryButtonSm} disabled:opacity-60`}
-                          onClick={() => startAnalysis(connectedRepoId)}
-                          disabled={isLoading}
-                        >
-                          Get vibe
-                        </button>
-                      );
-                    })()}
-                  </div>
-                </div>
-              </div>
-            ) : null}
+                  setIsLoading(true);
+                  setError(null);
+                  ensureRepoConnected(selectedRepo)
+                    .then((repoId) => {
+                      setSelectedFullName(null);
+                      router.refresh();
+                      return startAnalysisJob(repoId, selectedRepo.full_name);
+                    })
+                    .catch((e) => {
+                      setError(e instanceof Error ? e.message : "Failed to start analysis");
+                    })
+                    .finally(() => {
+                      setIsLoading(false);
+                    });
+                }}
+                disabled={isLoading || !selectedRepo}
+              >
+                Add and get vibe
+              </button>
+              <button
+                type="button"
+                className={cn(wrappedTheme.secondaryButton, "px-4 py-1.5", "disabled:opacity-60")}
+                onClick={() => {
+                  if (!selectedRepo) return;
+                  const connectedRepoId = connectedByFullName.get(selectedRepo.full_name);
+                  if (connectedRepoId) return;
+                  void connectRepo(selectedRepo);
+                }}
+                disabled={
+                  isLoading || !selectedRepo || Boolean(selectedRepo && connectedByFullName.get(selectedRepo.full_name))
+                }
+              >
+                Add to profile
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -434,38 +434,47 @@ export const analyzeRepo = inngest.createFunction(
 
     // Step 6: Update user's aggregated profile
     await step.run("update-user-profile", async () => {
-      const { data: connectedUserRepos, error: connectedReposError } = await supabase
+      const { data: userRepos, error: userReposError } = await supabase
         .from("user_repos")
-        .select("repo_id")
-        .eq("user_id", userId)
-        .is("disconnected_at", null);
+        .select("repo_id, disconnected_at")
+        .eq("user_id", userId);
 
-      if (connectedReposError) {
-        throw new Error(`Failed to load connected repos: ${connectedReposError.message}`);
+      if (userReposError) {
+        throw new Error(`Failed to load user repos: ${userReposError.message}`);
       }
 
-      const connectedRepoIds = (connectedUserRepos ?? [])
-        .map((r) => r.repo_id)
-        .filter((id): id is string => Boolean(id));
-
-      if (connectedRepoIds.length === 0) {
-        return;
-      }
+      const disconnectedRepoIds = new Set(
+        (userRepos ?? [])
+          .filter((r) => r.disconnected_at != null)
+          .map((r) => r.repo_id)
+          .filter((id): id is string => Boolean(id))
+      );
 
       // Fetch all completed jobs for this user
       const { data: completedJobs, error: jobsError } = await supabase
         .from("analysis_jobs")
         .select("id, repo_id, commit_count, completed_at")
         .eq("user_id", userId)
-        .eq("status", "done")
-        .in("repo_id", connectedRepoIds);
+        .eq("status", "done");
 
       if (jobsError || !completedJobs || completedJobs.length === 0) {
         console.log("No completed jobs to aggregate");
         return;
       }
 
-      const jobsMissingCommitCount = completedJobs.filter((j) => j.commit_count == null).map((j) => j.id);
+      const includedJobs = completedJobs.filter((job) => {
+        const repoId = job.repo_id;
+        if (typeof repoId !== "string") return false;
+        if (disconnectedRepoIds.has(repoId)) return false;
+        return true;
+      });
+
+      if (includedJobs.length === 0) {
+        console.log("No eligible jobs to aggregate");
+        return;
+      }
+
+      const jobsMissingCommitCount = includedJobs.filter((j) => j.commit_count == null).map((j) => j.id);
       const { data: metricsData } =
         jobsMissingCommitCount.length > 0
           ? await supabase
@@ -487,7 +496,7 @@ export const analyzeRepo = inngest.createFunction(
       }
 
       // Fetch repo names
-      const repoIds = completedJobs.map((j) => j.repo_id).filter(Boolean);
+      const repoIds = includedJobs.map((j) => j.repo_id).filter(Boolean);
       const { data: repos } = await supabase
         .from("repos")
         .select("id, full_name")
@@ -499,7 +508,7 @@ export const analyzeRepo = inngest.createFunction(
       }
 
       // Fetch vibe insights for each job (prefer vibe_insights, fall back to analysis_insights)
-      const jobIds = completedJobs.map((j) => j.id);
+      const jobIds = includedJobs.map((j) => j.id);
 
       // Try vibe_insights first
       const { data: vibeInsightsData } = await supabase
@@ -642,7 +651,7 @@ export const analyzeRepo = inngest.createFunction(
       // Build RepoInsightSummary array
       const repoInsights: RepoInsightSummary[] = [];
 
-      for (const job of completedJobs) {
+      for (const job of includedJobs) {
         const repoName = repoNameById.get(job.repo_id) ?? "Unknown";
         const commitCount = job.commit_count ?? commitCountByJobId.get(job.id) ?? 0;
 

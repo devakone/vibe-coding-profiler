@@ -56,7 +56,11 @@ export default async function ReposPage() {
           </p>
         </header>
 
-        <ReposClient initialConnected={initialConnected} latestJobByRepoId={latestJobByRepoId} />
+        <ReposClient
+          userId={user.id}
+          initialConnected={initialConnected}
+          latestJobByRepoId={latestJobByRepoId}
+        />
       </div>
     </div>
   );

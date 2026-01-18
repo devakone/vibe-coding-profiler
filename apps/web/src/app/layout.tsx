@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { wrappedTheme } from "@/lib/theme";
+import { Toaster } from "@/components/ui/toaster";
 import AppHeader from "./AppHeader";
 import "./globals.css";
 
@@ -72,6 +73,7 @@ export default async function RootLayout({
         </div>
         <AppHeader isAuthed={Boolean(user)} signOut={signOut} />
         {children}
+        <Toaster />
       </body>
     </html>
   );

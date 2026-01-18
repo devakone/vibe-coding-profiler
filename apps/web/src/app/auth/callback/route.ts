@@ -5,6 +5,23 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
+async function fetchGithubTokenScopes(token: string): Promise<string[]> {
+  const res = await fetch("https://api.github.com/user", {
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+    cache: "no-store",
+  });
+
+  const rawScopes = res.headers.get("x-oauth-scopes") ?? "";
+  return rawScopes
+    .split(",")
+    .map((scope) => scope.trim())
+    .filter(Boolean);
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -36,6 +53,7 @@ export async function GET(request: Request) {
   if (providerToken && userId && encryptionKey) {
     const service = createSupabaseServiceClient();
     const encryptedToken = encryptString(providerToken, encryptionKey);
+    const scopes = await fetchGithubTokenScopes(providerToken).catch(() => []);
 
     const { data: userRow } = await service
       .from("users")
@@ -51,7 +69,7 @@ export async function GET(request: Request) {
           user_id: userId,
           github_user_id: githubUserId,
           encrypted_token: encryptedToken,
-          scopes: [],
+          scopes,
         },
         { onConflict: "user_id" }
       );

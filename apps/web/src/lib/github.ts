@@ -33,13 +33,15 @@ async function githubFetch<T>(url: string, token: string): Promise<T> {
 export async function fetchGithubRepos(token: string): Promise<GithubRepoSummary[]> {
   const repos: GithubRepoSummary[] = [];
   let page = 1;
+  const maxPages = 20;
 
-  while (page <= 5) {
+  while (page <= maxPages) {
     const url = new URL("https://api.github.com/user/repos");
     url.searchParams.set("per_page", "100");
     url.searchParams.set("page", String(page));
     url.searchParams.set("sort", "updated");
     url.searchParams.set("affiliation", "owner,collaborator,organization_member");
+    url.searchParams.set("visibility", "all");
 
     const batch = await githubFetch<GithubRepoSummary[]>(url.toString(), token);
     repos.push(...batch);
