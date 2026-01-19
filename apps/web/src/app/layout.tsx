@@ -22,12 +22,12 @@ const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:8108";
 export const metadata: Metadata = {
   title: "Vibed Coding · Your AI coding profile",
   description:
-    "Turn your commit history into a Vibed Coding Profile — persona, patterns, and shareable vibe stories grounded in commit evidence.",
+    "Turn your commit history into a Vibed Coding Persona — patterns, insights, and shareable profiles grounded in commit evidence.",
   metadataBase: new URL(appUrl),
   openGraph: {
     title: "Vibed Coding · Your AI coding profile",
     description:
-      "A shareable Vibed Coding Profile from your commit history — persona, patterns, and stories grounded in evidence.",
+      "A shareable Vibed Coding Persona from your commit history — patterns and insights grounded in evidence.",
     url: appUrl,
     locale: "en_US",
     type: "website",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Vibed Coding · Your AI coding profile",
     description:
-      "A shareable Vibed Coding Profile from your commit history — persona, patterns, and stories grounded in evidence.",
+      "A shareable Vibed Coding Persona from your commit history — patterns and insights grounded in evidence.",
   },
 };
 

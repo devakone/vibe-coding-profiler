@@ -953,7 +953,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
               exceeding the free limit of {pendingProfileMeta.repoLimit} repos.
             </p>
             <p className="mt-3 text-sm text-zinc-600">
-              Regenerating this story will rebuild your Vibed profile using a{" "}
+              Regenerating will rebuild your aggregate Vibed profile using a{" "}
               <span className="font-semibold">non-LLM generated narrative</span>. Your previous
               LLM-generated profile versions will remain accessible in your profile history.
             </p>
@@ -1173,7 +1173,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
               <div className="mt-6 rounded-2xl border border-black/5 bg-white/60 p-5 backdrop-blur">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Story</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Narrative</p>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-xs text-zinc-500">
                       {parsedReport?.llm_model && parsedReport.llm_model !== "none"
@@ -1186,7 +1186,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                       onClick={handleRegenerateStory}
                       disabled={regeneratingStory}
                     >
-                      {regeneratingStory ? "Regenerating…" : "Regenerate story"}
+                      {regeneratingStory ? "Regenerating…" : "Regenerate"}
                     </button>
                   </div>
                 </div>
@@ -1221,7 +1221,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                     {sections.length > 3 ? (
                       <details className="rounded-2xl border border-black/5 bg-white/60 p-4">
                         <summary className="cursor-pointer text-sm font-semibold text-zinc-900">
-                          More story sections
+                          More sections
                         </summary>
                         <div className="mt-4 flex flex-col gap-5">
                           {sections.slice(3).map((s, idx) => (
@@ -1249,7 +1249,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                     ) : null}
                   </div>
                 ) : (
-                  <p className="mt-4 text-sm text-zinc-600">No story is available for this job yet.</p>
+                  <p className="mt-4 text-sm text-zinc-600">No narrative is available for this vibed repo yet.</p>
                 )}
               </div>
 

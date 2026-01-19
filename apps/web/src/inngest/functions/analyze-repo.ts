@@ -261,7 +261,7 @@ export async function generateNarrativeWithLLM(params: {
     "Commit lines (oldest→newest, compact):",
     ...commitLines,
     "",
-    "Produce a concise story of how work progressed (what landed first, iteration loops, stabilization phases). Prefer 4-6 sections.",
+    "Produce a concise narrative of how work progressed (what landed first, iteration loops, stabilization phases). Prefer 4-6 sections.",
   ].join("\n");
 
   // Use the LLM abstraction layer

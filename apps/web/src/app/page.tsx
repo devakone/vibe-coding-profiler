@@ -22,7 +22,7 @@ const heroFeatures = [
 const timeline = [
   { title: "Connect GitHub", description: "Sign in, then pick the repos that feel like you." },
   { title: "Run a vibe check", description: "We read commit metadata and patterns (not your code)." },
-  { title: "Get your Vibed read", description: "Highlights, categories, and the story of how you build." },
+  { title: "Get your Vibed read", description: "Highlights, categories, and insights into how you build." },
   { title: "See your persona", description: "A playful archetype that changes as your work evolves." },
 ];
 
@@ -1247,7 +1247,7 @@ function AuthenticatedDashboard({
           ) : (
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/analysis" className={wrappedTheme.primaryButton}>
-                View stories
+                View vibed repos
               </Link>
               <Link href="/repos" className={wrappedTheme.secondaryButton}>
                 Add a repo
@@ -1387,7 +1387,7 @@ function AuthenticatedDashboard({
                 href="/analysis"
                 className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-white/90"
               >
-                View stories
+                View vibed repos
               </Link>
             </div>
           </div>

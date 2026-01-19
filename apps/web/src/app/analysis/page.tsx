@@ -74,13 +74,13 @@ export default async function AnalysisIndexPage() {
       <div className="mx-auto max-w-5xl space-y-8">
         <header className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
-            Stories
+            Vibed Repos
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">
-            Your Vibed stories
+            Your Vibed Repos
           </h1>
           <p className="max-w-2xl text-sm text-zinc-700 sm:text-base">
-            Each run analyzes a repo. Open one to see the vibe, confidence, and receipts.
+            Each vibed repo reveals your coding persona, confidence level, and the evidence behind it.
           </p>
         </header>
 
@@ -88,7 +88,7 @@ export default async function AnalysisIndexPage() {
           {jobs.length === 0 ? (
             <div className="flex flex-col gap-3">
               <p className="text-sm text-zinc-700">
-                No stories yet. Run your first vibe check.
+                No vibed repos yet. Run your first vibe check.
               </p>
               <Link className={wrappedTheme.primaryButtonSm} href="/repos">
                 Pick a repo
