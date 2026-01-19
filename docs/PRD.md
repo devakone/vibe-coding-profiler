@@ -409,12 +409,13 @@ $$ LANGUAGE plpgsql;
 **GitHub API limits:**
 - Authenticated requests: 5,000/hour per user token
 - We fetch commits in batches of 100 (max per page)
-- A 10,000 commit repo = 100 API calls = 2% of hourly budget
+- We use time-bucketed sampling (via `since`/`until`) to pick a representative set across repo lifetime
+- Typical Phase 0 analysis targets ~300 sampled commits per repo (with backfill from recent commits if buckets are sparse)
 
 **Mitigation:**
 - Batch all commit fetches (100 per request)
 - Cache repository metadata for 1 hour
-- For repos > 5,000 commits: analyze most recent 5,000 with notice to user
+- Prefer representative time-distributed samples in Phase 0; use Phase 2 (git clone) for full-history analysis
 - Track remaining rate limit in response headers; pause if < 100 remaining
 
 **Internal rate limits:**
@@ -1422,7 +1423,7 @@ Each task depends on the previous.
 - [ ] Implement metrics computation (`packages/core`)
 - [ ] Store metrics in `analysis_metrics`
 - [ ] Handle rate limits gracefully
-- [ ] Handle large repos (> 5000 commits notice)
+- [ ] Handle large repos (time-distributed sampling + notice)
 
 **Output:** Worker fetches commits and computes metrics.
 

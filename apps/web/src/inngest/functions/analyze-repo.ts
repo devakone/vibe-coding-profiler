@@ -360,42 +360,74 @@ interface GithubCommitDetail extends GithubCommitListItem {
   stats?: { additions: number; deletions: number; total: number };
 }
 
+interface GithubRepoResponse {
+  created_at: string;
+  pushed_at: string | null;
+}
+
 interface GithubCompareResponse {
   commits: GithubCommitDetail[];
   files?: Array<{ filename: string }>;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function sampleEvenly<T>(items: T[], count: number): T[] {
+  if (count <= 0) return [];
+  if (items.length <= count) return items;
+  const out: T[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const idx = Math.min(items.length - 1, Math.floor(((i + 0.5) * items.length) / count));
+    out.push(items[idx]);
+  }
+  return out;
 }
 
 /**
  * Fetch helper with rate limit handling
  */
 async function githubFetch<T>(url: string, token: string): Promise<T> {
-  const res = await fetch(url, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${token}`,
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-  });
+  const maxAttempts = 5;
 
-  if (res.status === 403) {
-    const resetHeader = res.headers.get("X-RateLimit-Reset");
-    const resetTime = resetHeader ? parseInt(resetHeader, 10) * 1000 : Date.now() + 60000;
-    const waitMs = Math.max(0, resetTime - Date.now());
-    throw new Error(`RATE_LIMITED:${waitMs}`);
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const res = await fetch(url, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+
+    if (res.status === 403 || res.status === 429) {
+      const remaining = res.headers.get("X-RateLimit-Remaining");
+      const resetHeader = res.headers.get("X-RateLimit-Reset");
+      const resetSeconds = resetHeader ? Number.parseInt(resetHeader, 10) : Number.NaN;
+      const resetMs = Number.isFinite(resetSeconds) ? resetSeconds * 1000 : Date.now() + 60000;
+      const waitMs = Math.max(0, resetMs - Date.now());
+
+      if (remaining === "0" && attempt < maxAttempts && waitMs > 0) {
+        await sleep(Math.min(waitMs, 5 * 60 * 1000));
+        continue;
+      }
+    }
+
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`GitHub API error (${res.status}): ${body}`);
+    }
+
+    return (await res.json()) as T;
   }
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`GitHub API error (${res.status}): ${body}`);
-  }
-
-  return (await res.json()) as T;
+  throw new Error("GitHub API error: exhausted retries");
 }
 
 /**
- * Fetch commit list (paginated)
+ * Fetch commit list (paginated, most recent)
  */
-async function fetchCommitList(params: {
+async function fetchCommitListRecent(params: {
   owner: string;
   repo: string;
   token: string;
@@ -420,6 +452,70 @@ async function fetchCommitList(params: {
   }
 
   return items.slice(0, params.maxCommits);
+}
+
+async function fetchCommitList(params: {
+  owner: string;
+  repo: string;
+  token: string;
+  maxCommits: number;
+}): Promise<GithubCommitListItem[]> {
+  const repoUrl = `https://api.github.com/repos/${params.owner}/${params.repo}`;
+  const repoMeta = await githubFetch<GithubRepoResponse>(repoUrl, params.token);
+
+  const startMs = new Date(repoMeta.created_at).getTime();
+  const endMs = new Date(repoMeta.pushed_at ?? new Date().toISOString()).getTime();
+
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+    return fetchCommitListRecent(params);
+  }
+
+  const target = Math.max(1, params.maxCommits);
+  const bucketCount = Math.min(24, Math.max(6, Math.ceil(target / 25)));
+  const perBucketTarget = Math.max(1, Math.ceil(target / bucketCount));
+  const bucketMs = Math.max(1, Math.floor((endMs - startMs) / bucketCount));
+  const pageLimitPerBucket = 2;
+
+  const bySha = new Map<string, GithubCommitListItem>();
+
+  for (let i = 0; i < bucketCount; i += 1) {
+    const since = new Date(startMs + bucketMs * i);
+    const until = new Date(i === bucketCount - 1 ? endMs : startMs + bucketMs * (i + 1));
+
+    const bucketItems: GithubCommitListItem[] = [];
+    for (let page = 1; page <= pageLimitPerBucket; page += 1) {
+      const url = new URL(`https://api.github.com/repos/${params.owner}/${params.repo}/commits`);
+      url.searchParams.set("per_page", "100");
+      url.searchParams.set("page", String(page));
+      url.searchParams.set("since", since.toISOString());
+      url.searchParams.set("until", until.toISOString());
+
+      const batch = await githubFetch<GithubCommitListItem[]>(url.toString(), params.token);
+      bucketItems.push(...batch);
+      if (batch.length < 100) break;
+    }
+
+    const sampled = sampleEvenly(bucketItems, perBucketTarget);
+    for (const item of sampled) {
+      bySha.set(item.sha, item);
+    }
+  }
+
+  const descByCommitterDate = (a: GithubCommitListItem, b: GithubCommitListItem): number =>
+    new Date(b.commit.committer.date).getTime() - new Date(a.commit.committer.date).getTime();
+
+  let combined = Array.from(bySha.values()).sort(descByCommitterDate);
+
+  if (combined.length < target) {
+    const fallback = await fetchCommitListRecent(params);
+    for (const item of fallback) {
+      if (!bySha.has(item.sha)) bySha.set(item.sha, item);
+      if (bySha.size >= target) break;
+    }
+    combined = Array.from(bySha.values()).sort(descByCommitterDate);
+  }
+
+  return combined.slice(0, target);
 }
 
 /**
@@ -566,20 +662,28 @@ export const analyzeRepo = inngest.createFunction(
 
       let detailedCommits: GithubCommitDetail[] = [];
 
-      try {
-        // Try compare endpoint (gets up to 250 commits with files in one call)
-        detailedCommits = await fetchCommitsWithCompare({
-          owner: repo.owner,
-          repo: repo.name,
-          token: githubToken,
-          baseSha: `${firstSha}^`, // Parent of first commit
-          headSha: lastSha,
-        });
-      } catch {
-        // Fall back to individual fetches (slower but more reliable)
-        console.log("Compare endpoint failed, falling back to individual fetches");
+      const newestMs = new Date(commitList[0].commit.committer.date).getTime();
+      const oldestMs = new Date(commitList[commitList.length - 1].commit.committer.date).getTime();
+      const rangeDays = Number.isFinite(newestMs - oldestMs)
+        ? (newestMs - oldestMs) / (1000 * 60 * 60 * 24)
+        : Number.POSITIVE_INFINITY;
+      const canUseCompare = commitList.length <= 250 && rangeDays <= 90;
 
-        // Fetch in batches with concurrency limit
+      if (canUseCompare) {
+        try {
+          detailedCommits = await fetchCommitsWithCompare({
+            owner: repo.owner,
+            repo: repo.name,
+            token: githubToken,
+            baseSha: `${firstSha}^`,
+            headSha: lastSha,
+          });
+        } catch {
+          detailedCommits = [];
+        }
+      }
+
+      if (detailedCommits.length === 0) {
         const batchSize = 10;
         for (let i = 0; i < commitList.length; i += batchSize) {
           const batch = commitList.slice(i, i + batchSize);

@@ -83,3 +83,76 @@ export function formatMatchedRule(rule: string): string {
   }
   return rule;
 }
+
+/**
+ * Format a numeric value for display.
+ * - Rounds to specified decimal places (default 2)
+ * - Handles very long decimals like 0.9857142857142858 → "0.99"
+ * - Returns integers without decimals
+ * - Handles string numbers that look like decimals
+ *
+ * Examples:
+ *   0.9857142857142858 → "0.99"
+ *   18 → "18"
+ *   1.5 → "1.5"
+ *   "0.2857142857142857" → "0.29"
+ */
+export function formatMetricValue(
+  value: string | number,
+  decimals: number = 2
+): string {
+  // If it's a string, try to parse it as a number
+  const num = typeof value === "string" ? parseFloat(value) : value;
+
+  // If not a valid number, return the original value
+  if (isNaN(num)) {
+    return String(value);
+  }
+
+  // If it's an integer, return without decimals
+  if (Number.isInteger(num)) {
+    return String(num);
+  }
+
+  // Round to specified decimal places
+  const rounded = Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
+
+  // Format with appropriate decimal places
+  // Remove trailing zeros after decimal point
+  return rounded.toFixed(decimals).replace(/\.?0+$/, "") || "0";
+}
+
+/**
+ * Smart format for metric values that could be ratios, percentages, or counts.
+ * Detects the type of value and formats appropriately.
+ *
+ * Examples:
+ *   0.98 (ratio) → "98%"
+ *   1.5 (ratio > 1) → "1.5"
+ *   18 (count) → "18"
+ *   "0.2857142857142857" → "29%"
+ */
+export function formatSmartMetricValue(
+  value: string | number,
+  hint?: "ratio" | "count" | "decimal"
+): string {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+
+  if (isNaN(num)) {
+    return String(value);
+  }
+
+  // If explicitly a count or it's a whole number >= 2, treat as count
+  if (hint === "count" || (Number.isInteger(num) && num >= 2)) {
+    return String(num);
+  }
+
+  // If it looks like a ratio (0-1 range), show as percentage
+  if (hint === "ratio" || (num >= 0 && num <= 1)) {
+    const percentage = Math.round(num * 100);
+    return `${percentage}%`;
+  }
+
+  // Otherwise format as decimal
+  return formatMetricValue(num, 2);
+}
