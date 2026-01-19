@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { wrappedTheme } from "@/lib/theme";
+import AnalysisListClient from "./AnalysisListClient";
 
 export const runtime = "nodejs";
 
@@ -9,7 +9,17 @@ type JobRow = {
   id: string;
   status: string;
   created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
   repo_id: string;
+  error_message: string | null;
+};
+
+type InsightRow = {
+  job_id: string;
+  persona_label: string | null;
+  persona_confidence: string | null;
+  generated_at: string | null;
 };
 
 export default async function AnalysisIndexPage() {
@@ -20,14 +30,23 @@ export default async function AnalysisIndexPage() {
 
   if (!user) redirect("/login");
 
-  const { data } = await supabase
+  // Fetch all jobs
+  const { data: jobsData, error: jobsError } = await supabase
     .from("analysis_jobs")
-    .select("id, status, created_at, repo_id")
+    .select("id, status, created_at, started_at, completed_at, repo_id, error_message")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  const jobs = (data ?? []) as unknown as JobRow[];
+  console.log("[analysis/page] user.id:", user.id);
+  console.log("[analysis/page] jobsData:", jobsData);
+  console.log("[analysis/page] jobsError:", jobsError);
 
+  const jobs = (jobsData ?? []) as unknown as JobRow[];
+
+  console.log("[analysis/page] jobs count:", jobs.length);
+  console.log("[analysis/page] job statuses:", jobs.map(j => j.status));
+
+  // Get repo names
   const repoIds = Array.from(
     new Set(jobs.map((j) => j.repo_id).filter((id): id is string => Boolean(id)))
   );
@@ -42,6 +61,7 @@ export default async function AnalysisIndexPage() {
     repoNameById.set(row.id, row.full_name);
   }
 
+  // Get insights for completed jobs
   const jobIds = jobs.map((j) => j.id);
   const insightsResult =
     jobIds.length > 0
@@ -51,23 +71,41 @@ export default async function AnalysisIndexPage() {
           .in("job_id", jobIds)
       : null;
 
-  const insightByJobId = new Map<
-    string,
-    { persona_label: string | null; persona_confidence: string | null; generated_at: string | null }
-  >();
-
-  for (const row of (insightsResult?.data ?? []) as Array<{
-    job_id: string;
-    persona_label: string | null;
-    persona_confidence: string | null;
-    generated_at: string | null;
-  }>) {
-    insightByJobId.set(row.job_id, {
-      persona_label: row.persona_label,
-      persona_confidence: row.persona_confidence,
-      generated_at: row.generated_at,
-    });
+  const insightByJobId = new Map<string, InsightRow>();
+  for (const row of (insightsResult?.data ?? []) as InsightRow[]) {
+    insightByJobId.set(row.job_id, row);
   }
+
+  // Build reports list (completed jobs, with insight data when available)
+  const reports = jobs
+    .filter((j) => j.status === "done")
+    .map((j) => {
+      const insight = insightByJobId.get(j.id);
+      return {
+        jobId: j.id,
+        repoId: j.repo_id,
+        repoName: repoNameById.get(j.repo_id) ?? null,
+        personaLabel: insight?.persona_label ?? null,
+        personaConfidence: insight?.persona_confidence ?? null,
+        generatedAt: insight?.generated_at ?? j.created_at,
+        status: j.status,
+      };
+    });
+
+  // Build jobs list
+  const jobsList = jobs.map((j) => ({
+    id: j.id,
+    status: j.status,
+    createdAt: j.created_at,
+    startedAt: j.started_at,
+    completedAt: j.completed_at,
+    repoId: j.repo_id,
+    repoName: repoNameById.get(j.repo_id) ?? null,
+    errorMessage: j.error_message,
+  }));
+
+  console.log("[analysis/page] reports count:", reports.length);
+  console.log("[analysis/page] jobsList count:", jobsList.length);
 
   return (
     <div className={`${wrappedTheme.container} py-10`}>
@@ -84,60 +122,15 @@ export default async function AnalysisIndexPage() {
           </p>
         </header>
 
-        <section className={`${wrappedTheme.card} p-6`}>
-          {jobs.length === 0 ? (
-            <div className="flex flex-col gap-3">
-              <p className="text-sm text-zinc-700">
-                No vibed repos yet. Run your first vibe check.
-              </p>
-              <Link className={wrappedTheme.primaryButtonSm} href="/repos">
-                Pick a repo
-              </Link>
-            </div>
-          ) : (
-            <ul className="grid gap-4 md:grid-cols-2">
-              {jobs.map((j) => {
-                const repoName = repoNameById.get(j.repo_id) ?? null;
-                const insight = insightByJobId.get(j.id) ?? null;
-                const when = insight?.generated_at ?? j.created_at;
+        {/* Debug info - remove after fixing */}
+        <div className="rounded bg-amber-100 p-3 text-xs text-amber-800 space-y-1">
+          <p>User ID: {user.id}</p>
+          <p>Jobs fetched: {jobs.length}, Reports: {reports.length}, JobsList: {jobsList.length}</p>
+          <p>Statuses: {jobs.map(j => j.status).join(", ") || "none"}</p>
+          {jobsError && <p className="text-red-600">Error: {JSON.stringify(jobsError)}</p>}
+        </div>
 
-                return (
-                  <li
-                    key={j.id}
-                    className="rounded-3xl border border-black/5 bg-white/70 p-6 shadow-[0_25px_80px_rgba(2,6,23,0.06)] backdrop-blur"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-zinc-950">
-                          {repoName ?? "Repository"}
-                        </p>
-                        <p className="mt-1 text-xs text-zinc-600">
-                          {j.status === "done" ? "Ready" : j.status}
-                          {when ? ` · ${new Date(when).toLocaleDateString()}` : ""}
-                        </p>
-                      </div>
-                      <Link href={`/analysis/${j.id}`} className={wrappedTheme.primaryButtonSm}>
-                        View
-                      </Link>
-                    </div>
-
-                    <div className="mt-5 rounded-2xl border border-black/5 bg-white/70 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
-                        Persona
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-zinc-950">
-                        {insight?.persona_label ?? "Still forming"}
-                      </p>
-                      <p className="mt-1 text-sm text-zinc-700">
-                        {insight?.persona_confidence ?? "Not enough signal yet"}
-                      </p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+        <AnalysisListClient initialReports={reports} initialJobs={jobsList} />
       </div>
     </div>
   );

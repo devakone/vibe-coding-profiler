@@ -211,12 +211,11 @@ export default function LLMKeysClient() {
               AI-Generated Narratives
             </h3>
             <p className="mt-1 text-sm text-zinc-600">
-              Enable LLM-powered narrative generation for your Vibed profile and repo analyses.
+              Enable LLM-powered narratives about your development process — commit rhythm, iteration style, and how you approach building software.
             </p>
             <p className="mt-2 text-xs text-zinc-500">
-              When enabled, your commit messages and metadata are sent to an LLM to generate
-              personalized narratives about your software engineering patterns. We focus on
-              <em> how</em> you build, not <em>what</em> you build.
+              When enabled, your commit messages and metadata are processed by an LLM.
+              We focus on <em>how</em> you build (patterns, process, rhythm), not <em>what</em> you build (product details).
             </p>
           </div>
           <button

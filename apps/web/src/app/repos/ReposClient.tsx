@@ -400,8 +400,8 @@ export default function ReposClient(props: {
               </h3>
               <p className="mt-1 text-sm text-zinc-600">
                 {llmOptIn
-                  ? "Your analyses will include LLM-generated narratives about your software engineering patterns."
-                  : "Enable AI narratives to get richer insights about your coding style."}
+                  ? "Your analyses will include LLM-generated narratives about your development process — commit rhythm, iteration style, and how you approach building software."
+                  : "Enable AI narratives to get richer insights about your development process."}
               </p>
               {!llmOptIn && (
                 <p className="mt-2 text-xs text-zinc-500">
