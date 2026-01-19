@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { inngest } from "@/inngest/client";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -13,18 +13,6 @@ type AnalysisJobsInsertQuery = {
 
 type SupabaseInsertLike = {
   from: (table: string) => AnalysisJobsInsertQuery;
-};
-
-type RateLimitRpcLike = {
-  rpc: (
-    fn: string,
-    args: {
-      p_user_id: string;
-      p_action: string;
-      p_window_seconds: number;
-      p_max_count: number;
-    }
-  ) => Promise<{ data: unknown; error: unknown }>;
 };
 
 export async function POST(request: Request) {
@@ -54,26 +42,19 @@ export async function POST(request: Request) {
   const body = (await request.json()) as { repo_id: string };
   if (!body?.repo_id) return NextResponse.json({ error: "invalid_body" }, { status: 400 });
 
-  const service = createSupabaseServiceClient();
-  const { data: allowedData, error: rateLimitError } = await (
-    service as unknown as RateLimitRpcLike
-  ).rpc("consume_user_action_rate_limit", {
-    p_user_id: user.id,
-    p_action: "analysis_start",
-    p_window_seconds: 60,
-    p_max_count: 3,
+  // Rate limiting (bypassed for localhost and admins)
+  const rateLimit = await checkRateLimit({
+    userId: user.id,
+    action: "analysis_start",
+    windowSeconds: 60,
+    maxCount: 3,
   });
 
-  if (rateLimitError) {
+  if (!rateLimit.allowed) {
+    if (rateLimit.reason === "rate_limited") {
+      return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    }
     return NextResponse.json({ error: "rate_limit_failed" }, { status: 500 });
-  }
-
-  if (allowedData !== true && allowedData !== false) {
-    return NextResponse.json({ error: "rate_limit_failed" }, { status: 500 });
-  }
-
-  if (allowedData === false) {
-    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
   const { data, error } = await (supabase as unknown as SupabaseInsertLike)
