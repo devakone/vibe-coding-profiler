@@ -28,7 +28,7 @@ function defaultConfig(provider: LLMProvider) {
     model: getDefaultModel(provider),
     maskedKey: "",
     hasKey: false,
-    freeTierLimit: 1,
+    perRepoLimit: 1,
     llmDisabled: false,
     updatedAt: null as string | null,
   };
@@ -66,7 +66,7 @@ export async function GET() {
         model: row.model ?? getDefaultModel(provider),
         maskedKey: maskForProvider(provider),
         hasKey: Boolean(row.api_key_encrypted),
-        freeTierLimit: row.free_tier_limit ?? 1,
+        perRepoLimit: row.free_tier_limit ?? 1,
         llmDisabled: row.llm_disabled ?? false,
         updatedAt: row.updated_at ?? null,
       }
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
         provider?: string;
         model?: string;
         apiKey?: string;
-        freeTierLimit?: number;
+        perRepoLimit?: number;
         llmDisabled?: boolean;
       }
     | null;
@@ -117,9 +117,9 @@ export async function POST(request: Request) {
     ? body.model.trim()
     : getDefaultModel(provider);
 
-  const freeTierLimit =
-    typeof body.freeTierLimit === "number" && Number.isFinite(body.freeTierLimit)
-      ? Math.max(0, Math.floor(body.freeTierLimit))
+  const perRepoLimit =
+    typeof body.perRepoLimit === "number" && Number.isFinite(body.perRepoLimit)
+      ? Math.max(0, Math.floor(body.perRepoLimit))
       : 1;
 
   const llmDisabled = Boolean(body.llmDisabled);
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
         model,
         label: "Platform Default",
         is_active: true,
-        free_tier_limit: freeTierLimit,
+        free_tier_limit: perRepoLimit,
         llm_disabled: llmDisabled,
       },
       { onConflict: "scope,scope_id,provider" }
@@ -173,7 +173,7 @@ export async function POST(request: Request) {
       model: saved.model ?? getDefaultModel(saved.provider),
       maskedKey: maskForProvider(saved.provider, apiKey.length > 0 ? apiKey : undefined),
       hasKey: Boolean(saved.api_key_encrypted),
-      freeTierLimit: saved.free_tier_limit ?? 1,
+      perRepoLimit: saved.free_tier_limit ?? 1,
       llmDisabled: saved.llm_disabled ?? false,
       updatedAt: saved.updated_at ?? null,
     },

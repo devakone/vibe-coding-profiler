@@ -22,7 +22,7 @@ interface SupportedProvider {
 
 interface LLMKeysResponse {
   keys: LLMKey[];
-  freeTierStatus: {
+  platformLimits?: {
     perRepoLimit: number;
     description: string;
   };
@@ -32,9 +32,14 @@ interface LLMKeysResponse {
 export default function LLMKeysClient() {
   const [keys, setKeys] = useState<LLMKey[]>([]);
   const [providers, setProviders] = useState<SupportedProvider[]>([]);
-  const [freeTierStatus, setFreeTierStatus] = useState<LLMKeysResponse["freeTierStatus"] | null>(null);
+  const [platformLimits, setPlatformLimits] = useState<LLMKeysResponse["platformLimits"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // LLM opt-in state
+  const [llmOptIn, setLlmOptIn] = useState(false);
+  const [optInLoading, setOptInLoading] = useState(true);
+  const [optInUpdating, setOptInUpdating] = useState(false);
 
   // Add key form state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -51,7 +56,42 @@ export default function LLMKeysClient() {
 
   useEffect(() => {
     fetchKeys();
+    fetchOptInStatus();
   }, []);
+
+  async function fetchOptInStatus() {
+    setOptInLoading(true);
+    try {
+      const res = await fetch("/api/settings/llm-opt-in");
+      if (res.ok) {
+        const data = await res.json();
+        setLlmOptIn(data.optedIn);
+      }
+    } catch {
+      // Ignore - default to false
+    } finally {
+      setOptInLoading(false);
+    }
+  }
+
+  async function handleOptInToggle() {
+    const newValue = !llmOptIn;
+    setOptInUpdating(true);
+    try {
+      const res = await fetch("/api/settings/llm-opt-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ optIn: newValue }),
+      });
+      if (res.ok) {
+        setLlmOptIn(newValue);
+      }
+    } catch {
+      // Revert on error
+    } finally {
+      setOptInUpdating(false);
+    }
+  }
 
   async function fetchKeys() {
     setLoading(true);
@@ -64,7 +104,7 @@ export default function LLMKeysClient() {
       const data: LLMKeysResponse = await res.json();
       setKeys(data.keys);
       setProviders(data.supportedProviders);
-      setFreeTierStatus(data.freeTierStatus);
+      setPlatformLimits(data.platformLimits);
       if (data.supportedProviders.length > 0 && !addProvider) {
         setAddProvider(data.supportedProviders[0].id);
       }
@@ -163,14 +203,56 @@ export default function LLMKeysClient() {
 
   return (
     <div className="space-y-6">
-      {/* Free tier info */}
-      {freeTierStatus && (
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-          <p className="text-sm text-zinc-600">
-            <strong>Free tier:</strong> {freeTierStatus.description}
-          </p>
+      {/* LLM Opt-in Toggle */}
+      <div className="rounded-2xl border border-black/5 bg-gradient-to-br from-fuchsia-50/50 via-indigo-50/30 to-cyan-50/50 p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h3 className="text-base font-semibold text-zinc-900">
+              AI-Generated Narratives
+            </h3>
+            <p className="mt-1 text-sm text-zinc-600">
+              Enable LLM-powered narrative generation for your Vibed profile and repo analyses.
+            </p>
+            <p className="mt-2 text-xs text-zinc-500">
+              When enabled, your commit messages and metadata are sent to an LLM to generate
+              personalized narratives about your software engineering patterns. We focus on
+              <em> how</em> you build, not <em>what</em> you build.
+            </p>
+          </div>
+          <button
+            onClick={handleOptInToggle}
+            disabled={optInLoading || optInUpdating}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 ${
+              llmOptIn ? "bg-indigo-600" : "bg-zinc-200"
+            }`}
+            role="switch"
+            aria-checked={llmOptIn}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                llmOptIn ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
         </div>
-      )}
+        <div className="mt-3 flex items-center gap-2">
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              llmOptIn
+                ? "bg-green-100 text-green-800"
+                : "bg-zinc-100 text-zinc-600"
+            }`}
+          >
+            {optInLoading ? "Loading..." : llmOptIn ? "Enabled" : "Disabled"}
+          </span>
+          {!llmOptIn && !optInLoading && (
+            <span className="text-xs text-zinc-500">
+              Your analyses will use metrics-only narratives
+            </span>
+          )}
+        </div>
+      </div>
+
 
       {/* Existing keys */}
       {keys.length > 0 && (

@@ -15,8 +15,8 @@ import {
   resolveLLMConfig,
   resolveProfileLLMConfig,
   recordLLMUsage,
-  getFreeTierLimit,
-  countFreeAnalysesUsed,
+  getPerRepoLimit,
+  countPlatformAnalysesUsed,
   countReposWithLlmReports,
   getProfileLlmRepoLimit,
 } from "@/lib/llm-config";
@@ -247,9 +247,9 @@ export async function POST(
     return NextResponse.json({ error: "report_update_failed" }, { status: 500 });
   }
 
-  // Get free tier status for UI
-  const freeUsed = await countFreeAnalysesUsed(user.id, repoId);
-  const freeLimit = await getFreeTierLimit();
+  // Get platform usage status for UI
+  const platformUsed = await countPlatformAnalysesUsed(user.id, repoId);
+  const perRepoLimit = await getPerRepoLimit();
 
   // Get profile LLM status for UI
   const profileLlmResolution = await resolveProfileLLMConfig(user.id);
@@ -271,12 +271,12 @@ export async function POST(
       llm_reason: llmReason,
       llm_source: llmKeySource,
       llm_provider: llmResolution.config?.provider ?? null,
-      prompt_add_key: llmKeySource === "none" && llmReason === "free_tier_exhausted",
+      prompt_add_key: llmKeySource === "none" && llmReason === "limit_exhausted",
     },
-    freeTier: {
-      used: freeUsed,
-      limit: freeLimit,
-      exhausted: freeUsed >= freeLimit,
+    usage: {
+      used: platformUsed,
+      limit: perRepoLimit,
+      exhausted: platformUsed >= perRepoLimit,
     },
     profile: {
       needsRebuild: true,

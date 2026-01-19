@@ -6,6 +6,8 @@ import { wrappedTheme } from "@/lib/theme";
 
 function isActiveLink(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
+  // For settings, match any /settings/* path
+  if (href.startsWith("/settings")) return pathname.startsWith("/settings");
   return pathname.startsWith(href);
 }
 
@@ -23,6 +25,7 @@ export default function AppHeader(props: {
         { href: "/", label: "My Vibed" },
         { href: "/repos", label: "Repos" },
         { href: "/analysis", label: "Reports" },
+        { href: "/settings/llm-keys", label: "Settings" },
         { href: "/methodology", label: "Methodology" },
         { href: "/security", label: "Security" },
       ]

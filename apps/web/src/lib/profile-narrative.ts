@@ -124,10 +124,20 @@ export async function generateProfileNarrativeWithLLM(params: {
   const { provider, apiKey, model, profile } = params;
 
   const systemPrompt = [
-    "You write a personalized narrative about a developer's coding style based on their aggregated profile data.",
+    "You write a personalized narrative about a developer's SOFTWARE ENGINEERING PATTERNS based on their aggregated profile data.",
     "The profile is computed from multiple repository analyses and represents their overall coding identity.",
-    "Never infer skill level, code quality, or make judgments. Focus on describing observable patterns.",
-    "Be encouraging but factual. Avoid generic motivational language.",
+    "",
+    "PRIVACY RULES (CRITICAL):",
+    "- NEVER mention or infer what products, apps, or features the developer builds",
+    "- NEVER reference specific business domains, industries, or product categories",
+    "- Treat repository names as opaque identifiers - do not interpret their meaning",
+    "- Focus ONLY on: development rhythm, iteration patterns, testing approach, code organization, shipping cadence",
+    "",
+    "CONTENT RULES:",
+    "- Never infer skill level, code quality, or make judgments",
+    "- Focus on describing observable engineering patterns",
+    "- Be encouraging but factual. Avoid generic motivational language.",
+    "",
     "Output must be STRICT JSON with this schema:",
     '{"summary":"2-3 sentence overview","sections":[{"title":"...","content":"..."}],"highlights":[{"label":"...","value":"...","interpretation":"..."}]}',
     "Include 3-4 sections and 3-4 highlights.",
@@ -162,8 +172,9 @@ export async function generateProfileNarrativeWithLLM(params: {
     "Persona Reasoning:",
     profile.persona.why?.join(". ") || "(No reasoning available)",
     "",
-    "Write a personalized narrative that helps the developer understand their coding style and patterns.",
-    "Focus on what makes their approach unique and how it manifests across different projects.",
+    "Write a personalized narrative about the developer's SOFTWARE ENGINEERING approach and patterns.",
+    "Focus on: how they iterate, their testing rhythm, shipping cadence, and code organization style.",
+    "Do NOT interpret repository names or infer what products they build. Focus only on engineering patterns.",
   ].join("\n");
 
   const client = createLLMClient({

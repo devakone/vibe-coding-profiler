@@ -15,7 +15,7 @@ type LLMConfig = {
   model: string;
   maskedKey: string;
   hasKey: boolean;
-  freeTierLimit: number;
+  perRepoLimit: number;
   llmDisabled: boolean;
   updatedAt: string | null;
 };
@@ -34,7 +34,7 @@ export default function LLMConfigClient() {
     provider: "anthropic",
     model: "",
     apiKey: "",
-    freeTierLimit: 1,
+    perRepoLimit: 1,
     llmDisabled: false,
   });
   const [status, setStatus] = useState<string | null>(null);
@@ -60,7 +60,7 @@ export default function LLMConfigClient() {
       provider: data.config.provider,
       model: data.config.model,
       apiKey: "",
-      freeTierLimit: data.config.freeTierLimit,
+      perRepoLimit: data.config.perRepoLimit,
       llmDisabled: data.config.llmDisabled,
     });
   }
@@ -112,7 +112,7 @@ export default function LLMConfigClient() {
           <div>
             <h2 className="text-lg font-semibold text-zinc-950">Platform default</h2>
             <p className="text-sm text-zinc-600">
-              Configure the platform key and provider used for free tier runs.
+              Configure the platform key and provider used for AI narratives.
             </p>
           </div>
           {config?.updatedAt ? (
@@ -168,14 +168,14 @@ export default function LLMConfigClient() {
             ) : null}
           </label>
           <label className="space-y-2 text-sm text-zinc-700">
-            Free tier limit per repo
+            AI narratives per repo
             <input
               className="w-full rounded-lg border border-black/10 bg-white/80 px-3 py-2 text-sm"
               type="number"
               min={0}
-              value={form.freeTierLimit}
+              value={form.perRepoLimit}
               onChange={(e) =>
-                setForm((prev) => ({ ...prev, freeTierLimit: Number(e.target.value) }))
+                setForm((prev) => ({ ...prev, perRepoLimit: Number(e.target.value) }))
               }
             />
           </label>

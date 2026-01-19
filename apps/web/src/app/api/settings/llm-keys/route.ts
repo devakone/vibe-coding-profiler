@@ -109,9 +109,9 @@ export async function GET() {
 
   return NextResponse.json({
     keys: responseKeys,
-    freeTierStatus: {
+    platformLimits: {
       perRepoLimit: 1,
-      description: "1 free LLM analysis per repo",
+      description: "1 AI narrative per repo included",
     },
     supportedProviders: LLM_PROVIDERS.map((p) => ({
       id: p,

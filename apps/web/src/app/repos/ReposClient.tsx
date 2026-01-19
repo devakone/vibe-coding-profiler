@@ -58,6 +58,70 @@ export default function ReposClient(props: {
   const [selectedFullName, setSelectedFullName] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
 
+  // LLM opt-in state
+  const [llmOptIn, setLlmOptIn] = useState<boolean | null>(null);
+  const [llmOptInUpdating, setLlmOptInUpdating] = useState(false);
+  const [llmOptInError, setLlmOptInError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchOptIn() {
+      try {
+        const res = await fetch("/api/settings/llm-opt-in");
+        if (res.ok) {
+          const data = await res.json();
+          setLlmOptIn(data.optedIn === true);
+        } else {
+          // Default to false if API fails
+          setLlmOptIn(false);
+        }
+      } catch {
+        // Default to false on error
+        setLlmOptIn(false);
+      }
+    }
+    fetchOptIn();
+  }, []);
+
+  async function handleLlmOptInToggle() {
+    if (llmOptIn === null) return;
+    const newValue = !llmOptIn;
+    setLlmOptInUpdating(true);
+    setLlmOptInError(null);
+    try {
+      const res = await fetch("/api/settings/llm-opt-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ optIn: newValue }),
+      });
+      if (res.ok) {
+        setLlmOptIn(newValue);
+        toast({
+          title: newValue ? "AI narratives enabled" : "AI narratives disabled",
+          description: newValue
+            ? "Your analyses will now include LLM-generated insights."
+            : "Your analyses will use metrics-only narratives.",
+        });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setLlmOptInError(data.error || "Failed to update setting");
+        toast({
+          variant: "destructive",
+          title: "Failed to update setting",
+          description: data.error || "Please try again.",
+        });
+      }
+    } catch (e) {
+      setLlmOptInError("Network error");
+      toast({
+        variant: "destructive",
+        title: "Network error",
+        description: "Could not update setting. Please try again.",
+      });
+    } finally {
+      setLlmOptInUpdating(false);
+    }
+  }
+
   function formatWhen(iso: string | null | undefined): string | null {
     if (!iso) return null;
     const d = new Date(iso);
@@ -326,6 +390,62 @@ export default function ReposClient(props: {
 
   return (
     <div className="mt-6 flex flex-col gap-6">
+      {/* LLM Opt-in Card */}
+      {llmOptIn !== null && (
+        <div className="rounded-2xl border border-black/5 bg-gradient-to-br from-fuchsia-50/80 via-indigo-50/50 to-cyan-50/80 p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h3 className="text-base font-semibold text-zinc-900">
+                AI-Generated Narratives
+              </h3>
+              <p className="mt-1 text-sm text-zinc-600">
+                {llmOptIn
+                  ? "Your analyses will include LLM-generated narratives about your software engineering patterns."
+                  : "Enable AI narratives to get richer insights about your coding style."}
+              </p>
+              {!llmOptIn && (
+                <p className="mt-2 text-xs text-zinc-500">
+                  When enabled, commit messages are processed by an LLM to describe <em>how</em> you build
+                  (patterns, rhythm, iteration style) — never <em>what</em> you build (product details).
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handleLlmOptInToggle}
+              disabled={llmOptInUpdating}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 ${
+                llmOptIn ? "bg-indigo-600" : "bg-zinc-300"
+              }`}
+              role="switch"
+              aria-checked={llmOptIn}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  llmOptIn ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                llmOptIn
+                  ? "bg-green-100 text-green-800"
+                  : "bg-zinc-100 text-zinc-600"
+              }`}
+            >
+              {llmOptIn ? "Enabled" : "Disabled"}
+            </span>
+            <a
+              href="/settings/llm-keys"
+              className="text-xs text-indigo-600 hover:underline"
+            >
+              Manage in Settings →
+            </a>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"

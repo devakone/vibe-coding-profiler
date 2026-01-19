@@ -2,7 +2,7 @@
  * LLM Configuration Resolution
  *
  * Determines which LLM configuration to use for a given user and repo.
- * Implements free tier logic and key resolution order.
+ * Implements usage limits and key resolution order.
  */
 
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
@@ -15,11 +15,50 @@ import {
   getDefaultModel,
 } from "@vibed/core";
 
-// Default free tier limit (used if not configured in database)
-const DEFAULT_FREE_LLM_ANALYSES_PER_REPO = 1;
+// Default per-repo LLM usage limit (used if not configured in database)
+const DEFAULT_LLM_ANALYSES_PER_REPO = 1;
 
 // Default limit for repos with LLM reports that can contribute to LLM profile generation
 const DEFAULT_PROFILE_LLM_REPO_LIMIT = 3;
+
+/**
+ * Check if a user has opted in to LLM narrative generation.
+ * Returns false by default for privacy - users must explicitly consent.
+ */
+export async function hasUserOptedInToLLM(userId: string): Promise<boolean> {
+  const service = createSupabaseServiceClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (service as any)
+    .from("users")
+    .select("llm_narrative_opt_in")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return false;
+  }
+
+  return (data as { llm_narrative_opt_in: boolean }).llm_narrative_opt_in === true;
+}
+
+/**
+ * Update a user's LLM narrative opt-in status.
+ */
+export async function setUserLLMOptIn(userId: string, optIn: boolean): Promise<boolean> {
+  const service = createSupabaseServiceClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (service as any)
+    .from("users")
+    .update({ llm_narrative_opt_in: optIn })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("Error updating LLM opt-in:", error);
+    return false;
+  }
+
+  return true;
+}
 
 interface LLMConfigRecord {
   id: string;
@@ -35,7 +74,7 @@ interface PlatformLLMConfigRecord {
   api_key_encrypted: string;
   model: string | null;
   is_active: boolean;
-  free_tier_limit: number | null;
+  platform_limit: number | null;
   llm_disabled: boolean | null;
   profile_llm_repo_limit: number | null;
 }
@@ -111,7 +150,7 @@ export async function getUserLLMConfig(userId: string): Promise<LLMConfig | null
  */
 let platformConfigCache: {
   config: LLMConfig | null;
-  freeTierLimit: number;
+  perRepoLimit: number;
   llmDisabled: boolean;
   profileLlmRepoLimit: number;
   fetchedAt: number;
@@ -134,12 +173,12 @@ export async function getPlatformLLMConfig(): Promise<LLMConfig | null> {
 }
 
 /**
- * Get the full platform LLM configuration including free tier limit, disabled flag,
+ * Get the full platform LLM configuration including usage limit limit, disabled flag,
  * and profile LLM repo limit.
  */
 export async function getPlatformLLMConfigFull(): Promise<{
   config: LLMConfig | null;
-  freeTierLimit: number;
+  perRepoLimit: number;
   llmDisabled: boolean;
   profileLlmRepoLimit: number;
 }> {
@@ -150,7 +189,7 @@ export async function getPlatformLLMConfigFull(): Promise<{
   ) {
     return {
       config: platformConfigCache.config,
-      freeTierLimit: platformConfigCache.freeTierLimit,
+      perRepoLimit: platformConfigCache.perRepoLimit,
       llmDisabled: platformConfigCache.llmDisabled,
       profileLlmRepoLimit: platformConfigCache.profileLlmRepoLimit,
     };
@@ -161,7 +200,7 @@ export async function getPlatformLLMConfigFull(): Promise<{
   if (dbConfig) {
     platformConfigCache = {
       config: dbConfig.config,
-      freeTierLimit: dbConfig.freeTierLimit,
+      perRepoLimit: dbConfig.perRepoLimit,
       llmDisabled: dbConfig.llmDisabled,
       profileLlmRepoLimit: dbConfig.profileLlmRepoLimit,
       fetchedAt: Date.now(),
@@ -173,14 +212,14 @@ export async function getPlatformLLMConfigFull(): Promise<{
   const envConfig = getPlatformLLMConfigFromEnv();
   platformConfigCache = {
     config: envConfig,
-    freeTierLimit: DEFAULT_FREE_LLM_ANALYSES_PER_REPO,
+    perRepoLimit: DEFAULT_LLM_ANALYSES_PER_REPO,
     llmDisabled: false,
     profileLlmRepoLimit: DEFAULT_PROFILE_LLM_REPO_LIMIT,
     fetchedAt: Date.now(),
   };
   return {
     config: envConfig,
-    freeTierLimit: DEFAULT_FREE_LLM_ANALYSES_PER_REPO,
+    perRepoLimit: DEFAULT_LLM_ANALYSES_PER_REPO,
     llmDisabled: false,
     profileLlmRepoLimit: DEFAULT_PROFILE_LLM_REPO_LIMIT,
   };
@@ -191,7 +230,7 @@ export async function getPlatformLLMConfigFull(): Promise<{
  */
 async function getPlatformLLMConfigFromDB(): Promise<{
   config: LLMConfig | null;
-  freeTierLimit: number;
+  perRepoLimit: number;
   llmDisabled: boolean;
   profileLlmRepoLimit: number;
 } | null> {
@@ -203,7 +242,7 @@ async function getPlatformLLMConfigFromDB(): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (service as any)
     .from("llm_configs")
-    .select("id, provider, api_key_encrypted, model, is_active, free_tier_limit, llm_disabled, profile_llm_repo_limit")
+    .select("id, provider, api_key_encrypted, model, is_active, platform_limit, llm_disabled, profile_llm_repo_limit")
     .eq("scope", "platform")
     .maybeSingle();
 
@@ -212,12 +251,12 @@ async function getPlatformLLMConfigFromDB(): Promise<{
   }
 
   const record = data as PlatformLLMConfigRecord;
-  const freeTierLimit = record.free_tier_limit ?? DEFAULT_FREE_LLM_ANALYSES_PER_REPO;
+  const perRepoLimit = record.platform_limit ?? DEFAULT_LLM_ANALYSES_PER_REPO;
   const llmDisabled = record.llm_disabled ?? false;
   const profileLlmRepoLimit = record.profile_llm_repo_limit ?? DEFAULT_PROFILE_LLM_REPO_LIMIT;
 
   if (llmDisabled || !record.api_key_encrypted) {
-    return { config: null, freeTierLimit, llmDisabled, profileLlmRepoLimit };
+    return { config: null, perRepoLimit, llmDisabled, profileLlmRepoLimit };
   }
 
   try {
@@ -228,13 +267,13 @@ async function getPlatformLLMConfigFromDB(): Promise<{
         apiKey,
         model: record.model ?? getDefaultModel(record.provider),
       },
-      freeTierLimit,
+      perRepoLimit,
       llmDisabled,
       profileLlmRepoLimit,
     };
   } catch {
     console.error("Failed to decrypt platform LLM key");
-    return { config: null, freeTierLimit, llmDisabled, profileLlmRepoLimit };
+    return { config: null, perRepoLimit, llmDisabled, profileLlmRepoLimit };
   }
 }
 
@@ -276,7 +315,7 @@ function getPlatformLLMConfigFromEnv(): LLMConfig | null {
 /**
  * Count how many free LLM analyses a user has used for a specific repo.
  */
-export async function countFreeAnalysesUsed(userId: string, repoId: string): Promise<number> {
+export async function countPlatformAnalysesUsed(userId: string, repoId: string): Promise<number> {
   const service = createSupabaseServiceClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const llmUsage = (service as any).from("llm_usage") as LLMUsageQuery;
@@ -300,62 +339,69 @@ export async function countFreeAnalysesUsed(userId: string, repoId: string): Pro
  * Check if a user can use a free analysis for a specific repo.
  */
 export async function canUseFreeAnalysis(userId: string, repoId: string): Promise<boolean> {
-  const used = await countFreeAnalysesUsed(userId, repoId);
+  const used = await countPlatformAnalysesUsed(userId, repoId);
   const platformConfig = await getPlatformLLMConfigFull();
-  return used < platformConfig.freeTierLimit;
+  return used < platformConfig.perRepoLimit;
 }
 
 /**
- * Get the free tier limit (from database or default).
+ * Get the usage limit limit (from database or default).
  */
-export async function getFreeTierLimit(): Promise<number> {
+export async function getPerRepoLimit(): Promise<number> {
   const platformConfig = await getPlatformLLMConfigFull();
-  return platformConfig.freeTierLimit;
+  return platformConfig.perRepoLimit;
 }
 
 /**
  * Resolve which LLM configuration to use for a given user and repo.
  *
  * Resolution order:
+ * 0. Check if user has opted in to LLM narratives (privacy)
  * 1. Check if LLM is disabled at platform level
  * 2. User's own API key (if configured)
- * 3. Platform key (if user has free tier remaining)
+ * 3. Platform key (if user has usage limit remaining)
  * 4. No LLM (fallback to metrics-only)
  */
 export async function resolveLLMConfig(
   userId: string,
   repoId: string
 ): Promise<LLMResolutionResult> {
-  // 0. Check if LLM is disabled at platform level
+  // 0. Check if user has opted in to LLM narratives
+  const optedIn = await hasUserOptedInToLLM(userId);
+  if (!optedIn) {
+    return { config: null, source: "none", reason: "llm_opt_in_required" };
+  }
+
+  // 1. Check if LLM is disabled at platform level
   const platformFull = await getPlatformLLMConfigFull();
   if (platformFull.llmDisabled) {
     return { config: null, source: "none", reason: "llm_disabled" };
   }
 
-  // 1. Check if user has their own key configured
+  // 2. Check if user has their own key configured
   const userConfig = await getUserLLMConfig(userId);
   if (userConfig) {
     return { config: userConfig, source: "user", reason: "user_key" };
   }
 
-  // 2. Check if user has free tier remaining for this repo
-  const used = await countFreeAnalysesUsed(userId, repoId);
-  const canUseFree = used < platformFull.freeTierLimit;
+  // 3. Check if user has usage limit remaining for this repo
+  const used = await countPlatformAnalysesUsed(userId, repoId);
+  const canUseFree = used < platformFull.perRepoLimit;
 
   if (canUseFree) {
     if (platformFull.config) {
-      return { config: platformFull.config, source: "platform", reason: "free_tier" };
+      return { config: platformFull.config, source: "platform", reason: "platform" };
     }
     // Platform key not configured
     return { config: null, source: "none", reason: "no_platform_key" };
   }
 
-  // 3. Free tier exhausted, no user key
-  return { config: null, source: "none", reason: "free_tier_exhausted" };
+  // 4. Per-repo limit exhausted, no user key
+  return { config: null, source: "none", reason: "limit_exhausted" };
 }
 
 /**
- * Record LLM usage for analytics and free tier tracking.
+ * Record LLM usage for analytics and usage limit tracking.
  */
 export async function recordLLMUsage(params: {
   userId: string;
@@ -428,6 +474,7 @@ export async function countReposWithLlmReports(userId: string): Promise<number> 
  * Resolve LLM configuration for profile generation.
  *
  * Resolution order:
+ * 0. Check if user has opted in to LLM narratives (privacy)
  * 1. Check if LLM is disabled at platform level
  * 2. User's own API key (always allowed for profile)
  * 3. Platform key (if user has <= profileLlmRepoLimit repos with LLM reports)
@@ -436,31 +483,37 @@ export async function countReposWithLlmReports(userId: string): Promise<number> 
 export async function resolveProfileLLMConfig(
   userId: string
 ): Promise<LLMResolutionResult> {
+  // 0. Check if user has opted in to LLM narratives
+  const optedIn = await hasUserOptedInToLLM(userId);
+  if (!optedIn) {
+    return { config: null, source: "none", reason: "llm_opt_in_required" };
+  }
+
   const platformFull = await getPlatformLLMConfigFull();
 
-  // 0. Check if LLM is disabled at platform level
+  // 1. Check if LLM is disabled at platform level
   if (platformFull.llmDisabled) {
     return { config: null, source: "none", reason: "llm_disabled" };
   }
 
-  // 1. Check if user has their own key configured (always allowed)
+  // 2. Check if user has their own key configured (always allowed)
   const userConfig = await getUserLLMConfig(userId);
   if (userConfig) {
     return { config: userConfig, source: "user", reason: "user_key" };
   }
 
-  // 2. Check if user is within profile LLM repo limit
+  // 3. Check if user is within profile LLM repo limit
   const reposWithLlm = await countReposWithLlmReports(userId);
   const canUsePlatformForProfile = reposWithLlm <= platformFull.profileLlmRepoLimit;
 
   if (canUsePlatformForProfile) {
     if (platformFull.config) {
-      return { config: platformFull.config, source: "platform", reason: "free_tier" };
+      return { config: platformFull.config, source: "platform", reason: "platform" };
     }
     // Platform key not configured
     return { config: null, source: "none", reason: "no_platform_key" };
   }
 
-  // 3. Profile LLM limit exceeded, no user key
+  // 4. Profile LLM limit exceeded, no user key
   return { config: null, source: "none", reason: "profile_llm_limit_exceeded" };
 }

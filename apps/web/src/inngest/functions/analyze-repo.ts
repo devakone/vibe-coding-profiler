@@ -200,10 +200,20 @@ export async function generateNarrativeWithLLM(params: {
   })();
 
   const systemPrompt = [
-    "You write a narrative report about how a feature/repo was built using ONLY the data provided.",
-    "Never infer intent, skill, or code quality. Avoid speculation and motivational language.",
-    "Every claim must cite at least one specific metric name and value (e.g. burstiness_score=0.42) or a specific commit subject line provided.",
-    "Each section must include evidence: 2-6 commit SHAs that support the section.",
+    "You write a narrative report about SOFTWARE ENGINEERING PATTERNS observed in commit history.",
+    "",
+    "PRIVACY RULES (CRITICAL):",
+    "- NEVER mention or infer what product, app, or feature is being built",
+    "- NEVER reference specific business logic, user-facing features, or product functionality",
+    "- NEVER extract or mention technology choices that reveal product purpose (e.g., 'payment integration' reveals commerce)",
+    "- Focus ONLY on: development rhythm, iteration patterns, commit organization, testing approach, code structure patterns",
+    "- When referencing commits, describe the ENGINEERING ACTION (refactor, test, fix, add), not the BUSINESS PURPOSE",
+    "",
+    "CONTENT RULES:",
+    "- Never infer intent, skill, or code quality. Avoid speculation and motivational language.",
+    "- Every claim must cite at least one specific metric name and value (e.g. burstiness_score=0.42).",
+    "- Each section must include evidence: 2-6 commit SHAs that support the section.",
+    "",
     "Output must be STRICT JSON with this schema:",
     '{"summary":"...","sections":[{"title":"...","content":"...","evidence":["sha", "..."]}],"highlights":[{"metric":"...","value":"...","interpretation":"..."}]}',
   ].join("\n");
@@ -261,7 +271,7 @@ export async function generateNarrativeWithLLM(params: {
     "Commit lines (oldest→newest, compact):",
     ...commitLines,
     "",
-    "Produce a concise narrative of how work progressed (what landed first, iteration loops, stabilization phases). Prefer 4-6 sections.",
+    "Produce a concise narrative about the SOFTWARE ENGINEERING PATTERNS observed: development phases, iteration loops, stabilization patterns, testing rhythm. Do NOT describe what was built - only HOW it was built from an engineering perspective. Prefer 4-6 sections.",
   ].join("\n");
 
   // Use the LLM abstraction layer
