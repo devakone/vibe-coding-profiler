@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: stub-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: stub-service-role-key
+      POSTMARK_SERVER_TOKEN: stub-postmark-token
+      POSTMARK_FROM_EMAIL: noreply@example.com
+      POSTMARK_REPLY_TO_DOMAIN: reply.example.com
+      LLM_ENCRYPTION_KEY: stub-llm-encryption-key
+      OPENAI_MODEL: gpt-4o-mini
+      LINKEDIN_CLIENT_ID: stub-linkedin-client-id
+      LINKEDIN_CLIENT_SECRET: stub-linkedin-client-secret
+      LINKEDIN_REDIRECT_URI: https://example.com
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: stub-vapid-public-key
+      VAPID_PUBLIC_KEY: stub-vapid-public-key
+      VAPID_PRIVATE_KEY: stub-vapid-private-key
+      VAPID_SUBJECT: mailto:example@example.com
+      NOTIFICATION_SCHEDULER_TOKEN: stub-scheduler-token
+      TWILIO_ACCOUNT_SID: stub-twilio-sid
+      TWILIO_AUTH_TOKEN: stub-twilio-token
+      TWILIO_PHONE_NUMBER: +15555555555
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
