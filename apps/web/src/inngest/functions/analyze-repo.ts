@@ -83,17 +83,18 @@ export function toNarrativeFallback(params: {
 }
 
 function buildCommitLines(events: CommitEvent[], maxLines: number): string[] {
+  // PRIVACY: Only include metadata, never commit message content
   const byTimeAsc = [...events].sort(
     (a, b) =>
       new Date(a.committer_date).getTime() - new Date(b.committer_date).getTime()
   );
 
   const trimmed = byTimeAsc.map((e) => {
-    const subject = e.message.split("\n")[0]?.trim() ?? "";
     const category = classifyCommit(e.message);
     const size = e.additions + e.deletions;
     const when = new Date(e.committer_date).toISOString().slice(0, 19) + "Z";
-    return `${when} ${e.sha.slice(0, 10)} ${category} ${size}ch ${e.files_changed}f ${subject}`;
+    // Only include: timestamp, SHA, category, size, file count - NO message content
+    return `${when} ${e.sha.slice(0, 10)} ${category} ${size}ch ${e.files_changed}f`;
   });
 
   if (trimmed.length <= maxLines) return trimmed;
@@ -202,12 +203,25 @@ export async function generateNarrativeWithLLM(params: {
   const systemPrompt = [
     "You write a narrative report about SOFTWARE ENGINEERING PATTERNS observed in commit history.",
     "",
-    "PRIVACY RULES (CRITICAL):",
-    "- NEVER mention or infer what product, app, or feature is being built",
-    "- NEVER reference specific business logic, user-facing features, or product functionality",
-    "- NEVER extract or mention technology choices that reveal product purpose (e.g., 'payment integration' reveals commerce)",
-    "- Focus ONLY on: development rhythm, iteration patterns, commit organization, testing approach, code structure patterns",
-    "- When referencing commits, describe the ENGINEERING ACTION (refactor, test, fix, add), not the BUSINESS PURPOSE",
+    "PRIVACY RULES (CRITICAL - VIOLATION MEANS FAILURE):",
+    "- NEVER mention the project name, product name, app name, or repository name in your output",
+    "- NEVER mention specific feature names from commits (e.g., 'booking system', 'admin portal', 'user settings')",
+    "- NEVER mention business domains or verticals (e.g., 'healthcare', 'e-commerce', 'network')",
+    "- NEVER mention third-party services or integrations by name",
+    "- NEVER quote, paraphrase, or summarize commit message content - only reference SHAs as evidence",
+    "- NEVER describe WHAT is being built - only describe HOW development happens",
+    "",
+    "ALLOWED TOPICS (your output must ONLY cover these):",
+    "- Development rhythm: commit frequency, timing patterns, burst vs steady patterns",
+    "- Iteration style: big batches vs small increments, refactoring frequency",
+    "- Code organization: how changes are structured, file churn patterns",
+    "- Testing approach: when tests appear relative to features, test coverage patterns",
+    "- Documentation patterns: when docs are written, documentation frequency",
+    "- Collaboration signals: merge patterns, review cycles (if visible)",
+    "",
+    "SECTION TITLES must be generic engineering terms like:",
+    "- 'Development Rhythm', 'Iteration Patterns', 'Code Organization', 'Testing Approach'",
+    "NOT product-specific like 'Admin Portal Development' or 'Feature Implementation'",
     "",
     "CONTENT RULES:",
     "- Never infer intent, skill, or code quality. Avoid speculation and motivational language.",
