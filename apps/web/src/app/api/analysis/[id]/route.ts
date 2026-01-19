@@ -288,6 +288,19 @@ export async function GET(
   let metrics = null;
   let insights = null;
   let profileContribution: unknown | null = null;
+  let userAvatarUrl: string | null = null;
+
+  // Fetch user avatar from users table
+  const { data: userData } = await (supabase as unknown as SupabaseQueryLike)
+    .from("users")
+    .select("avatar_url")
+    .eq("id", user.id)
+    .single();
+
+  if (userData && typeof userData === "object") {
+    const avatarUrl = (userData as { avatar_url?: unknown }).avatar_url;
+    userAvatarUrl = typeof avatarUrl === "string" ? avatarUrl : null;
+  }
 
   if (job.status === "done") {
     const { data: r } = await (supabase as unknown as SupabaseQueryLike)
@@ -364,5 +377,5 @@ export async function GET(
     };
   }
 
-  return NextResponse.json({ job, report, metrics, insights, profileContribution });
+  return NextResponse.json({ job, report, metrics, insights, profileContribution, userAvatarUrl });
 }

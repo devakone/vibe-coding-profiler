@@ -60,6 +60,7 @@ type ApiResponse = {
   metrics: unknown | null;
   insights: unknown | null;
   profileContribution?: unknown | null;
+  userAvatarUrl?: string | null;
 };
 
 type StoryMeta = {
@@ -1376,9 +1377,17 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                           </p>
                         </div>
                         <div className="hidden shrink-0 sm:block">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur">
-                            <span className="text-lg font-bold text-white">V</span>
-                          </div>
+                          {data?.userAvatarUrl ? (
+                            <img
+                              src={data.userAvatarUrl}
+                              alt="User avatar"
+                              className="h-12 w-12 rounded-full border-2 border-white/30 object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+                              <span className="text-lg font-bold text-white">V</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -1429,7 +1438,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                       {/* Footer */}
                       <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
                         <p className="text-xs font-medium text-white/50">
-                          vibed.dev
+                          {shareOrigin ? new URL(shareOrigin).hostname : "vibed.dev"}
                         </p>
                         <p className="text-xs text-white/50">
                           {wrapped.totals.commits} commits{metricsJson?.active_days ? ` · ${metricsJson.active_days} active days` : ""}
@@ -1443,12 +1452,12 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                     ) : null}
                   </div>
 
-                  {/* Action Buttons - Two Rows */}
-                  <div className="space-y-3">
-                    {/* Row 1: Format + Download */}
-                    <div className="flex flex-wrap items-center gap-2">
+                  {/* Action Buttons - Consolidated */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Download Section */}
+                    <div className="flex items-center gap-1 rounded-lg border border-black/10 bg-white p-1">
                       <select
-                        className="h-9 rounded-lg border border-black/10 bg-white px-3 text-xs font-medium text-zinc-700"
+                        className="h-7 rounded border-0 bg-transparent px-2 text-xs font-medium text-zinc-700 focus:outline-none focus:ring-0"
                         value={shareFormat}
                         onChange={(e) => setShareFormat(e.target.value as ShareFormat)}
                       >
@@ -1460,101 +1469,109 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                       </select>
                       <button
                         type="button"
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+                        className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100"
                         onClick={() => handleDownloadSharePng(shareFormat)}
                         disabled={downloadingShare}
+                        title="Download PNG"
                       >
                         <Download size={14} />
-                        {downloadingShare ? "Downloading..." : "PNG"}
+                        PNG
                       </button>
                       <button
                         type="button"
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+                        className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100"
                         onClick={() => handleDownloadShareSvg(shareFormat)}
+                        title="Download SVG"
                       >
                         <Download size={14} />
                         SVG
                       </button>
-                      <div className="mx-1 hidden h-5 w-px bg-zinc-200 sm:block" />
-                      <button
-                        type="button"
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
-                        onClick={handleCopyShare}
-                      >
-                        {copied ? <Check size={14} /> : <Copy size={14} />}
-                        {copied ? "Copied!" : "Copy text"}
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
-                        onClick={handleCopyLink}
-                        disabled={!shareUrl}
-                      >
-                        {copiedLink ? <Check size={14} /> : <Link2 size={14} />}
-                        {copiedLink ? "Copied!" : "Copy link"}
-                      </button>
-                      {supportsNativeShare ? (
-                        <button
-                          type="button"
-                          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-medium text-white transition hover:bg-zinc-800"
-                          onClick={handleNativeShare}
-                          disabled={!shareUrl}
-                        >
-                          <Share2 size={14} />
-                          Share
-                        </button>
-                      ) : null}
                     </div>
 
-                    {/* Row 2: Social Share */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs text-zinc-500">Share on:</span>
+                    {/* Copy Section */}
+                    <div className="flex items-center gap-1 rounded-lg border border-black/10 bg-white p-1">
                       <button
                         type="button"
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
-                        onClick={handleShareTwitter}
-                        disabled={!shareUrl}
+                        className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100"
+                        onClick={handleCopyShare}
+                        title="Copy share text"
                       >
-                        <XIcon size={14} />
-                        <span className="hidden sm:inline">X</span>
+                        {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                        Text
                       </button>
                       <button
                         type="button"
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
-                        onClick={handleShareLinkedIn}
+                        className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100"
+                        onClick={handleCopyLink}
                         disabled={!shareUrl}
+                        title="Copy link"
                       >
-                        <LinkedInIcon size={14} />
-                        <span className="hidden sm:inline">LinkedIn</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
-                        onClick={handleShareFacebook}
-                        disabled={!shareUrl}
-                      >
-                        <FacebookIcon size={14} />
-                        <span className="hidden sm:inline">Facebook</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
-                        onClick={handleShareReddit}
-                        disabled={!shareUrl}
-                      >
-                        <RedditIcon size={14} />
-                        <span className="hidden sm:inline">Reddit</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
-                        onClick={handleShareWhatsApp}
-                        disabled={!shareUrl}
-                      >
-                        <WhatsAppIcon size={14} />
-                        <span className="hidden sm:inline">WhatsApp</span>
+                        {copiedLink ? <Check size={14} className="text-green-600" /> : <Link2 size={14} />}
+                        Link
                       </button>
                     </div>
+
+                    {/* Social Share Section */}
+                    <div className="flex items-center gap-1 rounded-lg border border-black/10 bg-white p-1">
+                      <button
+                        type="button"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-600 transition hover:bg-zinc-100"
+                        onClick={handleShareTwitter}
+                        disabled={!shareUrl}
+                        title="Share on X"
+                      >
+                        <XIcon size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-600 transition hover:bg-zinc-100"
+                        onClick={handleShareLinkedIn}
+                        disabled={!shareUrl}
+                        title="Share on LinkedIn"
+                      >
+                        <LinkedInIcon size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-600 transition hover:bg-zinc-100"
+                        onClick={handleShareFacebook}
+                        disabled={!shareUrl}
+                        title="Share on Facebook"
+                      >
+                        <FacebookIcon size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-600 transition hover:bg-zinc-100"
+                        onClick={handleShareReddit}
+                        disabled={!shareUrl}
+                        title="Share on Reddit"
+                      >
+                        <RedditIcon size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-600 transition hover:bg-zinc-100"
+                        onClick={handleShareWhatsApp}
+                        disabled={!shareUrl}
+                        title="Share on WhatsApp"
+                      >
+                        <WhatsAppIcon size={14} />
+                      </button>
+                    </div>
+
+                    {/* Native Share Button */}
+                    {supportsNativeShare ? (
+                      <button
+                        type="button"
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-medium text-white transition hover:bg-zinc-800"
+                        onClick={handleNativeShare}
+                        disabled={!shareUrl}
+                      >
+                        <Share2 size={14} />
+                        Share
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               ) : null}
