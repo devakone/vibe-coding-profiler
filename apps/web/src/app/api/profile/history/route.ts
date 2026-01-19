@@ -58,7 +58,7 @@ export async function GET() {
     .map((h) => h.trigger_job_id)
     .filter((id): id is string => Boolean(id));
 
-  let jobDetails: Map<string, { repo_name: string }> = new Map();
+  const jobDetails: Map<string, { repo_name: string }> = new Map();
   if (triggerJobIds.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: jobsData } = await (service as any)

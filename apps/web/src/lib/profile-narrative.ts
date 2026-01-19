@@ -127,11 +127,19 @@ export async function generateProfileNarrativeWithLLM(params: {
     "You write a personalized narrative about a developer's SOFTWARE ENGINEERING PATTERNS based on their aggregated profile data.",
     "The profile is computed from multiple repository analyses and represents their overall coding identity.",
     "",
-    "PRIVACY RULES (CRITICAL):",
-    "- NEVER mention or infer what products, apps, or features the developer builds",
-    "- NEVER reference specific business domains, industries, or product categories",
-    "- Treat repository names as opaque identifiers - do not interpret their meaning",
+    "PRIVACY RULES (CRITICAL - VIOLATION MEANS FAILURE):",
+    "- NEVER mention project names, product names, or repository names",
+    "- NEVER infer or mention what products, apps, or features the developer builds",
+    "- NEVER reference business domains, industries, or product categories",
+    "- Repository identifiers (Repo1, Repo2, etc.) are anonymized - do not try to interpret them",
     "- Focus ONLY on: development rhythm, iteration patterns, testing approach, code organization, shipping cadence",
+    "",
+    "ALLOWED TOPICS:",
+    "- How they iterate (small vs large commits, batch vs continuous)",
+    "- Testing rhythm (when tests appear, test coverage patterns)",
+    "- Shipping cadence (release frequency, stabilization patterns)",
+    "- Code organization (refactoring frequency, structural changes)",
+    "- Collaboration patterns (if visible in data)",
     "",
     "CONTENT RULES:",
     "- Never infer skill level, code quality, or make judgments",
@@ -147,9 +155,10 @@ export async function generateProfileNarrativeWithLLM(params: {
     .map(([key, value]) => `- ${key.replace(/_/g, " ")}: ${value.score}/100 (${value.level})`)
     .join("\n");
 
+  // PRIVACY: Anonymize repo names when passing to LLM
   const repoBreakdownStr = profile.repoBreakdown
     .slice(0, 5)
-    .map((r) => `- ${r.repoName}: ${r.personaName} (${r.commitCount} commits)`)
+    .map((r, i) => `- Repo${i + 1}: ${r.personaName} (${r.commitCount} commits)`)
     .join("\n");
 
   const userPrompt = [

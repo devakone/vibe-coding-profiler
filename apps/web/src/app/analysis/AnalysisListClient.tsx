@@ -81,10 +81,10 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
 
   const [reports] = useState<Report[]>(initialReports);
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
-  const [isPolling, setIsPolling] = useState(false);
 
   // Check if there are any active jobs that need polling
   const hasActiveJobs = jobs.some((j) => j.status === "pending" || j.status === "running");
+  const shouldPollJobs = activeTab === "jobs" && hasActiveJobs;
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -99,18 +99,19 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
 
   // Poll for job updates when on Jobs tab and there are active jobs
   useEffect(() => {
-    if (activeTab !== "jobs" || !hasActiveJobs) {
-      setIsPolling(false);
+    if (!shouldPollJobs) {
       return;
     }
 
-    setIsPolling(true);
+    const timeout = setTimeout(() => {
+      void fetchJobs();
+    }, 0);
     const interval = setInterval(fetchJobs, 3000);
     return () => {
+      clearTimeout(timeout);
       clearInterval(interval);
-      setIsPolling(false);
     };
-  }, [activeTab, hasActiveJobs, fetchJobs]);
+  }, [shouldPollJobs, fetchJobs]);
 
   // Reports already only include jobs with insights (i.e., completed analyses)
   const completedReports = reports;
@@ -209,7 +210,7 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
         <>
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-zinc-600">
-              {isPolling ? (
+              {shouldPollJobs ? (
                 <span className="inline-flex items-center gap-2">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
                   Watching for updates...

@@ -31,20 +31,13 @@ export default async function AnalysisIndexPage() {
   if (!user) redirect("/login");
 
   // Fetch all jobs
-  const { data: jobsData, error: jobsError } = await supabase
+  const { data: jobsData } = await supabase
     .from("analysis_jobs")
     .select("id, status, created_at, started_at, completed_at, repo_id, error_message")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  console.log("[analysis/page] user.id:", user.id);
-  console.log("[analysis/page] jobsData:", jobsData);
-  console.log("[analysis/page] jobsError:", jobsError);
-
   const jobs = (jobsData ?? []) as unknown as JobRow[];
-
-  console.log("[analysis/page] jobs count:", jobs.length);
-  console.log("[analysis/page] job statuses:", jobs.map(j => j.status));
 
   // Get repo names
   const repoIds = Array.from(
@@ -104,9 +97,6 @@ export default async function AnalysisIndexPage() {
     errorMessage: j.error_message,
   }));
 
-  console.log("[analysis/page] reports count:", reports.length);
-  console.log("[analysis/page] jobsList count:", jobsList.length);
-
   return (
     <div className={`${wrappedTheme.container} py-10`}>
       <div className="mx-auto max-w-5xl space-y-8">
@@ -122,15 +112,7 @@ export default async function AnalysisIndexPage() {
           </p>
         </header>
 
-        {/* Debug info - remove after fixing */}
-        <div className="rounded bg-amber-100 p-3 text-xs text-amber-800 space-y-1">
-          <p>User ID: {user.id}</p>
-          <p>Jobs fetched: {jobs.length}, Reports: {reports.length}, JobsList: {jobsList.length}</p>
-          <p>Statuses: {jobs.map(j => j.status).join(", ") || "none"}</p>
-          {jobsError && <p className="text-red-600">Error: {JSON.stringify(jobsError)}</p>}
-        </div>
-
-        <AnalysisListClient initialReports={reports} initialJobs={jobsList} />
+<AnalysisListClient initialReports={reports} initialJobs={jobsList} />
       </div>
     </div>
   );

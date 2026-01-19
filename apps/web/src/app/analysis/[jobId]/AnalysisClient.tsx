@@ -1016,7 +1016,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
       {pendingProfileMeta && !showLlmWarningModal && pendingProfileMeta.llmExhausted && !pendingProfileMeta.willUseLlm ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <p className="text-sm font-medium text-amber-800">
-            Your Vibed profile is now using a non-LLM narrative because you've exceeded the
+            Your Vibed profile is now using a non-LLM narrative because you&apos;ve exceeded the
             free limit of {pendingProfileMeta.repoLimit} repos. Add your own API key in Settings
             to restore LLM-generated profiles.
           </p>

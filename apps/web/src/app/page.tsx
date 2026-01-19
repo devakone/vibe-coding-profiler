@@ -1110,7 +1110,7 @@ function AuthenticatedDashboard({
               </h1>
               {stats.userProfile?.personaTagline ? (
                 <p className="mt-3 text-lg text-zinc-700">
-                  "{stats.userProfile.personaTagline}"
+                  “{stats.userProfile.personaTagline}”
                 </p>
               ) : null}
               <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-zinc-600">

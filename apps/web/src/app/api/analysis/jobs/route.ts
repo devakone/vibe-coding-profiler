@@ -42,7 +42,7 @@ export async function GET() {
     new Set(jobList.map((j) => j.repo_id).filter((id): id is string => Boolean(id)))
   );
 
-  let repoNameById: Record<string, string> = {};
+  const repoNameById: Record<string, string> = {};
   if (repoIds.length > 0) {
     const { data: repos } = await supabase
       .from("repos")
