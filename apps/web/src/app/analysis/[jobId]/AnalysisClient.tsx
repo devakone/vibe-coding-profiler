@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { computeAnalysisInsights } from "@vibed/core";
 import type { AnalysisInsights, AnalysisMetrics, CommitEvent } from "@vibed/core";
+import { formatMetricLabel } from "@/lib/format-labels";
 
 type Job = {
   id: string;
@@ -1081,9 +1082,9 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                           {matchedCriteria.map((c) => (
                             <span
                               key={c}
-                              className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-zinc-700"
+                              className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs text-zinc-700"
                             >
-                              {c}
+                              {formatMetricLabel(c)}
                             </span>
                           ))}
                         </div>
@@ -1313,18 +1314,77 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
             </summary>
             <div className="mt-5 space-y-6">
               {shareTemplate ? (
-                <div
-                  className="rounded-3xl border border-black/5 p-6 shadow-sm"
-                  style={{
-                    background: `linear-gradient(135deg, ${shareTemplate.colors.primary}, ${shareTemplate.colors.accent})`,
-                  }}
-                >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="max-w-2xl">
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/80">
-                        Share
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Share</p>
+                      <p className="mt-1 text-sm text-zinc-600">
+                        Download an image or share a link.
                       </p>
-                      <h3 className="mt-3 text-2xl font-semibold text-white">{shareTemplate.headline}</h3>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      <select
+                        className="h-9 rounded-full border border-black/10 bg-white px-3 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-800"
+                        value={shareFormat}
+                        onChange={(e) => setShareFormat(e.target.value as ShareFormat)}
+                      >
+                        {Object.entries(SHARE_FORMATS).map(([key, f]) => (
+                          <option key={key} value={key}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
+                      {supportsNativeShare ? (
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+                          onClick={handleNativeShare}
+                          disabled={!shareUrl}
+                        >
+                          Share
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+                        onClick={handleCopyShare}
+                      >
+                        {copied ? "Copied" : "Copy summary"}
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+                        onClick={handleCopyLink}
+                        disabled={!shareUrl}
+                      >
+                        {copiedLink ? "Copied" : "Copy link"}
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+                        onClick={() => handleDownloadSharePng(shareFormat)}
+                        disabled={downloadingShare}
+                      >
+                        {downloadingShare ? "PNG…" : "PNG"}
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+                        onClick={() => handleDownloadShareSvg(shareFormat)}
+                      >
+                        SVG
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    className="rounded-3xl border border-black/5 p-6 shadow-sm"
+                    style={{
+                      background: `linear-gradient(135deg, ${shareTemplate.colors.primary}, ${shareTemplate.colors.accent})`,
+                    }}
+                  >
+                    <div className="min-w-0">
+                      <h3 className="text-2xl font-semibold text-white">{shareTemplate.headline}</h3>
                       <p className="mt-2 text-sm text-white/80">{shareTemplate.subhead}</p>
                       <div className="mt-4 flex flex-wrap gap-4">
                         {shareTemplate.metrics.map((metric) => (
@@ -1340,64 +1400,12 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                         </p>
                       ) : null}
                     </div>
-                    <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      <select
-                        className="h-9 rounded-full border border-white/60 bg-white/10 px-3 text-xs font-semibold uppercase tracking-[0.25em] text-white"
-                        value={shareFormat}
-                        onChange={(e) => setShareFormat(e.target.value as ShareFormat)}
-                      >
-                        {Object.entries(SHARE_FORMATS).map(([key, f]) => (
-                          <option key={key} value={key} className="text-zinc-900">
-                            {f.label}
-                          </option>
-                        ))}
-                      </select>
-                      {supportsNativeShare ? (
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
-                          onClick={handleNativeShare}
-                          disabled={!shareUrl}
-                        >
-                          Share
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
-                        onClick={handleCopyShare}
-                      >
-                        {copied ? "Copied" : "Copy summary"}
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
-                        onClick={handleCopyLink}
-                        disabled={!shareUrl}
-                      >
-                        {copiedLink ? "Copied" : "Copy link"}
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
-                        onClick={() => handleDownloadSharePng(shareFormat)}
-                        disabled={downloadingShare}
-                      >
-                        {downloadingShare ? "PNG…" : "PNG"}
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
-                        onClick={() => handleDownloadShareSvg(shareFormat)}
-                      >
-                        SVG
-                      </button>
-                    </div>
                   </div>
-                  <div className="mt-5 flex flex-wrap gap-2">
+
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                      className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-800 shadow-sm transition hover:bg-zinc-50"
                       onClick={handleShareTwitter}
                       disabled={!shareUrl}
                     >
@@ -1405,7 +1413,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                     </button>
                     <button
                       type="button"
-                      className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                      className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-800 shadow-sm transition hover:bg-zinc-50"
                       onClick={handleShareFacebook}
                       disabled={!shareUrl}
                     >
@@ -1413,7 +1421,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                     </button>
                     <button
                       type="button"
-                      className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                      className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-800 shadow-sm transition hover:bg-zinc-50"
                       onClick={handleShareLinkedIn}
                       disabled={!shareUrl}
                     >
@@ -1421,7 +1429,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                     </button>
                     <button
                       type="button"
-                      className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                      className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-800 shadow-sm transition hover:bg-zinc-50"
                       onClick={handleShareReddit}
                       disabled={!shareUrl}
                     >
@@ -1429,7 +1437,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                     </button>
                     <button
                       type="button"
-                      className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-white/20"
+                      className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-800 shadow-sm transition hover:bg-zinc-50"
                       onClick={handleShareWhatsApp}
                       disabled={!shareUrl}
                     >
@@ -1476,7 +1484,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                       className="rounded-2xl border border-black/5 bg-zinc-50 p-4"
                     >
                       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
-                        {h.metric ?? "Metric"}
+                        {h.metric ? formatMetricLabel(h.metric) : "Metric"}
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-zinc-900">{h.value ?? "—"}</p>
                       <p className="mt-2 text-sm text-zinc-600">{h.interpretation ?? "—"}</p>
@@ -1518,9 +1526,9 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                     {matchedCriteria.map((c) => (
                       <span
                         key={c}
-                        className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-zinc-700"
+                        className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs text-zinc-700"
                       >
-                        {c}
+                        {formatMetricLabel(c)}
                       </span>
                     ))}
                   </div>
