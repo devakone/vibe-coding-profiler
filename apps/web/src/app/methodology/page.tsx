@@ -32,6 +32,10 @@ export default async function MethodologyPage() {
             <li>PR metadata when available: changed-files counts, issue linking, checklists.</li>
           </ul>
           <p className="text-sm text-zinc-700">
+            In Phase 0 (GitHub API), we analyze a time-distributed sample of commits per repo (up to
+            300) to better reflect long-lived evolution without pulling the entire history.
+          </p>
+          <p className="text-sm text-zinc-700">
             We do not read code content or prompts. Any “AI-assisted” language here is an inference
             from Git/PR patterns, not proof.
           </p>
@@ -140,6 +144,10 @@ export default async function MethodologyPage() {
           <ul className="list-disc space-y-2 pl-5 text-sm text-zinc-700">
             <li>GitHub only shows what’s pushed; local work and private repos may be missing.</li>
             <li>Some repos have incomplete metadata (e.g., missing file paths).</li>
+            <li>
+              Some insights are based on a representative sample of commits, so rare patterns may be
+              missed in very large histories.
+            </li>
             <li>
               We can’t see how you collaborate with an agent in your editor (prompts, iterations,
               copy/paste, refactors between commits), so we infer from what lands in Git.

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { wrappedTheme } from "@/lib/theme";
 import { Toaster } from "@/components/ui/toaster";
+import { JobsProvider } from "@/contexts/JobsContext";
 import AppHeader from "./AppHeader";
 import "./globals.css";
 
@@ -86,7 +87,7 @@ export default async function RootLayout({
           <div className={wrappedTheme.backgroundOrbs.vignette} />
         </div>
         <AppHeader isAuthed={Boolean(user)} isAdmin={isAdmin} signOut={signOut} />
-        {children}
+        {user ? <JobsProvider>{children}</JobsProvider> : children}
         <Toaster />
       </body>
     </html>

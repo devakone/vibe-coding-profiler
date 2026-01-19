@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { wrappedTheme } from "@/lib/theme";
+import { useJobsOptional } from "@/contexts/JobsContext";
 
 function isActiveLink(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -17,6 +18,8 @@ export default function AppHeader(props: {
   signOut: () => Promise<void>;
 }) {
   const pathname = usePathname();
+  const jobsContext = useJobsOptional();
+  const unreadCount = jobsContext?.unreadCount ?? 0;
 
   if (pathname === "/login") return null;
 
@@ -57,6 +60,7 @@ export default function AppHeader(props: {
           <nav className="flex items-center gap-1 text-sm">
             {links.map((l) => {
               const isActive = isActiveLink(pathname, l.href);
+              const showBadge = l.href === "/analysis" && unreadCount > 0;
               return (
                 <Link
                   key={l.href}
@@ -70,7 +74,14 @@ export default function AppHeader(props: {
                   {isActive && (
                     <span className="absolute inset-x-0 -bottom-[17px] mx-auto h-0.5 w-8 rounded-full bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500" />
                   )}
-                  {l.label}
+                  <span className="inline-flex items-center gap-1.5">
+                    {l.label}
+                    {showBadge && (
+                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500 px-1.5 text-[10px] font-bold text-white">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
+                  </span>
                 </Link>
               );
             })}

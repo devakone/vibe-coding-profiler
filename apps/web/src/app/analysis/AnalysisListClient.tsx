@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { wrappedTheme } from "@/lib/theme";
+import { useJobs } from "@/contexts/JobsContext";
 
 type Tab = "reports" | "jobs";
 
@@ -69,6 +70,7 @@ function formatRelativeTime(dateStr: string): string {
 export default function AnalysisListClient({ initialReports, initialJobs }: AnalysisListClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { jobs: contextJobs, unreadReportIds, markReportAsRead, markAllAsRead, refreshJobs, isPolling } = useJobs();
 
   const tabParam = searchParams.get("tab");
   const activeTab: Tab = tabParam === "jobs" ? "jobs" : "reports";
@@ -79,42 +81,22 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
     router.push(`?${params.toString()}`, { scroll: false });
   };
 
-  const [reports] = useState<Report[]>(initialReports);
-  const [jobs, setJobs] = useState<Job[]>(initialJobs);
+  // Use context jobs if available, otherwise initial jobs
+  const jobs = contextJobs.length > 0 ? contextJobs : initialJobs;
 
-  // Check if there are any active jobs that need polling
-  const hasActiveJobs = jobs.some((j) => j.status === "pending" || j.status === "running");
-  const shouldPollJobs = activeTab === "jobs" && hasActiveJobs;
+  // Track completed job count to detect new completions
+  const completedJobCountRef = useRef(jobs.filter((j) => j.status === "done").length);
+  const completedJobCount = jobs.filter((j) => j.status === "done").length;
 
-  const fetchJobs = useCallback(async () => {
-    try {
-      const res = await fetch("/api/analysis/jobs");
-      if (!res.ok) return;
-      const data = await res.json();
-      setJobs(data.jobs ?? []);
-    } catch {
-      // Silently fail on polling errors
-    }
-  }, []);
-
-  // Poll for job updates when on Jobs tab and there are active jobs
   useEffect(() => {
-    if (!shouldPollJobs) {
-      return;
+    if (completedJobCount > completedJobCountRef.current) {
+      router.refresh();
     }
-
-    const timeout = setTimeout(() => {
-      void fetchJobs();
-    }, 0);
-    const interval = setInterval(fetchJobs, 3000);
-    return () => {
-      clearTimeout(timeout);
-      clearInterval(interval);
-    };
-  }, [shouldPollJobs, fetchJobs]);
+    completedJobCountRef.current = completedJobCount;
+  }, [completedJobCount, router]);
 
   // Reports already only include jobs with insights (i.e., completed analyses)
-  const completedReports = reports;
+  const completedReports = initialReports;
   const activeJobsCount = jobs.filter((j) => j.status === "pending" || j.status === "running").length;
 
   return (
@@ -157,6 +139,19 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
       {/* Reports Tab Content */}
       {activeTab === "reports" && (
         <>
+          {unreadReportIds.size > 0 && (
+            <div className="mb-4 flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50/50 px-4 py-3">
+              <p className="text-sm text-indigo-700">
+                <span className="font-semibold">{unreadReportIds.size}</span> new report{unreadReportIds.size === 1 ? "" : "s"} ready to view
+              </p>
+              <button
+                onClick={markAllAsRead}
+                className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
+              >
+                Mark all as read
+              </button>
+            </div>
+          )}
           {completedReports.length === 0 ? (
             <div className="flex flex-col gap-3 py-8 text-center">
               <p className="text-sm text-zinc-600">
@@ -168,38 +163,54 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
             </div>
           ) : (
             <ul className="grid gap-4 md:grid-cols-2">
-              {completedReports.map((r) => (
-                <li
-                  key={r.jobId}
-                  className="rounded-2xl border border-black/5 bg-white/70 p-5"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-zinc-950">
-                        {r.repoName ?? "Repository"}
+              {completedReports.map((r) => {
+                const isUnread = unreadReportIds.has(r.jobId);
+                return (
+                  <li
+                    key={r.jobId}
+                    className={`rounded-2xl border p-5 transition-colors ${
+                      isUnread
+                        ? "border-indigo-200 bg-gradient-to-br from-indigo-50/80 to-white"
+                        : "border-black/5 bg-white/70"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-zinc-950">
+                            {r.repoName ?? "Repository"}
+                          </p>
+                          {isUnread && (
+                            <span className="inline-flex h-2 w-2 rounded-full bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500" />
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-zinc-600">
+                          {r.generatedAt ? new Date(r.generatedAt).toLocaleDateString() : ""}
+                        </p>
+                      </div>
+                      <Link
+                        href={`/analysis/${r.jobId}`}
+                        className={wrappedTheme.primaryButtonSm}
+                        onClick={() => markReportAsRead(r.jobId)}
+                      >
+                        View
+                      </Link>
+                    </div>
+
+                    <div className="mt-4 rounded-xl border border-black/5 bg-zinc-50/50 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500">
+                        Persona
                       </p>
-                      <p className="mt-1 text-xs text-zinc-600">
-                        {r.generatedAt ? new Date(r.generatedAt).toLocaleDateString() : ""}
+                      <p className="mt-1 text-base font-semibold text-zinc-950">
+                        {r.personaLabel ?? "Still forming"}
+                      </p>
+                      <p className="mt-0.5 text-sm text-zinc-600">
+                        {r.personaConfidence ?? "Not enough signal yet"}
                       </p>
                     </div>
-                    <Link href={`/analysis/${r.jobId}`} className={wrappedTheme.primaryButtonSm}>
-                      View
-                    </Link>
-                  </div>
-
-                  <div className="mt-4 rounded-xl border border-black/5 bg-zinc-50/50 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500">
-                      Persona
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-zinc-950">
-                      {r.personaLabel ?? "Still forming"}
-                    </p>
-                    <p className="mt-0.5 text-sm text-zinc-600">
-                      {r.personaConfidence ?? "Not enough signal yet"}
-                    </p>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </>
@@ -210,7 +221,7 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
         <>
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-zinc-600">
-              {shouldPollJobs ? (
+              {isPolling ? (
                 <span className="inline-flex items-center gap-2">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
                   Watching for updates...
@@ -220,7 +231,7 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
               )}
             </p>
             <button
-              onClick={fetchJobs}
+              onClick={() => void refreshJobs()}
               className="text-xs text-zinc-500 hover:text-zinc-700"
             >
               Refresh
