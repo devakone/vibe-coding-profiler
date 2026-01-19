@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@vibed/db";
 import { wrappedTheme } from "@/lib/theme";
+import { formatMatchedRule, AXIS_LEGEND } from "@/lib/format-labels";
 import { createClient } from "@supabase/supabase-js";
 import {
   aggregateUserProfile,
@@ -935,56 +936,6 @@ function AuthenticatedDashboard({
     });
   })();
 
-  const ruleAxisLegend = {
-    A: "Automation",
-    B: "Guardrails",
-    C: "Iteration",
-    D: "Planning",
-    E: "Surface Area",
-    F: "Rhythm",
-  } as const;
-
-  /**
-   * Convert underscore-separated names to user-friendly labels.
-   * e.g., "automation_heaviness" → "Automation Heaviness"
-   */
-  const formatUnderscoreLabel = (raw: string): string => {
-    const abbreviations: Record<string, string> = {
-      p50: "P50",
-      p90: "P90",
-      p95: "P95",
-      p99: "P99",
-      avg: "Avg",
-      llm: "LLM",
-      api: "API",
-      url: "URL",
-    };
-
-    return raw
-      .split("_")
-      .map((word) => {
-        const lower = word.toLowerCase();
-        if (abbreviations[lower]) return abbreviations[lower];
-        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-      })
-      .join(" ");
-  };
-
-  const formatMatchedRule = (rule: string): string => {
-    // Handle axis comparison rules like "A >= 60"
-    const m = rule.match(/^([A-F])\s*([<>]=?|=)\s*(\d+)\s*$/);
-    if (m) {
-      const axis = m[1] as keyof typeof ruleAxisLegend;
-      const op = m[2];
-      const value = m[3];
-      return `${ruleAxisLegend[axis]} ${op} ${value}`;
-    }
-    // Fallback: format underscore-separated names
-    if (rule.includes("_")) {
-      return formatUnderscoreLabel(rule);
-    }
-    return rule;
-  };
 
   const recentLabels = stats.personaHistory
     .map((entry) => entry.label)
@@ -1349,7 +1300,7 @@ function AuthenticatedDashboard({
                   </div>
 
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
-                    {Object.entries(ruleAxisLegend).map(([k, v]) => (
+                    {Object.entries(AXIS_LEGEND).map(([k, v]) => (
                       <span key={k}>
                         {k} = {v}
                       </span>
