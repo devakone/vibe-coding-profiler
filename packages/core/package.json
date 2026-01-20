@@ -1,5 +1,5 @@
 {
-  "name": "@bolokono/core",
+  "name": "@vibed/core",
   "version": "0.1.0",
   "private": true,
   "main": "./dist/index.js",
@@ -7,20 +7,24 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     }
   },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "lint": "eslint src/",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@vitest/coverage-v8": "^1.6.1",
     "tsup": "^8",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^1"
   }
 }

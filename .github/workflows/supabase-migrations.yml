@@ -1,0 +1,43 @@
+name: Supabase Migrations
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'supabase/migrations/**'
+
+jobs:
+  run-migrations:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'Production' || 'Preview' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history to check for migration changes
+
+      - name: Check for migration changes
+        id: check-migrations
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q '^supabase/migrations/'; then
+            echo "migrations_changed=true" >> $GITHUB_OUTPUT
+            echo "Migration files changed, will run migrations"
+          else
+            echo "migrations_changed=false" >> $GITHUB_OUTPUT
+            echo "No migration files changed, skipping"
+          fi
+
+      - name: Fail if DB URL missing
+        if: steps.check-migrations.outputs.migrations_changed == 'true'
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "SUPABASE_DB_URL is not set. Please configure the secret in the GitHub environment." >&2
+            exit 1
+          fi
+
+      - name: Apply migrations
+        if: steps.check-migrations.outputs.migrations_changed == 'true'
+        run: npx --yes supabase@2.72.8 migration up --db-url "${{ secrets.SUPABASE_DB_URL }}" --include-all

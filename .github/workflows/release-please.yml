@@ -1,0 +1,61 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      web_release_created: ${{ steps.release.outputs['apps/web--release_created'] }}
+      web_tag_name: ${{ steps.release.outputs['apps/web--tag_name'] }}
+      web_version: ${{ steps.release.outputs['apps/web--version'] }}
+      worker_release_created: ${{ steps.release.outputs['apps/worker--release_created'] }}
+      worker_tag_name: ${{ steps.release.outputs['apps/worker--tag_name'] }}
+      worker_version: ${{ steps.release.outputs['apps/worker--version'] }}
+      root_release_created: ${{ steps.release.outputs['release_created'] }}
+      root_tag_name: ${{ steps.release.outputs['tag_name'] }}
+      root_version: ${{ steps.release.outputs['version'] }}
+
+    steps:
+      - name: Determine config and manifest files
+        id: config-file
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "config_file=release-please-config.json" >> $GITHUB_OUTPUT
+            echo "manifest_file=.release-please-manifest.json" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "config_file=release-please-config.develop.json" >> $GITHUB_OUTPUT
+            echo "manifest_file=.release-please-manifest.develop.json" >> $GITHUB_OUTPUT
+          else
+            echo "config_file=release-please-config.json" >> $GITHUB_OUTPUT
+            echo "manifest_file=.release-please-manifest.json" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Release Please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: ${{ steps.config-file.outputs.config_file }}
+          manifest-file: ${{ steps.config-file.outputs.manifest_file }}
+          target-branch: ${{ github.ref_name }}
+
+      - name: Log release info
+        if: ${{ steps.release.outputs.releases_created == 'true' }}
+        run: |
+          echo "🚀 Release created!"
+          echo "Web release: ${{ steps.release.outputs['apps/web--release_created'] }}"
+          echo "Web version: ${{ steps.release.outputs['apps/web--version'] }}"
+          echo "Worker release: ${{ steps.release.outputs['apps/worker--release_created'] }}"
+          echo "Worker version: ${{ steps.release.outputs['apps/worker--version'] }}"
+          echo "Root release: ${{ steps.release.outputs['release_created'] }}"
+          echo "Root version: ${{ steps.release.outputs['version'] }}"

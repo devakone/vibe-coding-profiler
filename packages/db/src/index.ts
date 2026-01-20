@@ -1,13 +1,15 @@
 /**
- * @bolokono/db
+ * @vibed/db
  *
- * Supabase client and database utilities for Bolokono.
+ * Supabase client and database utilities for Vibed Coding.
  */
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "./database.types";
+import type { Database, Json } from "./database.types";
 
 export type { Database } from "./database.types";
+export type { Json } from "./database.types";
+export type { DbSchema } from "./schema";
 export type TypedSupabaseClient = SupabaseClient<Database>;
 
 /**

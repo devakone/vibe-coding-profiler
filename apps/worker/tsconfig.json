@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -9,7 +10,13 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "../..",
+    "paths": {
+      "@vibed/core": ["../../packages/core/src/index.ts"],
+      "@vibed/core/*": ["../../packages/core/src/*"],
+      "@vibed/db": ["../../packages/db/src/index.ts"],
+      "@vibed/db/*": ["../../packages/db/src/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

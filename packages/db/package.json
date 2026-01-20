@@ -1,5 +1,5 @@
 {
-  "name": "@bolokono/db",
+  "name": "@vibed/db",
   "version": "0.1.0",
   "private": true,
   "main": "./dist/index.js",
