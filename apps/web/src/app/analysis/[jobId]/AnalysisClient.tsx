@@ -1212,6 +1212,84 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                 </div>
               </div>
 
+              {/* Artifact Traceability Section */}
+              {wrapped.artifact_traceability ? (
+                <div className="mt-6 rounded-2xl border border-black/5 bg-white/60 p-5 backdrop-blur">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
+                      Workflow Style
+                    </p>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        wrapped.artifact_traceability.workflow_style === "orchestrator"
+                          ? "bg-cyan-100 text-cyan-800"
+                          : wrapped.artifact_traceability.workflow_style === "conductor"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-violet-100 text-violet-800"
+                      }`}
+                    >
+                      {wrapped.artifact_traceability.workflow_style === "orchestrator"
+                        ? "Orchestrator"
+                        : wrapped.artifact_traceability.workflow_style === "conductor"
+                          ? "Conductor"
+                          : "Hybrid"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-zinc-600">
+                    {wrapped.artifact_traceability.workflow_style === "orchestrator"
+                      ? "Durable git trail with PRs, issue links, and structured collaboration — typical of autonomous agent workflows."
+                      : wrapped.artifact_traceability.workflow_style === "conductor"
+                        ? "More ephemeral, IDE-chat style workflow with fewer artifacts — typical of interactive AI pair programming."
+                        : "Mix of orchestrator and conductor patterns — balancing structured PRs with interactive development."}
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    {wrapped.artifact_traceability.pr_coverage_rate !== null ? (
+                      <div className="text-center">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">PR Coverage</p>
+                        <p className="mt-1 text-xl font-semibold text-zinc-900">
+                          {Math.round(wrapped.artifact_traceability.pr_coverage_rate * 100)}%
+                        </p>
+                      </div>
+                    ) : null}
+                    {wrapped.artifact_traceability.issue_link_rate !== null ? (
+                      <div className="text-center">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Issue Linking</p>
+                        <p className="mt-1 text-xl font-semibold text-zinc-900">
+                          {Math.round(wrapped.artifact_traceability.issue_link_rate * 100)}%
+                        </p>
+                      </div>
+                    ) : null}
+                    {wrapped.artifact_traceability.structured_pr_rate !== null ? (
+                      <div className="text-center">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Structured PRs</p>
+                        <p className="mt-1 text-xl font-semibold text-zinc-900">
+                          {Math.round(wrapped.artifact_traceability.structured_pr_rate * 100)}%
+                        </p>
+                      </div>
+                    ) : null}
+                    {wrapped.artifact_traceability.dominant_merge_method ? (
+                      <div className="text-center">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Merge Style</p>
+                        <p className="mt-1 text-xl font-semibold capitalize text-zinc-900">
+                          {wrapped.artifact_traceability.dominant_merge_method}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                  {wrapped.artifact_traceability.scores ? (
+                    <div className="mt-4 flex items-center justify-center gap-4 text-xs text-zinc-500">
+                      <span>
+                        Orchestrator: <span className="font-semibold text-cyan-700">{wrapped.artifact_traceability.scores.orchestrator_score}</span>
+                      </span>
+                      <span>vs</span>
+                      <span>
+                        Conductor: <span className="font-semibold text-amber-700">{wrapped.artifact_traceability.scores.conductor_score}</span>
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="mt-6 rounded-2xl border border-black/5 bg-white/60 p-5 backdrop-blur">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Narrative</p>

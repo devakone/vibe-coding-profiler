@@ -52,9 +52,9 @@ We already store full commit messages and file_paths, enabling:
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Add `ai_config` to Subsystem type | ⬜ Todo | |
-| Add AI config patterns to SUBSYSTEM_PATTERNS | ⬜ Todo | Before "infra" for priority |
-| Verify patterns don't over-match | ⬜ Todo | |
+| Add `ai_config` to Subsystem type | ✅ Done | |
+| Add AI config patterns to SUBSYSTEM_PATTERNS | ✅ Done | Before "infra" for priority |
+| Verify patterns don't over-match | ✅ Done | Unit tests added |
 
 **Patterns to add:**
 ```
@@ -71,8 +71,8 @@ CLAUDE.md, .claude, .claudeignore
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Expand agentKeywordRegex | ⬜ Todo | Add ~8 new terms |
-| Verify no false positives | ⬜ Todo | "agent" in unrelated context |
+| Expand agentKeywordRegex | ✅ Done | Add ~8 new terms |
+| Verify no false positives | ✅ Done | "agent" in unrelated context |
 
 **Keywords to add:**
 - copilot, claude, aider, cline, roo, swe-agent, devin, codegen, windsurf
@@ -82,11 +82,11 @@ CLAUDE.md, .claude, .claudeignore
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Add `parseCommitTrailers()` function | ⬜ Todo | Extract key-value pairs from message body |
-| Add trailer evidence collection in loop | ⬜ Todo | coAuthorEvidence, aiTrailerEvidence |
-| Update PersonaDetectionArgs interface | ⬜ Todo | Add new fields |
-| Update detectPersona() scoring | ⬜ Todo | Co-author → spec-architect, AI trailers → agent-orchestrator |
-| Add multi_agent_signals to AnalysisInsights | ⬜ Todo | Surface counts and evidence |
+| Add `parseCommitTrailers()` function | ✅ Done | Extract key-value pairs from message body |
+| Add trailer evidence collection in loop | ✅ Done | coAuthorEvidence, aiTrailerEvidence |
+| Update PersonaDetectionArgs interface | ✅ Done | Add new fields |
+| Update detectPersona() scoring | ✅ Done | Co-author → spec-architect, AI trailers → agent-orchestrator |
+| Add multi_agent_signals to AnalysisInsights | ✅ Done | Surface counts and evidence |
 
 **Trailers to detect:**
 - `Co-authored-by:` - pairing/supervision signal
@@ -98,11 +98,23 @@ CLAUDE.md, .claude, .claudeignore
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Unit tests for parseCommitTrailers() | ⬜ Todo | |
-| Unit tests for AI config patterns | ⬜ Todo | |
+| Unit tests for parseCommitTrailers() | ✅ Done | |
+| Unit tests for AI config patterns | ✅ Done | |
 | Integration test with known AI repo | ⬜ Todo | |
-| Run pnpm test in packages/core | ⬜ Todo | |
-| Run pnpm build in apps/web | ⬜ Todo | |
+| Run npm test in packages/core | ✅ Done | 31 tests passing |
+| Run npm build in packages/core | ✅ Done | |
+
+### Phase 5: Artifacts & Traceability (Conductor vs Orchestrator)
+
+Orchestrator workflows tend to leave a durable “git trail” (branches, commits, pull requests, and issue linkage) that improves traceability and collaboration, while conductor-style IDE chat can be more ephemeral unless the developer captures intermediate work in commits and PRs. Source: [Addy Osmani: The future of agentic coding (conductors to orchestrators)](https://addyosmani.com/blog/future-agentic-coding/).
+
+**Gate:** Requires PR metadata ingestion (see “Extension PRD: PR Metadata Ingestion (vNext)”). Branch topology ingestion further strengthens these signals.
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Add “artifact traceability” signals to insights | ✅ Done | `ArtifactTraceability` interface with PR coverage, issue link rate, structured PR rate |
+| Add conductor vs orchestrator scoring hooks | ✅ Done | `WorkflowStyle` type with orchestrator/conductor/hybrid detection |
+| Surface artifact evidence in UI | ✅ Done | Workflow Style section with metrics and score breakdown |
 
 ---
 
@@ -212,9 +224,54 @@ See architecture spec: [vibe-metrics-v2.md](../architecture/vibe-metrics-v2.md)
 
 ---
 
+## Extension PRD: PR Metadata Ingestion (vNext)
+
+This section turns “PR metadata” from future work into an implementable plan. It is intentionally separate from Phases 1–4 because it requires new ingestion and new tables.
+
+### Goal
+Ingest enough pull request metadata to strengthen multi-agent orchestration detection beyond commit-only signals.
+
+### Non-Goals (vNext)
+- Full PR timeline ingestion (every event)
+- Cross-platform PR/merge request normalization (GitLab/Bitbucket)
+- Perfect commit-to-PR mapping across all merge styles (tracked separately)
+
+### Data to Ingest (GitHub)
+- PR fields: number, title, body, state, created_at, closed_at, merged_at, merged, author login, base/head refs, merge_commit_sha
+- Size fields: changed_files, additions, deletions, commits
+- Collaboration fields: comments, review_comments, review decision (if available), reviews count
+
+### Signals We Can Derive
+- Merge method distribution: squash vs merge vs rebase
+- Review dynamics: review counts, time-to-first-review, approvals vs comments-only
+- Template/checklist usage: checkboxes in body, “## Checklist” markers, template headings
+- Issue linking: “Fixes #123”, “Closes #123”, “Resolves #123”
+- Orchestration shape (aggregate): many small PRs, high squash rate, consistent templating
+
+### Proposed Schema
+**Primary tables**
+- `pull_requests`
+  - Align with architecture sketch in [vibe-metrics-v2.md](../architecture/vibe-metrics-v2.md)
+  - Key columns: `repo_id`, `github_pr_number`, `title`, `body`, `state`, `merged`, `merged_at`, `created_at`, `closed_at`, size and collaboration counts, `merge_method`
+
+**Optional tables**
+- `pull_request_reviews`
+  - `repo_id`, `github_pr_number`, `github_review_id`, `author_login`, `state`, `submitted_at`
+
+### Ingestion Approach
+- Fetch scope: last N PRs per repo (e.g. 200) or last X days (e.g. 90), whichever yields fewer rows
+- Store per-repo watermark: `last_pr_sync_at` (new column on `repos` or separate `repo_sync_state`)
+- Run ingestion as part of analysis job execution, before computing `AnalysisInsights`
+
+### Implementation Tracker (vNext)
+See: [PR Metadata Ingestion Tracker](../implementation-trackers/multi-agent-pr-metadata-ingestion.md)
+
+---
+
 ## References
 
 - [Research: Multi-Agent Vibe Coding Patterns](../research/multi-agent-vibe-coding-patterns.md)
 - [Architecture: Vibe Metrics v2](../architecture/vibe-metrics-v2.md)
+- [Addy Osmani: The future of agentic coding (conductors to orchestrators)](https://addyosmani.com/blog/future-agentic-coding/)
 - [GitHub Copilot Coding Agent](https://docs.github.com/en/copilot/concepts/coding-agent/coding-agent)
 - [Git Worktrees for AI Agents](https://nx.dev/blog/git-worktrees-ai-agents)

@@ -175,6 +175,61 @@ export interface AnalysisInsightPersonaDelta {
   evidence_shas: string[];
 }
 
+export interface PullRequestSignals {
+  total: number;
+  merged: number;
+  merge_methods: { merge: number; squash: number; rebase: number; unknown: number };
+  checklist_rate: number | null;
+  template_rate: number | null;
+  linked_issue_rate: number | null;
+  evidence_shas: string[];
+}
+
+/**
+ * Workflow style based on artifact traceability.
+ * - "orchestrator": Durable git trail with PRs, issue links, templates (autonomous agents)
+ * - "conductor": More ephemeral, IDE-chat style with fewer artifacts
+ * - "hybrid": Mix of both styles
+ * Ref: https://addyosmani.com/blog/future-agentic-coding/
+ */
+export type WorkflowStyle = "orchestrator" | "conductor" | "hybrid";
+
+/**
+ * Artifact traceability signals to distinguish conductor vs orchestrator workflows.
+ * Orchestrators leave a durable "git trail" (branches, commits, PRs, issue linkage)
+ * while conductors tend to be more ephemeral unless work is captured in commits/PRs.
+ */
+export interface ArtifactTraceability {
+  /** Workflow style based on artifact signals */
+  workflow_style: WorkflowStyle;
+  /** Confidence in the workflow style detection */
+  confidence: AnalysisInsightConfidence;
+  /** Ratio of commits that are associated with PRs (0-1) */
+  pr_coverage_rate: number | null;
+  /** Ratio of PRs with linked issues (0-1) */
+  issue_link_rate: number | null;
+  /** Ratio of PRs using templates/checklists (0-1) */
+  structured_pr_rate: number | null;
+  /** Distribution of merge methods */
+  merge_method_distribution: {
+    merge: number;
+    squash: number;
+    rebase: number;
+  };
+  /** Dominant merge method if any */
+  dominant_merge_method: "merge" | "squash" | "rebase" | "mixed" | null;
+  /** Score breakdown for transparency */
+  scores: {
+    orchestrator_score: number;
+    conductor_score: number;
+  };
+  /** Evidence: PR numbers or commit SHAs that contributed to the signal */
+  evidence: {
+    pr_numbers: number[];
+    commit_shas: string[];
+  };
+}
+
 interface PersonaDescriptor {
   label: string;
   description: string;
@@ -291,6 +346,13 @@ interface PersonaDetectionArgs {
   coAuthorEvidence: string[];
   aiTrailerCount: number;
   aiTrailerEvidence: string[];
+  prTotal: number;
+  prMerged: number;
+  prSquashMergeRate: number | null;
+  prTemplateRate: number | null;
+  prChecklistRate: number | null;
+  prLinkedIssueRate: number | null;
+  prEvidence: string[];
 }
 
 interface PersonaDetectionResult {
@@ -319,6 +381,12 @@ function detectPersona(args: PersonaDetectionArgs): PersonaDetectionResult {
     coAuthorEvidence,
     aiTrailerCount,
     aiTrailerEvidence,
+    prTotal,
+    prSquashMergeRate,
+    prTemplateRate,
+    prChecklistRate,
+    prLinkedIssueRate,
+    prEvidence,
   } = args;
 
   const personaScores: Record<PersonaId, number> = {
@@ -415,6 +483,21 @@ function detectPersona(args: PersonaDetectionArgs): PersonaDetectionResult {
   // AI trailers are strong multi-agent signal
   if (aiTrailerCount >= 2) {
     addScore("agent-orchestrator", 2, aiTrailerEvidence);
+  }
+
+  if (prTotal >= 20) {
+    if (prSquashMergeRate !== null && prSquashMergeRate >= 0.6) {
+      addScore("agent-orchestrator", 1, prEvidence);
+    }
+    if (prTemplateRate !== null && prTemplateRate >= 0.4) {
+      addScore("agent-orchestrator", 0.8, prEvidence);
+    }
+    if (prChecklistRate !== null && prChecklistRate >= 0.4) {
+      addScore("spec-architect", 0.5, prEvidence);
+    }
+    if (prLinkedIssueRate !== null && prLinkedIssueRate >= 0.3) {
+      addScore("spec-architect", 0.5, prEvidence);
+    }
   }
 
   if (Object.values(personaScores).every((score) => score === 0)) {
@@ -546,9 +629,24 @@ export interface AnalysisInsights {
     co_author_count: number;
     ai_trailer_count: number;
     ai_keyword_count: number;
+    pr_squash_merge_rate: number | null;
+    pr_template_rate: number | null;
+    pr_checklist_rate: number | null;
+    pr_linked_issue_rate: number | null;
     confidence: AnalysisInsightConfidence;
     evidence_shas: string[];
   };
+  pull_requests: {
+    total: number;
+    merged: number;
+    merge_methods: { merge: number; squash: number; rebase: number; unknown: number };
+    checklist_rate: number | null;
+    template_rate: number | null;
+    linked_issue_rate: number | null;
+    confidence: AnalysisInsightConfidence;
+    evidence_shas: string[];
+  };
+  artifact_traceability: ArtifactTraceability;
   tech: AnalysisInsightTechSignals;
   persona: AnalysisInsightPersona;
   share_template: AnalysisInsightShareTemplate;
@@ -1036,10 +1134,173 @@ function confidenceFromCount(count: number): AnalysisInsightConfidence {
 }
 
 // =============================================================================
+// Artifact Traceability (Conductor vs Orchestrator)
+// =============================================================================
+
+interface ArtifactTraceabilityArgs {
+  totalCommits: number;
+  prTotal: number;
+  prMerged: number;
+  prMergeMethods: { merge: number; squash: number; rebase: number; unknown: number };
+  prChecklistRate: number | null;
+  prTemplateRate: number | null;
+  prLinkedIssueRate: number | null;
+  prEvidence: string[];
+  aiTrailerCount: number;
+  coAuthorCount: number;
+}
+
+/**
+ * Compute artifact traceability signals to distinguish conductor vs orchestrator workflows.
+ *
+ * Orchestrator signals (durable git trail):
+ * - High PR coverage (commits go through PRs)
+ * - Issue linking in PRs
+ * - Template/checklist usage
+ * - Consistent merge strategy (especially squash)
+ * - AI co-author trailers (structured collaboration)
+ *
+ * Conductor signals (ephemeral, IDE-chat):
+ * - Direct commits without PRs
+ * - No issue linking
+ * - No templates/checklists
+ * - Mixed or no merge strategy
+ */
+function computeArtifactTraceability(args: ArtifactTraceabilityArgs): ArtifactTraceability {
+  const {
+    totalCommits,
+    prTotal,
+    prMerged,
+    prMergeMethods,
+    prChecklistRate,
+    prTemplateRate,
+    prLinkedIssueRate,
+    prEvidence,
+    aiTrailerCount,
+    coAuthorCount,
+  } = args;
+
+  // Calculate PR coverage rate (how many commits go through PRs)
+  // Approximation: merged PRs / total commits (capped at 1)
+  const prCoverageRate = totalCommits > 0 ? Math.min(1, prMerged / totalCommits) : null;
+
+  // Structured PR rate: PRs with templates OR checklists
+  const structuredPrRate =
+    prTemplateRate !== null && prChecklistRate !== null
+      ? Math.max(prTemplateRate, prChecklistRate)
+      : prTemplateRate ?? prChecklistRate;
+
+  // Merge method distribution (normalized)
+  const totalMerges = prMergeMethods.merge + prMergeMethods.squash + prMergeMethods.rebase;
+  const mergeMethodDist = {
+    merge: totalMerges > 0 ? prMergeMethods.merge / totalMerges : 0,
+    squash: totalMerges > 0 ? prMergeMethods.squash / totalMerges : 0,
+    rebase: totalMerges > 0 ? prMergeMethods.rebase / totalMerges : 0,
+  };
+
+  // Determine dominant merge method
+  let dominantMergeMethod: ArtifactTraceability["dominant_merge_method"] = null;
+  if (totalMerges >= 3) {
+    const maxRate = Math.max(mergeMethodDist.merge, mergeMethodDist.squash, mergeMethodDist.rebase);
+    if (maxRate >= 0.6) {
+      if (mergeMethodDist.squash === maxRate) dominantMergeMethod = "squash";
+      else if (mergeMethodDist.merge === maxRate) dominantMergeMethod = "merge";
+      else if (mergeMethodDist.rebase === maxRate) dominantMergeMethod = "rebase";
+    } else {
+      dominantMergeMethod = "mixed";
+    }
+  }
+
+  // Score calculation
+  let orchestratorScore = 0;
+  let conductorScore = 0;
+
+  // PR coverage is a strong orchestrator signal
+  if (prCoverageRate !== null) {
+    if (prCoverageRate >= 0.5) orchestratorScore += 2;
+    else if (prCoverageRate >= 0.2) orchestratorScore += 1;
+    else if (prCoverageRate < 0.1) conductorScore += 1;
+  } else {
+    // No PR data suggests conductor style
+    conductorScore += 1;
+  }
+
+  // Issue linking is orchestrator signal
+  if (prLinkedIssueRate !== null) {
+    if (prLinkedIssueRate >= 0.4) orchestratorScore += 2;
+    else if (prLinkedIssueRate >= 0.2) orchestratorScore += 1;
+  }
+
+  // Structured PRs (templates/checklists) are orchestrator signal
+  if (structuredPrRate !== null) {
+    if (structuredPrRate >= 0.5) orchestratorScore += 1.5;
+    else if (structuredPrRate >= 0.3) orchestratorScore += 0.5;
+  }
+
+  // Consistent merge strategy (especially squash) is orchestrator signal
+  if (dominantMergeMethod === "squash") {
+    orchestratorScore += 1.5;
+  } else if (dominantMergeMethod === "merge" || dominantMergeMethod === "rebase") {
+    orchestratorScore += 0.5;
+  } else if (dominantMergeMethod === "mixed") {
+    conductorScore += 0.5;
+  }
+
+  // AI trailers indicate structured AI collaboration (orchestrator)
+  if (aiTrailerCount >= 3) orchestratorScore += 1.5;
+  else if (aiTrailerCount >= 1) orchestratorScore += 0.5;
+
+  // Co-author trailers indicate pair programming / collaboration
+  if (coAuthorCount >= 5) orchestratorScore += 1;
+  else if (coAuthorCount >= 2) orchestratorScore += 0.5;
+
+  // Determine workflow style
+  let workflowStyle: WorkflowStyle;
+  const scoreDiff = orchestratorScore - conductorScore;
+  if (scoreDiff >= 2) {
+    workflowStyle = "orchestrator";
+  } else if (scoreDiff <= -1) {
+    workflowStyle = "conductor";
+  } else {
+    workflowStyle = "hybrid";
+  }
+
+  // Confidence based on data availability
+  let confidence: AnalysisInsightConfidence;
+  const hasGoodData = prTotal >= 10 && totalCommits >= 20;
+  const hasSomeData = prTotal >= 3 || totalCommits >= 10;
+  if (hasGoodData && Math.abs(scoreDiff) >= 2) {
+    confidence = "high";
+  } else if (hasSomeData) {
+    confidence = "medium";
+  } else {
+    confidence = "low";
+  }
+
+  return {
+    workflow_style: workflowStyle,
+    confidence,
+    pr_coverage_rate: prCoverageRate,
+    issue_link_rate: prLinkedIssueRate,
+    structured_pr_rate: structuredPrRate,
+    merge_method_distribution: mergeMethodDist,
+    dominant_merge_method: dominantMergeMethod,
+    scores: {
+      orchestrator_score: Math.round(orchestratorScore * 10) / 10,
+      conductor_score: Math.round(conductorScore * 10) / 10,
+    },
+    evidence: {
+      pr_numbers: [], // Will be populated when we have PR number data
+      commit_shas: prEvidence.slice(0, 5),
+    },
+  };
+}
+
+// =============================================================================
 // Commit Trailer Parsing
 // =============================================================================
 
-interface CommitTrailer {
+export interface CommitTrailer {
   name: string;
   value: string;
 }
@@ -1048,34 +1309,47 @@ interface CommitTrailer {
  * Parse git trailers from a commit message.
  * Git trailers appear at the end of commit messages, each on their own line.
  * Format: "Key: Value" or "Key-Name: Value"
+ * Supports both uppercase and lowercase trailer names (e.g., "Co-authored-by" and "signed-off-by")
  */
-function parseCommitTrailers(message: string): CommitTrailer[] {
+export function parseCommitTrailers(message: string): CommitTrailer[] {
   const lines = message.split("\n");
   const trailers: CommitTrailer[] = [];
 
-  // Trailers are typically at the end after a blank line
-  let inTrailerSection = false;
+  // Find the last blank line index - trailers must come after it
+  let lastBlankLineIndex = -1;
   for (let i = lines.length - 1; i >= 0; i--) {
-    const trimmed = lines[i].trim();
-    if (!trimmed) {
-      inTrailerSection = true;
-      continue;
+    if (lines[i].trim() === "") {
+      lastBlankLineIndex = i;
+      break;
     }
-    if (!inTrailerSection) continue;
+  }
 
-    const match = trimmed.match(/^([A-Z][a-zA-Z-]+):\s*(.+)$/);
+  // No blank line means no trailer section
+  if (lastBlankLineIndex === -1 || lastBlankLineIndex === lines.length - 1) {
+    return [];
+  }
+
+  // Parse trailers from after the last blank line
+  for (let i = lastBlankLineIndex + 1; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) continue;
+
+    const match = trimmed.match(/^([A-Za-z][a-zA-Z-]+):\s*(.+)$/);
     if (match) {
       trailers.push({ name: match[1], value: match[2] });
-    } else if (trailers.length > 0) {
-      // Stop if we hit non-trailer content after finding trailers
-      break;
+    } else {
+      // Non-trailer content after blank line - not a valid trailer section
+      return [];
     }
   }
 
   return trailers;
 }
 
-export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights {
+export function computeAnalysisInsights(
+  events: CommitEvent[],
+  options?: { pull_requests?: PullRequestSignals | null }
+): AnalysisInsights {
   // Filter out automation/bot commits for cleaner insights
   const humanCommits = filterAutomationCommits(events);
 
@@ -1282,6 +1556,16 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
     confidence: topTech.length > 0 ? confidence : "low",
   };
 
+  const pullRequests = options?.pull_requests ?? null;
+  const prTotal = pullRequests?.total ?? 0;
+  const prMerged = pullRequests?.merged ?? 0;
+  const prMergeMethods = pullRequests?.merge_methods ?? { merge: 0, squash: 0, rebase: 0, unknown: 0 };
+  const prChecklistRate = pullRequests?.checklist_rate ?? null;
+  const prTemplateRate = pullRequests?.template_rate ?? null;
+  const prLinkedIssueRate = pullRequests?.linked_issue_rate ?? null;
+  const prEvidence = (pullRequests?.evidence_shas ?? []).slice(0, 10);
+  const prSquashMergeRate = prMerged > 0 ? prMergeMethods.squash / prMerged : null;
+
   const personaResult = detectPersona({
     totalCommits,
     docEvidence,
@@ -1304,6 +1588,13 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
     coAuthorEvidence,
     aiTrailerCount,
     aiTrailerEvidence,
+    prTotal,
+    prMerged,
+    prSquashMergeRate,
+    prTemplateRate,
+    prChecklistRate,
+    prLinkedIssueRate,
+    prEvidence,
   });
 
   const shareTemplate = buildShareTemplate(
@@ -1366,9 +1657,38 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
       co_author_count: coAuthorCount,
       ai_trailer_count: aiTrailerCount,
       ai_keyword_count: agentEvidence.length,
+      pr_squash_merge_rate: prSquashMergeRate,
+      pr_template_rate: prTemplateRate,
+      pr_checklist_rate: prChecklistRate,
+      pr_linked_issue_rate: prLinkedIssueRate,
       confidence: confidenceFromCount(coAuthorCount + aiTrailerCount + agentEvidence.length),
-      evidence_shas: [...coAuthorEvidence, ...aiTrailerEvidence, ...agentEvidence].slice(0, 5),
+      evidence_shas: [...coAuthorEvidence, ...aiTrailerEvidence, ...agentEvidence, ...prEvidence].slice(
+        0,
+        5
+      ),
     },
+    pull_requests: {
+      total: prTotal,
+      merged: prMerged,
+      merge_methods: prMergeMethods,
+      checklist_rate: prChecklistRate,
+      template_rate: prTemplateRate,
+      linked_issue_rate: prLinkedIssueRate,
+      confidence: confidenceFromCount(prTotal),
+      evidence_shas: prEvidence.slice(0, 5),
+    },
+    artifact_traceability: computeArtifactTraceability({
+      totalCommits,
+      prTotal,
+      prMerged,
+      prMergeMethods,
+      prChecklistRate,
+      prTemplateRate,
+      prLinkedIssueRate,
+      prEvidence,
+      aiTrailerCount,
+      coAuthorCount,
+    }),
     tech: techSignals,
     persona: personaResult.persona,
     share_template: shareTemplate,

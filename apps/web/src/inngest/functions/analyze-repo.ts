@@ -370,6 +370,31 @@ interface GithubCompareResponse {
   files?: Array<{ filename: string }>;
 }
 
+interface GithubPullListItem {
+  number: number;
+  title: string;
+  body: string | null;
+  state: "open" | "closed";
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+  merged_at: string | null;
+  user: { login: string } | null;
+  base: { ref: string };
+  head: { ref: string; sha: string };
+}
+
+interface GithubPullDetail extends GithubPullListItem {
+  merged: boolean;
+  merge_commit_sha: string | null;
+  changed_files: number;
+  additions: number;
+  deletions: number;
+  commits: number;
+  comments: number;
+  review_comments: number;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -422,6 +447,79 @@ async function githubFetch<T>(url: string, token: string): Promise<T> {
   }
 
   throw new Error("GitHub API error: exhausted retries");
+}
+
+function extractLinkedIssueNumbers(text: string | null): number[] {
+  if (!text) return [];
+  const matches = text.matchAll(/\b(?:fixes|closes|resolves)\s+#(\d+)\b/gi);
+  const out: number[] = [];
+  for (const m of matches) {
+    const n = Number.parseInt(m[1] ?? "", 10);
+    if (Number.isFinite(n)) out.push(n);
+  }
+  return Array.from(new Set(out)).slice(0, 20);
+}
+
+function hasChecklist(text: string | null): boolean {
+  if (!text) return false;
+  return /(^|\n)\s*-\s*\[[ xX]\]\s+/m.test(text);
+}
+
+function hasTemplateMarkers(text: string | null): boolean {
+  if (!text) return false;
+  if (/(^|\n)\s*<!--/m.test(text)) return true;
+  return /(^|\n)\s*#{2,3}\s+(description|changes|testing|checklist|context|motivation)\b/im.test(
+    text
+  );
+}
+
+async function fetchPullRequests(params: {
+  owner: string;
+  repo: string;
+  token: string;
+  maxPullRequests: number;
+  updatedAfter: string | null;
+}): Promise<GithubPullListItem[]> {
+  const items: GithubPullListItem[] = [];
+  const updatedAfterMs = params.updatedAfter ? new Date(params.updatedAfter).getTime() : null;
+  let page = 1;
+
+  while (items.length < params.maxPullRequests) {
+    const url = new URL(`https://api.github.com/repos/${params.owner}/${params.repo}/pulls`);
+    url.searchParams.set("state", "all");
+    url.searchParams.set("sort", "updated");
+    url.searchParams.set("direction", "desc");
+    url.searchParams.set("per_page", "100");
+    url.searchParams.set("page", String(page));
+
+    const batch = await githubFetch<GithubPullListItem[]>(url.toString(), params.token);
+    if (batch.length === 0) break;
+
+    for (const pr of batch) {
+      const prUpdatedMs = new Date(pr.updated_at).getTime();
+      if (updatedAfterMs !== null && Number.isFinite(prUpdatedMs) && prUpdatedMs <= updatedAfterMs) {
+        return items.slice(0, params.maxPullRequests);
+      }
+      items.push(pr);
+      if (items.length >= params.maxPullRequests) break;
+    }
+
+    if (batch.length < 100) break;
+    page += 1;
+    if (page > 10) break;
+  }
+
+  return items.slice(0, params.maxPullRequests);
+}
+
+async function fetchPullRequestDetail(params: {
+  owner: string;
+  repo: string;
+  token: string;
+  number: number;
+}): Promise<GithubPullDetail> {
+  const url = `https://api.github.com/repos/${params.owner}/${params.repo}/pulls/${params.number}`;
+  return githubFetch<GithubPullDetail>(url, params.token);
 }
 
 /**
@@ -606,7 +704,7 @@ export const analyzeRepo = inngest.createFunction(
 
       const { data: repo, error: repoError } = await supabase
         .from("repos")
-        .select("id, owner, name, full_name")
+        .select("id, owner, name, full_name, last_pr_sync_at")
         .eq("id", repoId)
         .single();
 
@@ -638,6 +736,171 @@ export const analyzeRepo = inngest.createFunction(
         .eq("id", jobId);
 
       return { job, repo, githubToken };
+    });
+
+    const pullRequestSignals = await step.run("sync-pull-requests", async () => {
+      try {
+        const prs = await fetchPullRequests({
+          owner: repo.owner,
+          repo: repo.name,
+          token: githubToken,
+          maxPullRequests: 200,
+          updatedAfter: (repo as { last_pr_sync_at?: string | null }).last_pr_sync_at ?? null,
+        });
+
+        if (prs.length === 0) {
+          return {
+            total: 0,
+            merged: 0,
+            merge_methods: { merge: 0, squash: 0, rebase: 0, unknown: 0 },
+            checklist_rate: null,
+            template_rate: null,
+            linked_issue_rate: null,
+            evidence_shas: [] as string[],
+          };
+        }
+
+        const detailed: GithubPullDetail[] = [];
+        const detailLimit = Math.min(50, prs.length);
+        const batchSize = 5;
+        for (let i = 0; i < detailLimit; i += batchSize) {
+          const batch = prs.slice(i, i + batchSize);
+          const details = await Promise.all(
+            batch.map((pr) =>
+              fetchPullRequestDetail({
+                owner: repo.owner,
+                repo: repo.name,
+                token: githubToken,
+                number: pr.number,
+              })
+            )
+          );
+          detailed.push(...details);
+        }
+
+        const mergeMethodCounts = { merge: 0, squash: 0, rebase: 0, unknown: 0 };
+        const evidenceShas: string[] = [];
+
+        const mergedWithCommitSha = detailed.filter((pr) => pr.merged && pr.merge_commit_sha);
+        const mergeCommitDetails: Map<string, GithubCommitDetail> = new Map();
+        const mergeCommitBatchSize = 5;
+        for (let i = 0; i < mergedWithCommitSha.length; i += mergeCommitBatchSize) {
+          const batch = mergedWithCommitSha.slice(i, i + mergeCommitBatchSize);
+          const results = await Promise.all(
+            batch.map(async (pr) => {
+              const sha = pr.merge_commit_sha;
+              if (!sha) return null;
+              try {
+                const detail = await fetchCommitDetail({
+                  owner: repo.owner,
+                  repo: repo.name,
+                  sha,
+                  token: githubToken,
+                });
+                return { sha, detail };
+              } catch {
+                return null;
+              }
+            })
+          );
+          for (const r of results) {
+            if (!r) continue;
+            mergeCommitDetails.set(r.sha, r.detail);
+          }
+        }
+
+        const rows = detailed.map((pr) => {
+          const linkedIssues = extractLinkedIssueNumbers(pr.body);
+          const checklist = hasChecklist(pr.body);
+          const templateMarkers = hasTemplateMarkers(pr.body);
+
+          let mergeMethod: string | null = null;
+          if (pr.merged && pr.merge_commit_sha) {
+            const commit = mergeCommitDetails.get(pr.merge_commit_sha);
+            const parentCount = commit?.parents?.length ?? 0;
+            if (parentCount >= 2) mergeMethod = "merge";
+            else if (pr.merge_commit_sha === pr.head.sha) mergeMethod = "rebase";
+            else mergeMethod = "squash";
+          }
+
+          if (mergeMethod === "merge") mergeMethodCounts.merge += 1;
+          else if (mergeMethod === "squash") mergeMethodCounts.squash += 1;
+          else if (mergeMethod === "rebase") mergeMethodCounts.rebase += 1;
+          else if (pr.merged) mergeMethodCounts.unknown += 1;
+
+          if (pr.merge_commit_sha && evidenceShas.length < 10) evidenceShas.push(pr.merge_commit_sha);
+
+          return {
+            repo_id: repoId,
+            github_pr_number: pr.number,
+            title: pr.title,
+            body: pr.body,
+            state: pr.state,
+            merged: pr.merged,
+            merged_at: pr.merged_at,
+            created_at: pr.created_at,
+            updated_at: pr.updated_at,
+            closed_at: pr.closed_at,
+            author_login: pr.user?.login ?? null,
+            base_ref: pr.base.ref,
+            head_ref: pr.head.ref,
+            head_sha: pr.head.sha,
+            merge_commit_sha: pr.merge_commit_sha,
+            commit_count: pr.commits,
+            additions: pr.additions,
+            deletions: pr.deletions,
+            changed_files: pr.changed_files,
+            comments_count: pr.comments,
+            review_comments_count: pr.review_comments,
+            linked_issue_numbers: linkedIssues,
+            has_checklist: checklist,
+            has_template_markers: templateMarkers,
+            merge_method: mergeMethod,
+          };
+        });
+
+        const { error: prUpsertError } = await supabase
+          .from("pull_requests")
+          .upsert(rows, { onConflict: "repo_id,github_pr_number" });
+        if (prUpsertError) {
+          console.warn("Failed to upsert pull requests:", prUpsertError.message);
+        }
+
+        await supabase
+          .from("repos")
+          .update({ last_pr_sync_at: new Date().toISOString() })
+          .eq("id", repoId);
+
+        const mergedCount = detailed.filter((pr) => pr.merged).length;
+        const checklistCount = detailed.filter((pr) => hasChecklist(pr.body)).length;
+        const templateCount = detailed.filter((pr) => hasTemplateMarkers(pr.body)).length;
+        const linkedIssueCount = detailed.filter((pr) => extractLinkedIssueNumbers(pr.body).length > 0)
+          .length;
+
+        const denom = detailed.length;
+
+        return {
+          total: denom,
+          merged: mergedCount,
+          merge_methods: mergeMethodCounts,
+          checklist_rate: denom > 0 ? checklistCount / denom : null,
+          template_rate: denom > 0 ? templateCount / denom : null,
+          linked_issue_rate: denom > 0 ? linkedIssueCount / denom : null,
+          evidence_shas: evidenceShas,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        console.warn("Pull request ingestion skipped:", message);
+        return {
+          total: 0,
+          merged: 0,
+          merge_methods: { merge: 0, squash: 0, rebase: 0, unknown: 0 },
+          checklist_rate: null,
+          template_rate: null,
+          linked_issue_rate: null,
+          evidence_shas: [] as string[],
+        };
+      }
     });
 
     // Step 2: Fetch commit list
@@ -738,7 +1001,9 @@ export const analyzeRepo = inngest.createFunction(
 
         const metrics = computeAnalysisMetrics(legacyEvents);
         const assignment = assignVibeType(metrics);
-        const insights = computeAnalysisInsights(legacyEvents);
+        const insights = computeAnalysisInsights(legacyEvents, {
+          pull_requests: pullRequestSignals,
+        });
 
         // NEW: Vibe v2 insights with episodes and subsystems
         const vibeInsights = computeVibeFromCommits({

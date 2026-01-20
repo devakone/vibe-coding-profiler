@@ -219,19 +219,7 @@ const SUBSYSTEM_PATTERNS: Array<{ subsystem: Subsystem; patterns: RegExp[] }> = 
     ],
   },
   {
-    subsystem: "docs",
-    patterns: [
-      /\.md$/i,
-      /\.mdx$/i,
-      /\/docs?\//i,
-      /readme/i,
-      /changelog/i,
-      /license/i,
-      /contributing/i,
-      /\.txt$/i,
-    ],
-  },
-  {
+    // ai_config MUST come before docs to catch AI-specific .md files
     subsystem: "ai_config",
     patterns: [
       // Cursor: .cursor/rules/* (current), .cursorrules (legacy)
@@ -265,6 +253,19 @@ const SUBSYSTEM_PATTERNS: Array<{ subsystem: Subsystem; patterns: RegExp[] }> = 
       // Ref: https://cline.bot/blog/clinerules-version-controlled-shareable-and-ai-editable-instructions
       /\.clinerules\//i,
       /\.clinerules$/i,
+    ],
+  },
+  {
+    subsystem: "docs",
+    patterns: [
+      /\.md$/i,
+      /\.mdx$/i,
+      /\/docs?\//i,
+      /readme/i,
+      /changelog/i,
+      /license/i,
+      /contributing/i,
+      /\.txt$/i,
     ],
   },
   {
