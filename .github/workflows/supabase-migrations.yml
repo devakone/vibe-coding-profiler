@@ -40,4 +40,4 @@ jobs:
 
       - name: Apply migrations
         if: steps.check-migrations.outputs.migrations_changed == 'true'
-        run: npx --yes supabase@latest migration up --db-url "${{ secrets.SUPABASE_DB_URL }}" --include-all
+        run: npx --yes supabase@2.72.8 migration up --db-url "${{ secrets.SUPABASE_DB_URL }}" --include-all

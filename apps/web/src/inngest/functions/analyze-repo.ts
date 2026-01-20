@@ -749,6 +749,10 @@ export const analyzeRepo = inngest.createFunction(
         });
 
         if (prs.length === 0) {
+          await supabase
+            .from("repos")
+            .update({ last_pr_sync_at: new Date().toISOString() })
+            .eq("id", repoId);
           return {
             total: 0,
             merged: 0,
@@ -818,9 +822,15 @@ export const analyzeRepo = inngest.createFunction(
           if (pr.merged && pr.merge_commit_sha) {
             const commit = mergeCommitDetails.get(pr.merge_commit_sha);
             const parentCount = commit?.parents?.length ?? 0;
-            if (parentCount >= 2) mergeMethod = "merge";
-            else if (pr.merge_commit_sha === pr.head.sha) mergeMethod = "rebase";
-            else mergeMethod = "squash";
+            if (!commit) {
+              mergeMethod = "unknown";
+            } else if (parentCount >= 2) {
+              mergeMethod = "merge";
+            } else if (pr.merge_commit_sha === pr.head.sha) {
+              mergeMethod = "rebase";
+            } else {
+              mergeMethod = "squash";
+            }
           }
 
           if (mergeMethod === "merge") mergeMethodCounts.merge += 1;
@@ -834,7 +844,6 @@ export const analyzeRepo = inngest.createFunction(
             repo_id: repoId,
             github_pr_number: pr.number,
             title: pr.title,
-            body: pr.body,
             state: pr.state,
             merged: pr.merged,
             merged_at: pr.merged_at,
@@ -864,20 +873,20 @@ export const analyzeRepo = inngest.createFunction(
           .upsert(rows, { onConflict: "repo_id,github_pr_number" });
         if (prUpsertError) {
           console.warn("Failed to upsert pull requests:", prUpsertError.message);
+        } else {
+          await supabase
+            .from("repos")
+            .update({ last_pr_sync_at: new Date().toISOString() })
+            .eq("id", repoId);
         }
 
-        await supabase
-          .from("repos")
-          .update({ last_pr_sync_at: new Date().toISOString() })
-          .eq("id", repoId);
-
-        const mergedCount = detailed.filter((pr) => pr.merged).length;
-        const checklistCount = detailed.filter((pr) => hasChecklist(pr.body)).length;
-        const templateCount = detailed.filter((pr) => hasTemplateMarkers(pr.body)).length;
-        const linkedIssueCount = detailed.filter((pr) => extractLinkedIssueNumbers(pr.body).length > 0)
+        const mergedCount = prs.filter((pr) => Boolean(pr.merged_at)).length;
+        const checklistCount = prs.filter((pr) => hasChecklist(pr.body)).length;
+        const templateCount = prs.filter((pr) => hasTemplateMarkers(pr.body)).length;
+        const linkedIssueCount = prs.filter((pr) => extractLinkedIssueNumbers(pr.body).length > 0)
           .length;
 
-        const denom = detailed.length;
+        const denom = prs.length;
 
         return {
           total: denom,
