@@ -50,6 +50,23 @@ How "agentic" the workflow looks.
 - "Top 10% PRs change 40+ files"
 - "Median commit touches 6 files"
 
+#### Multi-Agent Workflow Indicators (Research)
+
+Multi-agent workflows are a subset of automation-heavy workflows, but have distinct fingerprints: explicit authorship attribution, PR/branch parallelism, and “orchestration” language in history.
+
+**Commit-level signals (available with commit message bodies)**
+- Co-authored-by trailer presence and density (pairing, supervision, and some agent workflows; Copilot coding agent uses co-authorship for attribution: https://docs.github.com/en/copilot/concepts/coding-agent/coding-agent).
+- Agent-identifying terms in subject/body (e.g., “agent”, “cursor”, “copilot”, “claude”, “aider”), ideally as structured trailers rather than free-text.
+- Strong “templating” signatures: repeated message shapes, repeated footers, repeated structure over time.
+
+**PR-level signals (requires PR ingestion)**
+- Many PRs in flight concurrently; overlapping PR creation windows.
+- Bot-authored PRs with human review/iteration in comments.
+- Branch naming conventions that encode agents/tasks (e.g., `copilot/…`, `cursor/…`, `agent/…`).
+
+**Non-detectable from GitHub metadata alone**
+- Local Git worktrees themselves (they live in `.git/worktrees/*` and aren’t visible via GitHub’s commit/PR APIs; see background: https://nx.dev/blog/git-worktrees-ai-agents).
+
 ---
 
 ### Axis B: Guardrail Strength
@@ -660,6 +677,20 @@ Planning Signal:         >= 50  ✓
 ```
 
 **Narrative:** Vibes in pipelines, deployment, infra glue.
+
+---
+
+### Persona 8: Multi-Agent Orchestrator (Research)
+
+```
+Automation Heaviness:    >= 60  ✓
+Surface Area:            >= 60  (medium-high)
+Planning Signal:         40-70  (medium)
++ Co-authored-by density and/or agent-attribution trailers
++ PR/branch parallelism (multiple in-flight PRs, agent-prefixed branches)
+```
+
+**Narrative:** Runs multiple agents in parallel and steers via structured, reviewable moves.
 
 ---
 

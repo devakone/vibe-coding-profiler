@@ -202,7 +202,7 @@ export interface ComputeVibeAxesOutput {
 // Subsystem Classification
 // =============================================================================
 
-export type Subsystem = "ui" | "api" | "db" | "infra" | "tests" | "docs" | "tools" | "other";
+export type Subsystem = "ui" | "api" | "db" | "infra" | "tests" | "docs" | "tools" | "ai_config" | "other";
 
 const SUBSYSTEM_PATTERNS: Array<{ subsystem: Subsystem; patterns: RegExp[] }> = [
   {
@@ -229,6 +229,42 @@ const SUBSYSTEM_PATTERNS: Array<{ subsystem: Subsystem; patterns: RegExp[] }> = 
       /license/i,
       /contributing/i,
       /\.txt$/i,
+    ],
+  },
+  {
+    subsystem: "ai_config",
+    patterns: [
+      // Cursor: .cursor/rules/* (current), .cursorrules (legacy)
+      // Ref: https://cursor.com/docs/context/rules
+      /\.cursor\/rules\//i,
+      /\.cursorrules$/i,
+
+      // Claude Code: CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md, .claude/rules/*.md
+      // Ref: https://code.claude.com/docs/en/memory
+      /CLAUDE\.md$/i,
+      /CLAUDE\.local\.md$/i,
+      /\.claude\/CLAUDE\.md$/i,
+      /\.claude\/rules\//i,
+
+      // GitHub Copilot: .github/copilot-instructions.md, .github/instructions/*.instructions.md
+      // Also: .github/agents/* (custom agents), .github/prompts/* (reusable prompts)
+      // Ref: https://docs.github.com/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot
+      /\.github\/copilot-instructions\.md$/i,
+      /\.github\/instructions\/.*\.instructions\.md$/i,
+      /\.github\/agents\//i,
+      /\.github\/prompts\//i,
+
+      // AGENTS.md: Cross-tool open convention (can be anywhere in repo)
+      // Ref: https://agents.md/
+      /AGENTS\.md$/i,
+
+      // Aider: .aider.conf*
+      /\.aider\.conf/i,
+
+      // Cline: .clinerules/ folder for version-controlled instructions
+      // Ref: https://cline.bot/blog/clinerules-version-controlled-shareable-and-ai-editable-instructions
+      /\.clinerules\//i,
+      /\.clinerules$/i,
     ],
   },
   {

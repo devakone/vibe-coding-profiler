@@ -286,6 +286,11 @@ interface PersonaDetectionArgs {
   fixAfterFeatureCount: number;
   patterns: boolean;
   evidenceByCategory: Map<BuildCategory, string[]>;
+  // Multi-agent signals
+  coAuthorCount: number;
+  coAuthorEvidence: string[];
+  aiTrailerCount: number;
+  aiTrailerEvidence: string[];
 }
 
 interface PersonaDetectionResult {
@@ -310,6 +315,10 @@ function detectPersona(args: PersonaDetectionArgs): PersonaDetectionResult {
     fixAfterFeatureCount,
     patterns,
     evidenceByCategory,
+    coAuthorCount,
+    coAuthorEvidence,
+    aiTrailerCount,
+    aiTrailerEvidence,
   } = args;
 
   const personaScores: Record<PersonaId, number> = {
@@ -395,6 +404,17 @@ function detectPersona(args: PersonaDetectionArgs): PersonaDetectionResult {
 
   if (chunkLabel === "slicer" || chunkLabel === "mixer") {
     addScore("vibe-prototyper", chunkLabel === "slicer" ? 1.5 : 0.8, evidenceByCategory.get("feature"));
+  }
+
+  // Multi-agent signals from commit trailers
+  // Co-authorship suggests structured collaboration
+  if (coAuthorCount >= 3) {
+    addScore("spec-architect", 1, coAuthorEvidence);
+  }
+
+  // AI trailers are strong multi-agent signal
+  if (aiTrailerCount >= 2) {
+    addScore("agent-orchestrator", 2, aiTrailerEvidence);
   }
 
   if (Object.values(personaScores).every((score) => score === 0)) {
@@ -519,6 +539,13 @@ export interface AnalysisInsights {
   };
   patterns: {
     auth_then_roles: boolean | null;
+    confidence: AnalysisInsightConfidence;
+    evidence_shas: string[];
+  };
+  multi_agent_signals: {
+    co_author_count: number;
+    ai_trailer_count: number;
+    ai_keyword_count: number;
     confidence: AnalysisInsightConfidence;
     evidence_shas: string[];
   };
@@ -1002,6 +1029,52 @@ function confidenceFromCommits(totalCommits: number): AnalysisInsightConfidence 
   return "low";
 }
 
+function confidenceFromCount(count: number): AnalysisInsightConfidence {
+  if (count >= 5) return "high";
+  if (count >= 2) return "medium";
+  return "low";
+}
+
+// =============================================================================
+// Commit Trailer Parsing
+// =============================================================================
+
+interface CommitTrailer {
+  name: string;
+  value: string;
+}
+
+/**
+ * Parse git trailers from a commit message.
+ * Git trailers appear at the end of commit messages, each on their own line.
+ * Format: "Key: Value" or "Key-Name: Value"
+ */
+function parseCommitTrailers(message: string): CommitTrailer[] {
+  const lines = message.split("\n");
+  const trailers: CommitTrailer[] = [];
+
+  // Trailers are typically at the end after a blank line
+  let inTrailerSection = false;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) {
+      inTrailerSection = true;
+      continue;
+    }
+    if (!inTrailerSection) continue;
+
+    const match = trimmed.match(/^([A-Z][a-zA-Z-]+):\s*(.+)$/);
+    if (match) {
+      trailers.push({ name: match[1], value: match[2] });
+    } else if (trailers.length > 0) {
+      // Stop if we hit non-trailer content after finding trailers
+      break;
+    }
+  }
+
+  return trailers;
+}
+
 export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights {
   // Filter out automation/bot commits for cleaner insights
   const humanCommits = filterAutomationCommits(events);
@@ -1024,7 +1097,7 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
   const evidenceByCategory = new Map<BuildCategory, string[]>();
 
   const docKeywordRegex = /\b(doc|docs|documentation|architecture|design|spec|plan|adr|blueprint)\b/i;
-  const agentKeywordRegex = /\b(agent|agentic|cursor|autonomous|auto-?gpt)\b/i;
+  const agentKeywordRegex = /\b(agent|agentic|cursor|autonomous|auto-?gpt|copilot|claude|aider|cline|roo|swe-?agent|devin|codegen|windsurf)\b/i;
 
   const allCategories: BuildCategory[] = [
     "setup",
@@ -1044,6 +1117,12 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
   let fixAfterFeatureCount = 0;
   const docEvidence: string[] = [];
   const agentEvidence: string[] = [];
+
+  // Multi-agent detection: trailer evidence
+  const coAuthorEvidence: string[] = [];
+  const aiTrailerEvidence: string[] = [];
+  let coAuthorCount = 0;
+  let aiTrailerCount = 0;
 
   for (const e of byTimeAsc) {
     const dayKey = utcDayKey(e.committer_date);
@@ -1077,6 +1156,30 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
     }
     if (agentKeywordRegex.test(subject) && agentEvidence.length < 5) {
       agentEvidence.push(e.sha);
+    }
+
+    // Parse commit trailers for multi-agent signals
+    const trailers = parseCommitTrailers(e.message);
+    for (const trailer of trailers) {
+      const name = trailer.name.toLowerCase();
+
+      // Co-authored-by indicates pairing/supervision
+      if (name === "co-authored-by") {
+        coAuthorCount++;
+        if (coAuthorEvidence.length < 5) coAuthorEvidence.push(e.sha);
+      }
+
+      // AI-related trailers
+      if (
+        name === "generated-by" ||
+        name === "ai-assisted-by" ||
+        trailer.value.toLowerCase().includes("claude") ||
+        trailer.value.toLowerCase().includes("copilot") ||
+        trailer.value.toLowerCase().includes("cursor")
+      ) {
+        aiTrailerCount++;
+        if (aiTrailerEvidence.length < 5) aiTrailerEvidence.push(e.sha);
+      }
     }
 
     if (Number.isFinite(e.files_changed)) filesChanged.push(e.files_changed);
@@ -1196,6 +1299,11 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
     agentEvidence,
     patterns: patterns.auth_then_roles,
     evidenceByCategory,
+    // Multi-agent signals
+    coAuthorCount,
+    coAuthorEvidence,
+    aiTrailerCount,
+    aiTrailerEvidence,
   });
 
   const shareTemplate = buildShareTemplate(
@@ -1253,6 +1361,13 @@ export function computeAnalysisInsights(events: CommitEvent[]): AnalysisInsights
       auth_then_roles: totalCommits >= 10 ? patterns.auth_then_roles : null,
       confidence: patternsConfidence,
       evidence_shas: patterns.evidence_shas,
+    },
+    multi_agent_signals: {
+      co_author_count: coAuthorCount,
+      ai_trailer_count: aiTrailerCount,
+      ai_keyword_count: agentEvidence.length,
+      confidence: confidenceFromCount(coAuthorCount + aiTrailerCount + agentEvidence.length),
+      evidence_shas: [...coAuthorEvidence, ...aiTrailerEvidence, ...agentEvidence].slice(0, 5),
     },
     tech: techSignals,
     persona: personaResult.persona,
