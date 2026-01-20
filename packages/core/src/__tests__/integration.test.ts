@@ -9,6 +9,60 @@ import { classifySubsystem } from "../vibe";
  * and AI config files (AGENTS.md).
  */
 describe("Integration: vibed-coding repo analysis", () => {
+  const getCommitCount = (): number => {
+    try {
+      const output = execSync("git rev-list --count HEAD", {
+        cwd: process.cwd(),
+        encoding: "utf-8",
+        maxBuffer: 1024 * 1024,
+      });
+      const count = Number(output.trim());
+      return Number.isFinite(count) ? count : 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  const isShallowRepo = (): boolean => {
+    try {
+      const output = execSync("git rev-parse --is-shallow-repository", {
+        cwd: process.cwd(),
+        encoding: "utf-8",
+        maxBuffer: 1024 * 1024,
+      });
+      return output.trim() === "true";
+    } catch {
+      return false;
+    }
+  };
+
+  const ensureCommitHistory = (minCommits: number): void => {
+    const currentCount = getCommitCount();
+    if (currentCount >= minCommits) return;
+    if (!isShallowRepo()) return;
+
+    try {
+      execSync("git fetch --unshallow --tags", {
+        cwd: process.cwd(),
+        encoding: "utf-8",
+        maxBuffer: 1024 * 1024,
+        stdio: "ignore",
+      });
+      return;
+    } catch {
+      try {
+        execSync(`git fetch --deepen=${minCommits} --tags`, {
+          cwd: process.cwd(),
+          encoding: "utf-8",
+          maxBuffer: 1024 * 1024,
+          stdio: "ignore",
+        });
+      } catch {
+        return;
+      }
+    }
+  };
+
   // Get real git log from this repo
   const getRecentCommits = (count: number = 50): string[] => {
     try {
@@ -46,9 +100,10 @@ describe("Integration: vibed-coding repo analysis", () => {
 
   describe("Commit trailer detection", () => {
     it("detects Co-authored-by: Claude trailers in repo history", () => {
+      ensureCommitHistory(100);
       const rawCommits = getRecentCommits(100);
-      if (rawCommits.length === 0) {
-        console.log("Skipping: could not read git history");
+      if (rawCommits.length < 10) {
+        console.log("Skipping: insufficient git history (likely shallow checkout)");
         return;
       }
 
@@ -80,6 +135,7 @@ describe("Integration: vibed-coding repo analysis", () => {
     });
 
     it("parses various trailer formats correctly", () => {
+      ensureCommitHistory(100);
       const rawCommits = getRecentCommits(100);
       if (rawCommits.length === 0) return;
 
@@ -123,9 +179,10 @@ describe("Integration: vibed-coding repo analysis", () => {
 
   describe("Full analysis pipeline", () => {
     it("computes insights with multi-agent signals from real commits", () => {
+      ensureCommitHistory(50);
       const rawCommits = getRecentCommits(50);
-      if (rawCommits.length === 0) {
-        console.log("Skipping: could not read git history");
+      if (rawCommits.length < 10) {
+        console.log("Skipping: insufficient git history (likely shallow checkout)");
         return;
       }
 
