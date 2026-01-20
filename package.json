@@ -11,6 +11,7 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
+    "test": "turbo test",
     "clean": "turbo clean && rm -rf node_modules",
     "dev:web": "turbo dev --filter=@vibed/web",
     "dev:worker": "sh -c 'turbo dev --filter=@vibed/worker & npx inngest-cli@latest dev; wait'",
