@@ -27,7 +27,7 @@
   "packages": {
     ".": {
       "release-type": "node",
-      "component": "bolokonon",
+      "component": "vibed-coding",
       "changelog-path": "CHANGELOG-DEVELOP.md",
       "prerelease": true,
       "versioning": "prerelease",

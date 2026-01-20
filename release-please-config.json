@@ -24,7 +24,7 @@
   "packages": {
     ".": {
       "release-type": "node",
-      "component": "bolokonon",
+      "component": "vide-coding",
       "changelog-path": "CHANGELOG.md"
     },
     "apps/web": {

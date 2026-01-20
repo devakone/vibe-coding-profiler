@@ -192,7 +192,7 @@ Instead:
 ### Monorepo Structure
 
 ```
-bolokono/
+vibed-coding/
 ├── apps/
 │   ├── web/                 # Next.js web app (Vercel)
 │   │   ├── src/
@@ -469,7 +469,7 @@ $$ LANGUAGE plpgsql;
 ├──────────────┤   │  │ analysis_job │  │analysis_metric│  │analysis_report
 │ id (PK)      │   │  ├──────────────┤  ├──────────────┤  ├──────────────┤
 │ user_id (FK) │<──┘  │ id (PK)      │─<│ job_id (FK)  │  │ job_id (FK)  │>─┐
-│ github_user  │      │ user_id (FK) │  │ metrics      │  │ bolokono_type│  │
+│ github_user  │      │ user_id (FK) │  │ metrics      │  │ vibed-coding_type│  │
 │ encrypted_tok│      │ repo_id (FK) │  │ events       │  │ narrative    │  │
 │ scopes       │      │ status       │  │ computed_at  │  │ evidence     │  │
 │ created_at   │      │ commit_count │  └──────────────┘  │ llm_model    │  │
@@ -574,7 +574,7 @@ Stores encrypted GitHub tokens for accessing private repos.
 |--------|------|-------------|-------------|
 | `id` | `uuid` | PK, default `gen_random_uuid()` | |
 | `job_id` | `uuid` | FK → analysis_jobs.id, UNIQUE, NOT NULL | One report per job |
-| `bolokono_type` | `text` | | Null if insufficient data |
+| `vibed-coding_type` | `text` | | Null if insufficient data |
 | `narrative_json` | `jsonb` | NOT NULL | Structured narrative (see schema) |
 | `evidence_json` | `jsonb` | NOT NULL | Cited commits and metrics |
 | `llm_model` | `text` | NOT NULL | Model used for generation |
@@ -1152,7 +1152,7 @@ Return a JSON object matching this schema:
 
 ```typescript
 interface NarrativeInput {
-  bolokono_type: string | null;
+  vibed-coding_type: string | null;
   metrics: AnalysisMetrics;
   sample_commits: CommitSample[];  // 10-20 representative commits
   matched_criteria: string[];

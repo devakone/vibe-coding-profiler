@@ -17,13 +17,13 @@ The current analysis pipeline fetches commit metadata via GitHub and stores it p
 - Commit author email + timestamps + parents + additions/deletions + file list when available.
 - File paths are collected from GitHub’s commit detail “files” array and stored as `file_paths`.
 
-Primary implementation: [analyze-repo.ts](file:///Users/devakone/Projects/bolokonon/apps/web/src/inngest/functions/analyze-repo.ts#L426-L899)
+Primary implementation: [analyze-repo.ts](file:///Users/devakone/Projects/vibed-codingn/apps/web/src/inngest/functions/analyze-repo.ts#L426-L899)
 
 ### Where we compute “vibes” and personas today
 
 There are two interpretation layers:
-- A commit-insights layer that computes a simple persona + timing + category stats from commit messages only: [computeAnalysisInsights](file:///Users/devakone/Projects/bolokonon/packages/core/src/index.ts#L1005-L1244)
-- A v2 “axes → persona → cards” layer that computes 6 axes and then maps to personas: [computeVibeFromCommits](file:///Users/devakone/Projects/bolokonon/packages/core/src/vibe.ts#L1358-L1493) and [detectVibePersona](file:///Users/devakone/Projects/bolokonon/packages/core/src/vibe.ts#L812-L967)
+- A commit-insights layer that computes a simple persona + timing + category stats from commit messages only: [computeAnalysisInsights](file:///Users/devakone/Projects/vibed-codingn/packages/core/src/index.ts#L1005-L1244)
+- A v2 “axes → persona → cards” layer that computes 6 axes and then maps to personas: [computeVibeFromCommits](file:///Users/devakone/Projects/vibed-codingn/packages/core/src/vibe.ts#L1358-L1493) and [detectVibePersona](file:///Users/devakone/Projects/vibed-codingn/packages/core/src/vibe.ts#L812-L967)
 
 ### What “agentic” detection exists right now
 
@@ -31,24 +31,24 @@ There are two interpretation layers:
 - We filter likely bot commits by email substrings (e.g., dependabot, renovate, github-actions) and subject patterns.
 - This cleans up human behavioral signals but can hide “agent commits” if they come from bot-like emails.
 
-Implementation: [isAutomationCommit](file:///Users/devakone/Projects/bolokonon/packages/core/src/index.ts#L599-L645)
+Implementation: [isAutomationCommit](file:///Users/devakone/Projects/vibed-codingn/packages/core/src/index.ts#L599-L645)
 
 **2) Agent keyword evidence (commit messages)**
 - We collect “agent evidence” by matching a keyword regex against the commit subject.
 - Persona “Multi-Agent Orchestrator” in the insights layer is currently driven by “chunkiness” + file-change breadth + this keyword evidence.
 
-Implementation: [computeAnalysisInsights](file:///Users/devakone/Projects/bolokonon/packages/core/src/index.ts#L1026-L1199) and [detectPersona](file:///Users/devakone/Projects/bolokonon/packages/core/src/index.ts#L296-L430)
+Implementation: [computeAnalysisInsights](file:///Users/devakone/Projects/vibed-codingn/packages/core/src/index.ts#L1026-L1199) and [detectPersona](file:///Users/devakone/Projects/vibed-codingn/packages/core/src/index.ts#L296-L430)
 
 **3) Broad-change proxies**
 - Vibe v2 uses “automation heaviness” and “surface area per change” (via file paths / episodes) as indirect proxies.
 
-Implementation: [computeVibeFromCommits](file:///Users/devakone/Projects/bolokonon/packages/core/src/vibe.ts#L1358-L1493)
+Implementation: [computeVibeFromCommits](file:///Users/devakone/Projects/vibed-codingn/packages/core/src/vibe.ts#L1358-L1493)
 
 ### What we are not ingesting (but architecture anticipates)
 
 The architecture doc explicitly calls for PR metadata and commit→PR mapping, but the current worker/pipeline does not populate those tables yet.
 
-Reference: [vibe-metrics-v2.md](file:///Users/devakone/Projects/bolokonon/docs/architecture/vibe-metrics-v2.md#L13-L122)
+Reference: [vibe-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/docs/architecture/vibe-metrics-v2.md#L13-L122)
 
 ---
 
@@ -134,7 +134,7 @@ Multi-agent orchestration often shows up as:
 - consistent PR templates/checklists
 - high squash-merge rate (agentic PR hygiene)
 
-We have a clear target schema in [vibe-metrics-v2.md](file:///Users/devakone/Projects/bolokonon/docs/architecture/vibe-metrics-v2.md#L173-L265), but it’s not currently populated.
+We have a clear target schema in [vibe-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/docs/architecture/vibe-metrics-v2.md#L173-L265), but it’s not currently populated.
 
 ### B) Branch topology / parallelism (medium signal)
 
@@ -152,7 +152,7 @@ Mapping commits to PRs enables:
 - “how many commits are squash merges”
 - “how chunkiness differs inside PRs vs direct-to-main”
 
-Reference architecture: [vibe-metrics-v2.md](file:///Users/devakone/Projects/bolokonon/docs/architecture/vibe-metrics-v2.md#L141-L191)
+Reference architecture: [vibe-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/docs/architecture/vibe-metrics-v2.md#L141-L191)
 
 ---
 
@@ -188,10 +188,10 @@ These are “emerging or consolidating” Git-visible patterns that align with v
 
 ## Appendix: Key Internal References
 
-- [analyze-repo.ts](file:///Users/devakone/Projects/bolokonon/apps/web/src/inngest/functions/analyze-repo.ts)
-- [packages/core/src/index.ts](file:///Users/devakone/Projects/bolokonon/packages/core/src/index.ts)
-- [packages/core/src/vibe.ts](file:///Users/devakone/Projects/bolokonon/packages/core/src/vibe.ts)
-- [vibe-metrics-v2.md](file:///Users/devakone/Projects/bolokonon/docs/architecture/vibe-metrics-v2.md)
+- [analyze-repo.ts](file:///Users/devakone/Projects/vibed-codingn/apps/web/src/inngest/functions/analyze-repo.ts)
+- [packages/core/src/index.ts](file:///Users/devakone/Projects/vibed-codingn/packages/core/src/index.ts)
+- [packages/core/src/vibe.ts](file:///Users/devakone/Projects/vibed-codingn/packages/core/src/vibe.ts)
+- [vibe-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/docs/architecture/vibe-metrics-v2.md)
 
 ## Appendix: Sources
 
