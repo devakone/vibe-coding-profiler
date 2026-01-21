@@ -2,6 +2,12 @@
 
 # PRD: Vibed Narrative Layer
 
+**Status:** Mostly Implemented — See `docs/implementation-trackers/vibed.md` for details
+
+> **Reference Documentation:** For technical details on how analysis works, see:
+> - [How Vibed Works](./how-vibed-works.md) — Product-friendly overview
+> - [Vibed Analysis Pipeline](./architecture/vibed-analysis-pipeline.md) — Technical architecture
+
 ## 1. Context & Vision
 
 Bolokono now surfaces “vibe coding profiles” through the Vibed experience: a playful, reflective interpretation of commit history modeled on Spotify Wrapped. The goal is to make craftsmanship visible—narrative cards first, data second—while preserving trust through evidence-backed insights. This PRD defines the UX, UI, API, database, and worker investments required to deliver deterministic insights, persona-aware storytelling, and share-ready outputs.
@@ -14,9 +20,21 @@ Bolokono now surfaces “vibe coding profiles” through the Vibed experience: a
 4. **Evidence & depth**: Keep a deep-dive layer with raw metrics, commit samples, evidence SHAs, and persona signal explanations for power users.
 5. **Persona-aware confidence**: Surface persona tags + confidence metadata so insights stay observational (“You tend to…”, “Often, etc.”).
 
-## 3. Supporting Research Summary
+## 3. Supporting Research & Attribution
 
-Sources: `docs/research/ai-era-coding-personas.md`, `docs/research/ai-era-developer-personas-chatgpt.md`, `docs/research/persona-insight-synthesis.md`. Personas to detect: Spec-Driven Architect / Cautious Traditionalist, Test-First Validator / Pragmatic Augmenter, Iterative Prototyper / Vibe Coder, Multi-Agent Orchestrator / Autonomous AI Orchestrator, Specialist Consultant, Infrastructure Architect, Hands-On Debugger / Rapid Risk-Taker. Insights should mention craft behavior, guardrails, and risk tolerance.
+### External Sources
+- **"Vibe coding"**: Term coined by [Andrej Karpathy](https://x.com/karpathy/status/1886192184808149383) (February 2025), [Collins Dictionary Word of the Year 2025](https://en.wikipedia.org/wiki/Vibe_coding).
+- **Orchestrator vs Conductor patterns**: [Addy Osmani's agentic coding research](https://addyosmani.com/blog/future-agentic-coding/).
+- **Code analytics**: [GitClear developer productivity studies](https://www.gitclear.com/).
+- **Copilot workflows**: [GitHub Copilot documentation](https://docs.github.com/en/copilot).
+
+### Internal Research
+- [AI-Era Coding Personas](./research/ai-era-coding-personas.md)
+- [AI-Era Developer Personas (ChatGPT synthesis)](./research/ai-era-developer-personas-chatgpt.md)
+- [Persona Insight Synthesis](./research/persona-insight-synthesis.md)
+
+### Personas Detected
+Spec-Driven Architect, Test-First Validator, Vibe Prototyper, Agent Orchestrator, Hands-On Debugger, Rapid Risk-Taker, Reflective Balancer. Insights emphasize craft behavior, guardrails, and risk tolerance.
 
 ## 4. Metrics & Signals to Capture
 

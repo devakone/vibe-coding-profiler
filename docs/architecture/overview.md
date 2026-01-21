@@ -2,9 +2,14 @@
 
 This document explains how the Vibed Coding stack fits together, how data flows from a logged-in user through Supabase, the worker, and the UI, and which pieces of the codebase (web, worker, packages) own each responsibility. The diagrams use Mermaid syntax so you can paste them into any renderer, but the textual explanations also narrate every interaction.
 
+> **Related Documentation:**
+> - [How Vibed Works](../how-vibed-works.md) — Product-friendly explanation
+> - [Vibed Analysis Pipeline](./vibed-analysis-pipeline.md) — Detailed analysis algorithms and data flow
+> - [Inngest Integration](./inngest-integration.md) — Background job processing
+
 ## High-level Components
 
-1. **Next.js 16 (App Router) Web App** (`apps/web`)
+1. **Next.js 14+ (App Router) Web App** (`apps/web`)
    - Hosts the public marketing homepage (`/`) plus authenticated areas (`/repos`, `/analysis/[jobId]`, `/login`, `/auth/callback`, etc.).
    - Handles Supabase Auth via `proxy.ts`, guarding protected routes and synchronizing auth cookies.
    - Calls Supabase Route Handlers (`/api/analysis/*`, `/api/github/sync-repos`, etc.) to start jobs, list repos, fetch shared insights, export share cards, and run other backend flows.

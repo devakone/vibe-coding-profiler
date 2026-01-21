@@ -16,7 +16,7 @@ This document summarizes what you need to do before you can authenticate via Git
 This project relies on Supabase Auth using GitHub OAuth (see `docs/PRD.md`).
 
 1. Start your local Supabase stack if it is not running: `npm run supabase:start`.
-2. Open Supabase Studio at `http://127.0.0.1:54423` and navigate to **Authentication → Providers → GitHub**.
+2. Open Supabase Studio at `http://127.0.0.1:54323` and navigate to **Authentication → Providers → GitHub**.
 3. Paste the Client ID and Client Secret from the OAuth app you created above.
 4. Select scopes required for private repo access (at least `repo` and `read:user`).
 

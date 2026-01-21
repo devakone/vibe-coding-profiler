@@ -1,5 +1,7 @@
 # PRD: Vibed UX — The Pop Version of Developer Analytics
 
+**Status:** Partially Implemented — Core persona detection and profile pages are live. Share cards and some UX polish items are in progress.
+
 > "Run it once, discover something surprising about yourself, share it with a friend."
 
 ---
@@ -181,7 +183,7 @@ Every page in the application must reflect the Vibed personality. Here's the com
 
 ## 1. The Vision
 
-Vibed Coding should feel like taking a personality quiz that actually knows you — except it's based on real data from your commits. Think BuzzFeed meets Spotify Wrapped for developers. The user should laugh, nod in recognition, screenshot something, and text it to a coworker within 5 minutes of their first analysis.
+Vibed Coding should feel like taking a personality quiz that actually knows you, except it's based on real data from your commits. Think BuzzFeed meets Spotify Wrapped for vibe coders. The user should laugh, nod in recognition, screenshot something, and text it to a coworker within 5 minutes of their first analysis.
 
 **What we're NOT building:**
 - A performance review tool

@@ -42,7 +42,16 @@ The UI is doing interpretation work. This holds short-term but should move to th
 
 ## Research Sources
 
-Primary sources include Addy Osmani’s AI workflows, Cursor 2.0 docs, GitClear 2024 research, academic TDD benchmarks (arxiv 2025), Axur Engineering, humanwhocodes.com persona guides, Cursor/Replit/Qodo tooling guides, GitHub Copilot materials, and developer persona frameworks.
+Primary sources:
+
+- [Addy Osmani: The Future of Agentic Coding](https://addyosmani.com/blog/future-agentic-coding/) — Orchestrator vs conductor patterns
+- [Andrej Karpathy's "Vibe Coding" tweet](https://x.com/karpathy/status/1886192184808149383) — Origin of the term (Feb 2025)
+- [GitClear 2024 Code Quality Report](https://www.gitclear.com/) — Code churn and developer productivity metrics
+- [GitHub Copilot Documentation](https://docs.github.com/en/copilot) — Co-author attribution, agent workflows
+- [Cursor Documentation](https://cursor.com/docs) — AI-assisted development patterns
+- [Vibe Coding Wikipedia](https://en.wikipedia.org/wiki/Vibe_coding) — Collins Dictionary Word of the Year 2025
+- Academic TDD benchmarks (arxiv 2025)
+- Developer persona frameworks from humanwhocodes.com
 
 ## Final Thought
 

@@ -1,5 +1,10 @@
 # PRD: Profile Aggregation — One Persona Per User
 
+**Status:** Core Implementation Complete — See `docs/implementation-trackers/profile-aggregation.md` for details
+
+> **Reference Documentation:** For technical details on aggregation, see:
+> - [Vibed Analysis Pipeline](./architecture/vibed-analysis-pipeline.md#profile-aggregation) — Aggregation algorithm details
+
 ## The Problem
 
 We built personas per repo. The PRDs say personas should aggregate per user.
