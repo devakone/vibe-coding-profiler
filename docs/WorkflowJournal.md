@@ -74,10 +74,12 @@ Format:
 
 ### 2025-01-16 - [DECISION] Edge Functions vs External Worker
 **Context:** Need to run analysis jobs
-**Action:** Chose Supabase Edge Functions for Phase 0-1, with option to move to external worker for Phase 2+
+**Action:** Initially chose Supabase Edge Functions for Phase 0-1, with option to move to external worker for Phase 2+
 **Time spent:** N/A (part of PRD)
 **Automation opportunity:** None
 **Notes:** Edge Functions have 60s timeout. Fine for < 1000 commits. Will need worker for large repos.
+
+**UPDATE (2026-01):** Migrated to **Inngest** as primary job processor with standalone worker as fallback. Inngest provides better observability, automatic retries, and serverless scaling. See `docs/architecture/inngest-integration.md`.
 
 ---
 

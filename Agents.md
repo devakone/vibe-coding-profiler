@@ -12,10 +12,14 @@ This document provides instructions for AI agents working on the Vibed Coding co
 - **Backend:** Next.js Route Handlers (Vercel)
 - **Auth:** Supabase Auth with GitHub OAuth
 - **Database:** Supabase Postgres with Row Level Security
-- **Background Jobs:** Supabase Edge Functions
-- **LLM:** Claude API (server-side only)
+- **Background Jobs:** Inngest (primary) or standalone worker (fallback)
+- **LLM:** Anthropic Claude, OpenAI, or Google Gemini (server-side only, configurable)
 
-See `docs/PRD.md` for full product requirements.
+See `docs/PRD.md` for full product requirements and `docs/architecture/inngest-integration.md` for job processing details.
+
+**Key Reference Docs:**
+- [How Vibed Works](docs/how-vibed-works.md) — Product-friendly explanation of analysis
+- [Vibed Analysis Pipeline](docs/architecture/vibed-analysis-pipeline.md) — Technical architecture with algorithms and data flow
 
 ---
 

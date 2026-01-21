@@ -52,5 +52,5 @@ This tracker accompanies `docs/prd/multi-agent-detection.md` (Extension PRD: PR 
 **Task:** Validate PR ingestion, parsing, and scoring behavior.
 **Deliverables:**
 - [x] Unit tests for PR parsing (issue linking, checklist detection)
-- [x] Integration test against vibed-coding repo (detected 16 Claude co-authored commits)
+- [x] Integration test against vibe-coding-profile repo (detected 16 Claude co-authored commits)
 **Depends on:** F2, F4, F5

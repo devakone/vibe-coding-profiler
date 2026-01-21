@@ -1,21 +1,26 @@
-# Vibed Coding Architecture Overview
+# Vibe Coding Profile Architecture Overview
 
-This document explains how the Vibed Coding stack fits together, how data flows from a logged-in user through Supabase, the worker, and the UI, and which pieces of the codebase (web, worker, packages) own each responsibility. The diagrams use Mermaid syntax so you can paste them into any renderer, but the textual explanations also narrate every interaction.
+This document explains how the Vibe Coding Profile stack fits together, how data flows from a logged-in user through Supabase, the worker, and the UI, and which pieces of the codebase (web, worker, packages) own each responsibility. The diagrams use Mermaid syntax so you can paste them into any renderer, but the textual explanations also narrate every interaction.
+
+> **Related Documentation:**
+> - [How Vibe Coding Profile Works](../how-vibed-works.md) — Product-friendly explanation
+> - [Vibe Coding Profile Analysis Pipeline](./vibed-analysis-pipeline.md) — Detailed analysis algorithms and data flow
+> - [Inngest Integration](./inngest-integration.md) — Background job processing
 
 ## High-level Components
 
-1. **Next.js 16 (App Router) Web App** (`apps/web`)
+1. **Next.js 14+ (App Router) Web App** (`apps/web`)
    - Hosts the public marketing homepage (`/`) plus authenticated areas (`/repos`, `/analysis/[jobId]`, `/login`, `/auth/callback`, etc.).
    - Handles Supabase Auth via `proxy.ts`, guarding protected routes and synchronizing auth cookies.
    - Calls Supabase Route Handlers (`/api/analysis/*`, `/api/github/sync-repos`, etc.) to start jobs, list repos, fetch shared insights, export share cards, and run other backend flows.
-   - Renders the “Vibed” experience by reading `analysis_insights`, `analysis_metrics`, `analysis_reports`, and job metadata into interactive and shareable dashboards.
+   - Renders the “Vibe Coding Profile” experience by reading `analysis_insights`, `analysis_metrics`, `analysis_reports`, and job metadata into interactive and shareable dashboards.
 
 2. **Supabase Backend (Postgres + Auth + Edge)** (`supabase`)
    - Stores all domain data in tables such as `users`, `repos`, `analysis_jobs`, `analysis_metrics`, `analysis_reports`, `analysis_insights`, `github_accounts`, etc. The `supabase` folder tracks migrations and seeds.
    - Enforces row-level security so each user only sees their records; Supabase Auth is the entrypoint for GitHub OAuth (handled in the Next app via the `/auth/callback` route).
    - Provides RPCs such as `claim_analysis_job` to coordinate workers.
 
-3. **Vibed Coding Worker** (`apps/worker`)
+3. **Vibe Coding Profile Worker** (`apps/worker`)
    - Polls `analysis_jobs` (via `claim_analysis_job` RPC) and processes each job sequentially.
    - Fetches commits through the GitHub API, decrypts stored tokens, calculates metrics with `@vibed/core`, assigns a Vibe persona, and writes structured results back to Postgres (`analysis_metrics`, `analysis_reports`, `analysis_insights`, updates job status).
    - Hosts a health endpoint so orchestration (e.g., Docker Compose, Supervisord, or manual runs) can monitor liveness.
@@ -62,7 +67,7 @@ graph TD
 - **Polling**: The worker polls Postgres every `POLL_INTERVAL_MS` (5 s) and claims jobs via `claim_analysis_job`.
 - **Commit retrieval**: It uses the GitHub token (stored encrypted in `github_accounts`) to fetch the most recent commit list and details.
 - **Computation**: `computeAnalysisMetrics`, `assignVibeType`, and `computeAnalysisInsights` generate the numbers, persona, tech signals, share template, and confidence data.
-- **Persistence**: Each result writes to a dedicated table, ensuring the UI can render both “Vibed summary cards” and “Deep dive evidence” without recompute.
+- **Persistence**: Each result writes to a dedicated table, ensuring the UI can render both “VCP summary cards” and “Deep dive evidence” without recompute.
 
 ## API & UI Interaction Map
 
@@ -71,7 +76,7 @@ graph TD
 3. `/api/analysis/start` – Inserts new `analysis_jobs`.
 4. `/api/analysis/history` – Lists past jobs (drives persona evolution views).
 5. `/api/analysis/[jobId]/share` – Renders share-card exports (PNG/SVG) using `share_template` colors and text from `analysis_insights`.
-6. `/analysis/[jobId]` – Next.js page that reads `analysis_insights`, `analysis_metrics`, and `analysis_reports` to build the “Vibed” experience with highlights and deep dives.
+6. `/analysis/[jobId]` – Next.js page that reads `analysis_insights`, `analysis_metrics`, and `analysis_reports` to build the “Vibe Coding Profile” experience with highlights and deep dives.
 
 ## Historical Persona Tracking
 
@@ -97,7 +102,7 @@ Combined with the `/api/analysis/history` endpoint, the UI can plot persona evol
 
 ## Bringing It Together
 
-- **Frontend**: Next.js renders both marketing copy and the authenticated “Vibed” dashboard. It relies on shared data structures from `packages/db`.
+- **Frontend**: Next.js renders both marketing copy and the authenticated “Vibe Coding Profile” dashboard. It relies on shared data structures from `packages/db`.
 - **Backend**: Supabase stores user, repo, job, metric, report, and insight data; the worker writer uses `packages/core` to derive AI-assisted personas and insights and writes them back.
 - **UX interplay**: The UI reads from the same insights JSON the worker produces, which means the data rendering layer is deterministic and traceable (the worker is the single source of truth for persona claims).
 

@@ -1,6 +1,6 @@
-<!-- Inclusive pop-culture archetypes for Vibed personas -->
+<!-- Inclusive pop-culture archetypes for Vibe Coding Profile personas -->
 
-# Vibed Persona Archetypes (Inclusive Pop Culture References)
+# Vibe Coding Profile Persona Archetypes (Inclusive Pop Culture References)
 
 Each persona that Bolokono surfaces can borrow the vibe of a pop-culture figure who embodies the mindset without reinforcing a single demographic. These references keep the experience playful while remaining inclusive and respectful.
 

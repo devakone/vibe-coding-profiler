@@ -9,7 +9,7 @@
 
 ## Overview
 
-Vibed Coding uses LLM (currently Anthropic Claude) to generate narrative reports from commit analysis. Currently, the platform bears all LLM costs using a single hardcoded API key. This PRD introduces:
+Vibe Coding Profile uses LLM (currently Anthropic Claude) to generate narrative reports from commit analysis. Currently, the platform bears all LLM costs using a single hardcoded API key. This PRD introduces:
 
 1. **Provider-agnostic LLM layer** - Support multiple LLM providers (Anthropic, OpenAI, etc.)
 2. **User-provided API keys** - Users can supply their own keys to unlock LLM features

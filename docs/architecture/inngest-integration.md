@@ -1,6 +1,6 @@
 # Inngest Integration
 
-Background job processing for Vibed Coding using [Inngest](https://www.inngest.com/).
+Background job processing for Vibe Coding Profile using [Inngest](https://www.inngest.com/).
 
 ## Why Inngest?
 

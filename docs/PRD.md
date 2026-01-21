@@ -1,9 +1,15 @@
-# PRD: Bolokono
+# PRD: Bolokono (Vibe Coding Profile)
 
-**Product name:** Bolokono
+**Product name:** Bolokono (publicly branded as **Vibe Coding Profile**)
 **Author:** Abou Kone
-**Status:** Draft v4 (Monorepo architecture)
+**Status:** Draft v4 (Monorepo architecture) — Core features implemented
 **Audience:** Product, Engineering (human + AI agents)
+
+> **Terminology Note:** This PRD uses the original "Bolokono" terminology. In the codebase and user-facing product, this has been rebranded to **Vibe Coding Profile**. "Bolokono types" are now called **Vibe Personas**, and "Bolokono profiles" are now **Vibe Coding Profiles (VCP)**. See `docs/PRD-vibed-ux.md` for the current UX direction.
+
+> **Reference Documentation:** For a complete explanation of how analysis works, see:
+> - [How Vibe Coding Profile Works](./how-vibed-works.md) — Product-friendly overview
+> - [Vibe Coding Profile Analysis Pipeline](./architecture/vibed-analysis-pipeline.md) — Technical architecture with diagrams
 
 ---
 
@@ -153,22 +159,22 @@ They summarize computed facts and cite evidence.
 **Includes:**
 
 - [x] Authentication (GitHub OAuth via Supabase)
-- [ ] GitHub repository listing and selection
-- [ ] Database schema with RLS
-- [ ] Repository sync (metadata only)
-- [ ] Analysis job queue and state machine
-- [ ] Edge Function analyzer (commit metadata extraction)
-- [ ] Metrics computation and persistence
-- [ ] Minimal Bolokono profile generation
-- [ ] Basic report UI
+- [x] GitHub repository listing and selection
+- [x] Database schema with RLS
+- [x] Repository sync (metadata only)
+- [x] Analysis job queue and state machine
+- [x] Inngest/Worker analyzer (commit metadata extraction)
+- [x] Metrics computation and persistence
+- [x] Minimal Vibe profile generation
+- [x] Basic report UI
 
-**Deliverable:**
+**Deliverable:** ✓
 
 - One private repo analyzed end-to-end
-- One Bolokono profile rendered with:
+- One Vibe profile rendered with:
   - At least 5 computed metrics
   - Build category timeline
-  - One assigned Bolokono type with evidence
+  - One assigned Vibe persona with evidence
 
 **Exit criteria:**
 
@@ -222,7 +228,7 @@ vibed-coding/
 │
 ├── supabase/
 │   ├── migrations/          # SQL migrations
-│   ├── functions/           # Edge Functions (optional)
+│   ├── functions/           # Edge Functions (legacy, see inngest-integration.md)
 │   └── config.toml
 │
 └── docs/
@@ -1372,91 +1378,91 @@ Each task depends on the previous.
 
 **Output:** Monorepo structure with apps and packages.
 
-#### Task 0.2: Supabase Setup
+#### Task 0.2: Supabase Setup ✓
 
 - [x] Create Supabase project (production)
 - [x] Set up local development with Supabase CLI
-- [ ] Create initial migration with full schema
-- [ ] Implement RLS policies
-- [ ] Create `claim_analysis_job` function
-- [ ] Test RLS policies with different user contexts
+- [x] Create initial migration with full schema
+- [x] Implement RLS policies
+- [x] Create `claim_analysis_job` function
+- [x] Test RLS policies with different user contexts
 
 **Output:** Database with schema, RLS, and job claiming function.
 
-#### Task 0.3: Authentication
+#### Task 0.3: Authentication ✓
 
-- [ ] Configure GitHub OAuth provider in Supabase
-- [ ] Create GitHub OAuth app (for additional scopes)
-- [ ] Implement Supabase Auth in `apps/web`
-- [ ] Create sign-in page
-- [ ] Create auth callback handler
-- [ ] Store GitHub token in `github_accounts` (encrypted)
-- [ ] Create protected route middleware
+- [x] Configure GitHub OAuth provider in Supabase
+- [x] Create GitHub OAuth app (for additional scopes)
+- [x] Implement Supabase Auth in `apps/web`
+- [x] Create sign-in page
+- [x] Create auth callback handler
+- [x] Store GitHub token in `github_accounts` (encrypted)
+- [x] Create protected route middleware
 
 **Output:** User can sign in with GitHub, token stored securely.
 
-#### Task 0.4: Repository Sync
+#### Task 0.4: Repository Sync ✓
 
-- [ ] Create GitHub API client in `apps/web`
-- [ ] Implement `POST /api/github/sync-repos` endpoint
-- [ ] Create repo selection UI
-- [ ] Implement repo connection flow (`user_repos`)
-- [ ] Implement repo disconnection with data cleanup
+- [x] Create GitHub API client in `apps/web`
+- [x] Implement `POST /api/github/sync-repos` endpoint
+- [x] Create repo selection UI
+- [x] Implement repo connection flow (`user_repos`)
+- [x] Implement repo disconnection with data cleanup
 
 **Output:** User can see their repos and connect/disconnect them.
 
-#### Task 0.5: Analysis Job System
+#### Task 0.5: Analysis Job System ✓
 
-- [ ] Create `POST /api/analysis/start` endpoint
-- [ ] Set up Supabase Realtime subscription for job status
-- [ ] Create job status UI component with live updates
-- [ ] Implement basic worker loop in `apps/worker`
-- [ ] Test job claiming with `FOR UPDATE SKIP LOCKED`
+- [x] Create `POST /api/analysis/start` endpoint
+- [x] Set up Supabase Realtime subscription for job status
+- [x] Create job status UI component with live updates
+- [x] Implement Inngest-based job processing (primary) and worker fallback
+- [x] Test job claiming with `FOR UPDATE SKIP LOCKED`
 
 **Output:** Jobs can be queued and status tracked in real-time.
 
-#### Task 0.6: Commit Analysis (Worker)
+#### Task 0.6: Commit Analysis (Worker) ✓
 
-- [ ] Implement GitHub API client in `apps/worker`
-- [ ] Implement commit fetching (paginated, batched)
-- [ ] Implement commit classification (`packages/core`)
-- [ ] Implement metrics computation (`packages/core`)
-- [ ] Store metrics in `analysis_metrics`
-- [ ] Handle rate limits gracefully
-- [ ] Handle large repos (time-distributed sampling + notice)
+- [x] Implement GitHub API client in `apps/worker`
+- [x] Implement commit fetching (paginated, batched)
+- [x] Implement commit classification (`packages/core`)
+- [x] Implement metrics computation (`packages/core`)
+- [x] Store metrics in `analysis_metrics`
+- [x] Handle rate limits gracefully
+- [x] Handle large repos (time-distributed sampling + notice)
 
 **Output:** Worker fetches commits and computes metrics.
 
-#### Task 0.7: Report Generation (Worker)
+#### Task 0.7: Report Generation (Worker) ✓
 
-- [ ] Implement Bolokono type matching (`packages/core`)
-- [ ] Create Claude API client in `apps/worker`
-- [ ] Implement narrative generation with structured output
-- [ ] Implement narrative validation (banned phrases, SHA checks)
-- [ ] Store reports in `analysis_reports`
-- [ ] Handle generation failures gracefully
+- [x] Implement Vibe persona matching (`packages/core`)
+- [x] Create multi-provider LLM client (Anthropic, OpenAI, Gemini)
+- [x] Implement narrative generation with structured output
+- [x] Implement narrative validation (banned phrases, SHA checks)
+- [x] Store reports in `analysis_reports`
+- [x] Handle generation failures gracefully with fallback narratives
 
 **Output:** Worker generates and stores reports.
 
-#### Task 0.8: Report UI
+#### Task 0.8: Report UI ✓
 
-- [ ] Create report page layout in `apps/web`
-- [ ] Implement Bolokono type display with badge
-- [ ] Implement metrics cards (key stats)
-- [ ] Implement narrative sections with evidence
-- [ ] Create build timeline visualization
-- [ ] Handle loading/error/insufficient-data states
+- [x] Create report page layout in `apps/web`
+- [x] Implement Vibe persona display with badge
+- [x] Implement metrics cards (key stats)
+- [x] Implement narrative sections with evidence
+- [x] Create build timeline visualization
+- [x] Handle loading/error/insufficient-data states
 
-**Output:** User can view their Bolokono profile.
+**Output:** User can view their Vibe profile.
 
-### Phase 0 Exit Criteria
+### Phase 0 Exit Criteria ✓
 
-- [ ] End-to-end flow works for private repo
-- [ ] All RLS policies enforced
-- [ ] Worker processes jobs correctly
-- [ ] Analysis completes in < 60s for < 1000 commits
-- [ ] Report displays type, metrics, and narrative
-- [ ] User can disconnect repo and data is deleted
+- [x] End-to-end flow works for private repo
+- [x] All RLS policies enforced
+- [x] Worker processes jobs correctly (via Inngest + fallback)
+- [x] Analysis completes in < 60s for < 1000 commits
+- [x] Report displays persona, metrics, and narrative
+- [x] User can disconnect repo and data is deleted
 
 ---
 
@@ -1480,7 +1486,7 @@ Each task depends on the previous.
 ### Phase 1D: Multi-Repo Aggregation
 #### Summary
 
-**Goal:** A single **Vibed Coding Profile** per user that becomes more accurate as more repos are analyzed.
+**Goal:** A single **Unified VCP** per user that becomes more accurate as more repos are analyzed.
 
 **Non-goal:** A “persona per repository” product. Repo-level personas can exist as *facets*, but the primary experience is the **user-level aggregate profile**.
 
@@ -1623,7 +1629,7 @@ APIs:
 
 #### Success Criteria
 
-- After analyzing N repos, user sees exactly one “Current Vibed Profile persona” reflecting aggregate signals.
+- After analyzing N repos, user sees exactly one “Current Unified VCP persona” reflecting aggregate signals.
 - Adding a new repo analysis updates the profile and appends to the history timeline.
 - User can still open any specific repo run and see the repo facet/persona without losing the main profile thread.
 

@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@vibed/db";
 import { wrappedTheme } from "@/lib/theme";
 import { formatMatchedRule, AXIS_LEGEND } from "@/lib/format-labels";
+import { ProfileShareSection } from "@/components/share";
+import { ProfileVersionSelector } from "@/components/ProfileVersionSelector";
 import { createClient } from "@supabase/supabase-js";
 import {
   aggregateUserProfile,
@@ -14,17 +16,48 @@ import {
 } from "@vibed/core";
 
 const heroFeatures = [
-  "A Vibed profile built from vibe-coding signals in your commit history",
+  "A Vibe Coding Profile (VCP) built from AI-assisted engineering signals in your commit history",
   "Persona snapshots that evolve as you add more repos",
-  "Share-ready cards with playful language and honest confidence",
+  "Share-ready cards that highlight your vibe coding patterns",
   "Deep dive metrics and evidence when you want receipts",
 ];
 
 const timeline = [
-  { title: "Connect GitHub", description: "Sign in, then pick the repos that feel like you." },
-  { title: "Run a vibe check", description: "We read commit metadata and patterns (not your code)." },
-  { title: "Get your Vibed read", description: "Highlights, categories, and insights into how you build." },
-  { title: "See your persona", description: "A playful archetype that changes as your work evolves." },
+  {
+    title: "Fetch commit metadata",
+    description:
+      "We sample up to 300 commits across your repo's lifetime (timestamps, sizes, file paths). No code content.",
+  },
+  {
+    title: "Filter automation noise",
+    description:
+      "Bots like Dependabot or release workflows are filtered out so the signal reflects your work.",
+  },
+  {
+    title: "Compute metrics + axes",
+    description:
+      "25+ metrics roll up into six Vibe Axes (planning, guardrails, rhythm, surface area, and more).",
+  },
+  {
+    title: "Detect persona + insights",
+    description:
+      "We map your axes to a persona and generate streaks, timing, and workflow highlights.",
+  },
+  {
+    title: "Optional LLM narrative",
+    description:
+      "If you opt in, we summarize patterns using metadata only—never code or message content.",
+  },
+  {
+    title: "Create Repo VCP",
+    description:
+      "Each repo gets its own Repo VCP—a snapshot of your vibe coding style for that project.",
+  },
+  {
+    title: "Aggregate into Unified VCP",
+    description:
+      "Multiple Repo VCPs roll into your Unified VCP, weighted by commit volume across all repos.",
+  },
 ];
 
 type AuthStats = {
@@ -49,6 +82,7 @@ type AuthStats = {
     generatedAt: string | null;
   };
   userProfile?: {
+    personaId: string;
     personaName: string;
     personaTagline: string | null;
     personaConfidence: string;
@@ -62,6 +96,13 @@ type AuthStats = {
       commitCount: number;
     }>;
     updatedAt: string | null;
+    narrative?: {
+      headline?: string;
+      paragraphs?: string[];
+      highlights?: string[];
+    } | null;
+    llmModel?: string | null;
+    llmKeySource?: string | null;
   };
 };
 
@@ -437,7 +478,7 @@ export default async function Home({
       supabase
         .from("user_profiles")
         .select(
-          "persona_name, persona_tagline, persona_confidence, total_repos, total_commits, axes_json, repo_personas_json, updated_at, job_ids"
+          "persona_id, persona_name, persona_tagline, persona_confidence, total_repos, total_commits, axes_json, repo_personas_json, updated_at, job_ids, narrative_json, llm_model, llm_key_source"
         )
         .eq("user_id", user.id)
         .maybeSingle(),
@@ -452,6 +493,7 @@ export default async function Home({
   }>;
 
   const maybeProfileData = userProfileResult.data as {
+    persona_id: string;
     persona_name: string;
     persona_tagline: string | null;
     persona_confidence: string;
@@ -466,6 +508,13 @@ export default async function Home({
     }>;
     updated_at: string | null;
     job_ids: unknown;
+    narrative_json: {
+      headline?: string;
+      paragraphs?: string[];
+      highlights?: string[];
+    } | null;
+    llm_model: string | null;
+    llm_key_source: string | null;
   } | null;
 
   const profileJobIds = Array.isArray(maybeProfileData?.job_ids)
@@ -531,13 +580,14 @@ export default async function Home({
     ? await supabase
         .from("user_profiles")
         .select(
-          "persona_name, persona_tagline, persona_confidence, total_repos, total_commits, axes_json, repo_personas_json, updated_at"
+          "persona_id, persona_name, persona_tagline, persona_confidence, total_repos, total_commits, axes_json, repo_personas_json, updated_at, narrative_json, llm_model, llm_key_source"
         )
         .eq("user_id", user.id)
         .maybeSingle()
     : null;
 
   const userProfileData = (profileIsStale ? refreshedProfileResult?.data ?? null : maybeProfileData) as {
+    persona_id: string;
     persona_name: string;
     persona_tagline: string | null;
     persona_confidence: string;
@@ -551,6 +601,13 @@ export default async function Home({
       commitCount: number;
     }>;
     updated_at: string | null;
+    narrative_json: {
+      headline?: string;
+      paragraphs?: string[];
+      highlights?: string[];
+    } | null;
+    llm_model: string | null;
+    llm_key_source: string | null;
   } | null;
 
   const recentDoneJobIds = recentDoneJobs.map((job) => job.id);
@@ -643,6 +700,7 @@ export default async function Home({
       : undefined,
     userProfile: userProfileData
       ? {
+          personaId: userProfileData.persona_id,
           personaName: userProfileData.persona_name,
           personaTagline: userProfileData.persona_tagline,
           personaConfidence: userProfileData.persona_confidence,
@@ -651,6 +709,9 @@ export default async function Home({
           axes: userProfileData.axes_json ?? {},
           repoPersonas: userProfileData.repo_personas_json ?? [],
           updatedAt: userProfileData.updated_at ?? null,
+          narrative: userProfileData.narrative_json ?? null,
+          llmModel: userProfileData.llm_model ?? null,
+          llmKeySource: userProfileData.llm_key_source ?? null,
         }
       : undefined,
   };
@@ -743,7 +804,7 @@ function MarketingLanding() {
     {
       title: "Spec-Driven Architect",
       description:
-        "Plans thoroughly before touching code; constraints show up early and often.",
+        "Plans thoroughly before shipping changes; constraints show up early and often.",
     },
     {
       title: "Test-First Validator",
@@ -771,13 +832,21 @@ function MarketingLanding() {
               For vibe coders
             </p>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 sm:text-5xl">
-              <span className={wrappedTheme.gradientText}>Find your Vibed coding profile</span>{" "}
+              <span className={wrappedTheme.gradientText}>
+                Find your Vibe Coding Profile (VCP)
+              </span>{" "}
               and the personality behind your workflow
             </h1>
             <p className="max-w-2xl text-base text-zinc-700 sm:text-lg">
-              Vibed is a playful experiment by vibe coders who want to understand themselves
-              better. We surface signals from your commit history to shine a light on how you build
-              with AI. What feels like you, what feels new, and how your workflow is evolving.
+              A <strong>Vibe Coding Profile (VCP)</strong> is your AI-assisted engineering persona—revealed through patterns in your commit history. We surface signals from your git history to shine a light on
+              how you build with AI, what feels like you, what feels new, and how your workflow is
+              evolving.
+            </p>
+            <p className="max-w-2xl text-sm text-zinc-600">
+              The term “vibe coding” can be polarizing, but it captures the cultural moment around
+              AI-shaped development. We personally prefer “AI Assisted Engineering” because it’s
+              more explicit about the role of AI. This is a playful side project, so we keep it
+              light and approachable for non-technical folks.
             </p>
           </div>
 
@@ -846,7 +915,7 @@ function MarketingLanding() {
               <h2 className="text-2xl font-semibold text-zinc-950">Persona previews</h2>
               <p className="mt-2 max-w-2xl text-sm text-zinc-800">
                 You may see one of these (or another persona). These are lenses on your
-                vibe-coding style. Observations, not labels.
+                AI-assisted engineering (vibe-coding) style. Observations, not labels.
               </p>
             </div>
             <Link
@@ -872,7 +941,7 @@ function MarketingLanding() {
         </section>
 
         <footer className="mt-12 flex flex-col gap-3 border-t border-black/5 pt-6 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-zinc-700">Vibed Coding</p>
+          <p className="text-zinc-700">Vibe Coding Profile</p>
           <p className="font-mono text-xs text-zinc-400">v0.1.0</p>
         </footer>
       </div>
@@ -994,27 +1063,6 @@ function AuthenticatedDashboard({
 
   const axisKeys = Object.keys(axisMeta) as Array<keyof typeof axisMeta>;
 
-  const cards = [
-    {
-      label: "Reads captured",
-      value: stats.completedJobs,
-      helper: "Every run adds a chapter.",
-    },
-    {
-      label: "Vibe shifts",
-      value: shiftValue,
-      helper: shiftHelper,
-    },
-    {
-      label: "Most frequent vibe",
-      value: dominantPersona ?? "Still forming",
-      helper:
-        recentLabels.length === 0
-          ? "Complete a vibe check to see your read."
-          : `Based on your last ${recentLabels.length} reads.`,
-    },
-  ];
-
   function generateCrossRepoInsight(): string {
     if (!stats.userProfile) return "Add more repos to unlock cross-repo insights.";
     const repos = stats.userProfile.repoPersonas ?? [];
@@ -1050,9 +1098,51 @@ function AuthenticatedDashboard({
     return `Your ${stats.userProfile.personaName.toLowerCase()} profile emerges from ${repos.length} repos and ${stats.userProfile.totalCommits.toLocaleString()} commits.`;
   }
 
+  // Compute top axes for share card
+  const topAxes = stats.userProfile
+    ? Object.entries(stats.userProfile.axes)
+        .map(([key, val]) => ({
+          name: axisMeta[key as keyof typeof axisMeta]?.name ?? key,
+          score: val.score,
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 4)
+    : [];
+
+  // Use LLM narrative if available, otherwise fall back to deterministic insight
+  const narrativeFromLLM = stats.userProfile?.narrative;
+  const crossRepoInsight = narrativeFromLLM?.headline
+    ? narrativeFromLLM.headline
+    : generateCrossRepoInsight();
+
+  // Full narrative paragraphs (for expanded display)
+  const narrativeParagraphs = narrativeFromLLM?.paragraphs ?? [];
+  const narrativeHighlights = narrativeFromLLM?.highlights ?? [];
+  const hasLLMNarrative = Boolean(narrativeFromLLM?.headline || narrativeParagraphs.length > 0);
+
   return (
     <div className={`${wrappedTheme.container} ${wrappedTheme.pageY}`}>
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-4xl space-y-6">
+        {/* HERO: Share Card - The main action for users with a profile */}
+        {stats.userProfile ? (
+          <ProfileShareSection
+            personaName={stats.userProfile.personaName}
+            personaId={stats.userProfile.personaId}
+            personaTagline={stats.userProfile.personaTagline ?? null}
+            personaConfidence={stats.userProfile.personaConfidence}
+            totalRepos={stats.userProfile.totalRepos}
+            totalCommits={stats.userProfile.totalCommits}
+            clarity={clarity}
+            topAxes={topAxes}
+            insight={crossRepoInsight}
+          />
+        ) : null}
+
+        {/* Profile History - Version selector */}
+        {stats.userProfile ? (
+          <ProfileVersionSelector currentUpdatedAt={stats.userProfile.updatedAt} />
+        ) : null}
+
         {/* Unified Profile Card */}
         <div className="overflow-hidden rounded-[2.5rem] border border-black/5 bg-white shadow-[0_30px_120px_rgba(2,6,23,0.08)]">
           {/* Section 1: Identity */}
@@ -1061,7 +1151,7 @@ function AuthenticatedDashboard({
             <div className="relative">
               <div className="flex items-start justify-between gap-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500">
-                  Your Vibed Profile
+                  Your Unified VCP
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {stats.completedJobs > 0 ? (
@@ -1072,12 +1162,12 @@ function AuthenticatedDashboard({
                       >
                         Add repo
                       </Link>
-                      <Link
-                        href="/analysis"
-                        className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800"
-                      >
-                        View vibed repos
-                      </Link>
+                    <Link
+                      href="/analysis"
+                      className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800"
+                    >
+                      View Repo VCPs
+                    </Link>
                     </>
                   ) : (
                     <Link
@@ -1136,12 +1226,38 @@ function AuthenticatedDashboard({
           {/* Section 2: Insight (the juicy synthesis) */}
           {stats.userProfile ? (
             <div className="border-t border-black/5 bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-8 py-6 sm:px-10">
-              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-white/70">
-                Insight
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-white/70">
+                  Insight
+                </p>
+                {hasLLMNarrative && stats.userProfile.llmModel ? (
+                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white/80">
+                    AI-generated
+                  </span>
+                ) : null}
+              </div>
               <p className="mt-2 text-base font-medium leading-relaxed text-white sm:text-lg">
-                {generateCrossRepoInsight()}
+                {crossRepoInsight}
               </p>
+              {narrativeParagraphs.length > 0 ? (
+                <div className="mt-4 space-y-3">
+                  {narrativeParagraphs.map((paragraph, idx) => (
+                    <p key={idx} className="text-sm leading-relaxed text-white/90">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+              {narrativeHighlights.length > 0 ? (
+                <ul className="mt-4 space-y-1">
+                  {narrativeHighlights.map((highlight, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-white/85">
+                      <span className="mt-1 text-white/60">•</span>
+                      <span>{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </div>
           ) : null}
 
@@ -1152,7 +1268,7 @@ function AuthenticatedDashboard({
                 Your Axes
               </p>
               <p className="mt-1 text-sm text-zinc-600">
-                The 6 signals that define your vibe coding style
+                The 6 signals that define your AI-assisted engineering (vibe coding) style
               </p>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1199,7 +1315,7 @@ function AuthenticatedDashboard({
               <div className="rounded-2xl border border-black/5 bg-zinc-50/50 p-4 text-center">
                 <p className="text-3xl font-bold text-zinc-900">{stats.completedJobs}</p>
                 <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
-                  Vibed repos
+                  Repo VCPs
                 </p>
               </div>
               <div className="rounded-2xl border border-black/5 bg-zinc-50/50 p-4 text-center">
@@ -1361,7 +1477,7 @@ function AuthenticatedDashboard({
                       Add repo
                     </Link>
                     <Link href="/analysis" className={wrappedTheme.primaryButton}>
-                      View vibed repos
+                      View Repo VCPs
                     </Link>
                   </>
                 )}

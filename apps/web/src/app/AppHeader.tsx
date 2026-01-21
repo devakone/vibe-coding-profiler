@@ -25,7 +25,7 @@ export default function AppHeader(props: {
 
   const baseLinks = props.isAuthed
     ? [
-        { href: "/", label: "My Vibed" },
+        { href: "/", label: "My VCP" },
         { href: "/repos", label: "Repos" },
         { href: "/analysis", label: "Reports" },
         { href: "/settings/llm-keys", label: "Settings" },
@@ -54,7 +54,7 @@ export default function AppHeader(props: {
           >
             <span className={wrappedTheme.dot} />
             <span className="text-lg font-bold tracking-tight text-zinc-950">
-              Vibed Coding
+              Vibe Coding Profile
             </span>
           </Link>
           <nav className="flex items-center gap-1 text-sm">

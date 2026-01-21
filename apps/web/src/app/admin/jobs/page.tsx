@@ -88,6 +88,7 @@ export default async function AdminJobsPage({
                 <th className="px-4 py-3">Repo</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Commits</th>
+                <th className="px-4 py-3">Profile</th>
                 <th className="px-4 py-3">Created</th>
                 <th className="px-4 py-3">Completed</th>
               </tr>
@@ -111,6 +112,20 @@ export default async function AdminJobsPage({
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-600">
                     {job.commit_count?.toLocaleString() ?? "-"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {job.profile_updated ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-fuchsia-100 px-2 py-1 text-xs font-medium text-fuchsia-700">
+                        <span className="text-fuchsia-500">✓</span>
+                        {job.profile_persona ? (
+                          <span title={job.profile_persona}>Updated</span>
+                        ) : (
+                          "Updated"
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-zinc-400">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-600">
                     {new Date(job.created_at).toLocaleString()}

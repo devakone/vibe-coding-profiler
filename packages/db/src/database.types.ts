@@ -374,23 +374,32 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          llm_key_source: string | null
+          llm_model: string | null
           profile_snapshot: Json
           trigger_job_id: string | null
           user_id: string
+          version_number: number | null
         }
         Insert: {
           created_at?: string | null
           id?: string
+          llm_key_source?: string | null
+          llm_model?: string | null
           profile_snapshot: Json
           trigger_job_id?: string | null
           user_id: string
+          version_number?: number | null
         }
         Update: {
           created_at?: string | null
           id?: string
+          llm_key_source?: string | null
+          llm_model?: string | null
           profile_snapshot?: Json
           trigger_job_id?: string | null
           user_id?: string
+          version_number?: number | null
         }
         Relationships: [
           {
@@ -416,11 +425,15 @@ export type Database = {
           created_at: string | null
           id: string
           job_ids: string[]
+          llm_key_source: string | null
+          llm_model: string | null
+          narrative_json: Json | null
           persona_confidence: string
           persona_id: string
           persona_name: string
           persona_score: number
           persona_tagline: string | null
+          regenerating: boolean
           repo_personas_json: Json
           total_commits: number
           total_repos: number
@@ -433,11 +446,15 @@ export type Database = {
           created_at?: string | null
           id?: string
           job_ids?: string[]
+          llm_key_source?: string | null
+          llm_model?: string | null
+          narrative_json?: Json | null
           persona_confidence: string
           persona_id: string
           persona_name: string
           persona_score?: number
           persona_tagline?: string | null
+          regenerating?: boolean
           repo_personas_json?: Json
           total_commits?: number
           total_repos?: number
@@ -450,11 +467,15 @@ export type Database = {
           created_at?: string | null
           id?: string
           job_ids?: string[]
+          llm_key_source?: string | null
+          llm_model?: string | null
+          narrative_json?: Json | null
           persona_confidence?: string
           persona_id?: string
           persona_name?: string
           persona_score?: number
           persona_tagline?: string | null
+          regenerating?: boolean
           repo_personas_json?: Json
           total_commits?: number
           total_repos?: number

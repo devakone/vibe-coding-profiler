@@ -52,12 +52,12 @@ This PRD is designed to be implemented by an AI coding agent. Key principles:
 
 ## Overview
 
-Vibed Coding currently supports GitHub as the sole platform for authentication and repository analysis. This PRD outlines the integration of **GitLab** and **Bitbucket** as additional platforms, enabling users to:
+Vibe Coding Profile currently supports GitHub as the sole platform for authentication and repository analysis. This PRD outlines the integration of **GitLab** and **Bitbucket** as additional platforms, enabling users to:
 
 1. Sign in via OAuth using any of the three platforms
 2. Connect additional platforms as repo sources (independent of login)
 3. Analyze repos from all connected platforms
-4. Maintain a single, unified Vibed profile aggregated across all platforms
+4. Maintain a single, unified VCP aggregated across all platforms
 
 ---
 
@@ -66,7 +66,7 @@ Vibed Coding currently supports GitHub as the sole platform for authentication a
 | Goal | Description |
 |------|-------------|
 | **Broader reach** | Support developers who primarily use GitLab or Bitbucket |
-| **Unified identity** | One Vibed profile per user, regardless of where their code lives |
+| **Unified identity** | One Unified VCP per user, regardless of where their code lives |
 | **Flexible connections** | Users can connect/disconnect platforms independently of their login method |
 | **Consistent UX** | Same analysis flow and profile experience across all platforms |
 
@@ -100,7 +100,7 @@ Vibed Coding currently supports GitHub as the sole platform for authentication a
 
 ### Unified Profile
 
-8. **As a user**, my Vibed profile aggregates commits from all analyzed repos across all platforms.
+8. **As a user**, my Unified VCP aggregates commits from all analyzed repos across all platforms.
 
 9. **As a user**, I can see per-repo breakdowns by platform in my analysis history.
 
@@ -302,7 +302,7 @@ GET  /api/profile                    # Unified profile (all platforms)
 3. Redirect to GitLab OAuth (with state containing user_id)
 4. Callback validates state, confirms logged-in user
 5. Check if GitLab account already linked to another user
-   - If yes: error "This GitLab account is linked to another Vibed account"
+   - If yes: error "This GitLab account is linked to another Vibe Coding Profile account"
    - If no: continue
 6. Create `platforms` row (is_primary = false)
 7. Redirect back to settings with success
@@ -327,7 +327,7 @@ GET  /api/profile                    # Unified profile (all platforms)
 ```
 ┌─────────────────────────────────────┐
 │                                     │
-│     Sign in to Vibed Coding         │
+│     Sign in to Vibe Coding Profile         │
 │                                     │
 │  ┌─────────────────────────────┐   │
 │  │  Continue with GitHub       │   │
@@ -377,7 +377,7 @@ GET  /api/profile                    # Unified profile (all platforms)
 │ [All] [GitHub (12)] [GitLab (3)]                        │
 │                                                          │
 │ ┌─────────────────────────────────────────────────────┐ │
-│ │ 🐙 devakone/vibed-coding          [View vibe]       │ │
+│ │ 🐙 devakone/vibe-coding-profile          [View VCP]       │ │
 │ │ GitHub · Private · Updated Jan 18                   │ │
 │ └─────────────────────────────────────────────────────┘ │
 │ ┌─────────────────────────────────────────────────────┐ │
@@ -433,7 +433,7 @@ The dashboard shows unified metrics with optional platform breakdown:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Your Vibed Profile                                       │
+│ Your Unified VCP                                       │
 │                                                          │
 │ Rapid Risk-Taker                                         │
 │ High confidence · 698 commits across 8 repos            │
