@@ -3,7 +3,9 @@
 > **Last Updated:** January 2026  
 > **Maintainer:** Update this document when analysis logic, personas, or metrics change.
 
-Vibed Coding analyzes your git history to reveal your coding style and patterns. Think of it as "Spotify Wrapped for vibe coders." We look at *how* you build, not *what* you build.
+Vibed Coding analyzes your git history to reveal your vibe coding/ AI Assited Engineering style and patterns. Think of it as "Spotify Wrapped for vibe coders." We look at *how* you build, not *what* you build.
+
+Note: The term "vibe coding" can be polarizing, but it captures the cultural moment around AI-shaped development. We personally prefer "AI Assisted Engineering" because it’s more explicit about the role of AI. This is a playful side project, so we lean into the pop framing and keep it approachable for non-technical folks.
 
 ---
 

@@ -779,6 +779,12 @@ function MarketingLanding() {
               better. We surface signals from your commit history to shine a light on how you build
               with AI. What feels like you, what feels new, and how your workflow is evolving.
             </p>
+            <p className="max-w-2xl text-sm text-zinc-600">
+              The term “vibe coding” can be polarizing, but it captures the cultural moment around
+              AI-shaped development. We personally prefer “AI Assisted Engineering” because it’s
+              more explicit about the role of AI. This is a playful side project, so we keep it
+              light and approachable for non-technical folks.
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
