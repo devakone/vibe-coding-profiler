@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-alpha.2](https://github.com/devakone/vibed-coding/compare/vibed-coding-v0.1.0-alpha.1...vibed-coding-v0.1.0-alpha.2) (2026-01-21)
+
+
+### Features
+
+* enhance profile sharing and versioning features ([411ba50](https://github.com/devakone/vibed-coding/commit/411ba506074e2d35c5ec0c07aff8f824a86ef96b))
+
 ## [0.1.0-alpha.1](https://github.com/devakone/vibed-coding/compare/vibed-coding-v0.1.0-alpha.0...vibed-coding-v0.1.0-alpha.1) (2026-01-20)
 
 
