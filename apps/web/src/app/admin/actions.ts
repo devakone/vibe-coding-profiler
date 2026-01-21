@@ -521,6 +521,8 @@ export async function getAllJobs(
     commit_count: number | null;
     created_at: string;
     completed_at: string | null;
+    profile_updated: boolean;
+    profile_persona: string | null;
   }>;
   total: number;
 }> {
@@ -576,27 +578,49 @@ export async function getAllJobs(
   // Get user and repo names
   const userIds = [...new Set((jobs ?? []).map((j) => j.user_id))];
   const repoIds = [...new Set((jobs ?? []).map((j) => j.repo_id).filter(Boolean))];
+  const jobIds = (jobs ?? []).map((j) => j.id);
 
-  const [{ data: users }, { data: repos }] = await Promise.all([
+  const [{ data: users }, { data: repos }, { data: profileHistory }] = await Promise.all([
     adminSupabase.from("users").select("id, github_username").in("id", userIds),
     adminSupabase.from("repos").select("id, full_name").in("id", repoIds),
+    // Get profile history entries triggered by these jobs
+    adminSupabase
+      .from("user_profile_history")
+      .select("trigger_job_id, profile_snapshot")
+      .in("trigger_job_id", jobIds),
   ]);
 
   const usernameById = new Map((users ?? []).map((u) => [u.id, u.github_username]));
   const repoNameById = new Map((repos ?? []).map((r) => [r.id, r.full_name]));
 
+  // Map job ID to profile update info
+  const profileUpdateByJobId = new Map<string, { persona: string | null }>();
+  for (const ph of profileHistory ?? []) {
+    if (ph.trigger_job_id) {
+      const snapshot = ph.profile_snapshot as { persona?: { name?: string } } | null;
+      profileUpdateByJobId.set(ph.trigger_job_id, {
+        persona: snapshot?.persona?.name ?? null,
+      });
+    }
+  }
+
   return {
     success: true,
-    jobs: (jobs ?? []).map((j) => ({
-      id: j.id,
-      user_id: j.user_id,
-      username: usernameById.get(j.user_id) ?? null,
-      repo_name: repoNameById.get(j.repo_id ?? "") ?? null,
-      status: j.status,
-      commit_count: j.commit_count,
-      created_at: j.created_at,
-      completed_at: j.completed_at,
-    })),
+    jobs: (jobs ?? []).map((j) => {
+      const profileUpdate = profileUpdateByJobId.get(j.id);
+      return {
+        id: j.id,
+        user_id: j.user_id,
+        username: usernameById.get(j.user_id) ?? null,
+        repo_name: repoNameById.get(j.repo_id ?? "") ?? null,
+        status: j.status,
+        commit_count: j.commit_count,
+        created_at: j.created_at,
+        completed_at: j.completed_at,
+        profile_updated: Boolean(profileUpdate),
+        profile_persona: profileUpdate?.persona ?? null,
+      };
+    }),
     total: totalCount ?? 0,
   };
 }
