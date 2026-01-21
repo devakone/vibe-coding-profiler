@@ -426,9 +426,9 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
   const shareTemplate = wrapped.share_template;
   const profileContributionLabel = (() => {
     if (!profileContribution) return null;
-    if (profileContribution.includedInProfile === true) return "Included in your Vibed profile";
-    if (profileContribution.includedInProfile === false) return "Not yet included in your Vibed profile";
-    return "Vibed profile impact";
+    if (profileContribution.includedInProfile === true) return "Included in your Unified VCP";
+    if (profileContribution.includedInProfile === false) return "Not yet included in your Unified VCP";
+    return "Unified VCP impact";
   })();
 
   const shareText = useMemo(() => {
@@ -436,7 +436,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
     const metricsLine = shareTemplate.metrics
       .map((metric) => `${metric.label}: ${metric.value}`)
       .join(" · ");
-    return `${shareTemplate.headline}\n${shareTemplate.subhead}\n${metricsLine}\n#Vibed`;
+    return `${shareTemplate.headline}\n${shareTemplate.subhead}\n${metricsLine}\n#VCP`;
   }, [shareTemplate]);
 
   const shareUrl = useMemo(() => {
@@ -450,7 +450,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
       .slice(0, 3)
       .map((metric) => `${metric.label}: ${metric.value}`)
       .join(" · ");
-    return `${shareTemplate.headline} — ${shareTemplate.subhead}\n${metricsLine}\n#Vibed`;
+    return `${shareTemplate.headline} — ${shareTemplate.subhead}\n${metricsLine}\n#VCP`;
   }, [shareTemplate]);
 
   // Build share template for ShareActions component
@@ -684,7 +684,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
               exceeding the free limit of {pendingProfileMeta.repoLimit} repos.
             </p>
             <p className="mt-3 text-sm text-zinc-600">
-              Regenerating will rebuild your aggregate Vibed profile using a{" "}
+              Regenerating will rebuild your Unified VCP using a{" "}
               <span className="font-semibold">non-LLM generated narrative</span>. Your previous
               LLM-generated profile versions will remain accessible in your profile history.
             </p>
@@ -727,16 +727,16 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-fuchsia-200 border-t-fuchsia-500" />
                 <p className="text-sm font-medium text-fuchsia-800">
-                  Rebuilding your Vibed profile with latest analysis...
+                  Rebuilding your Unified VCP with latest analysis...
                 </p>
               </>
             ) : profileRebuildStatus === "success" ? (
               <p className="text-sm font-medium text-green-800">
-                Your Vibed profile has been updated with the latest analysis.
+                Your Unified VCP has been updated with the latest analysis.
               </p>
             ) : profileRebuildStatus === "error" ? (
               <p className="text-sm font-medium text-red-800">
-                Failed to rebuild your Vibed profile. Please try again later.
+                Failed to rebuild your Unified VCP. Please try again later.
               </p>
             ) : null}
           </div>
@@ -747,7 +747,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
       {pendingProfileMeta && !showLlmWarningModal && pendingProfileMeta.llmExhausted && !pendingProfileMeta.willUseLlm ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <p className="text-sm font-medium text-amber-800">
-            Your Vibed profile is now using a non-LLM narrative because you&apos;ve exceeded the
+            Your Unified VCP is now using a non-LLM narrative because you&apos;ve exceeded the
             free limit of {pendingProfileMeta.repoLimit} repos. Add your own API key in Settings
             to restore LLM-generated profiles.
           </p>
@@ -828,7 +828,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
               href="/"
               className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
             >
-              My Vibed profile
+              My Unified VCP
             </Link>
             <div className="flex flex-wrap gap-2">
               {persona.archetypes.map((arch) => (
@@ -1124,7 +1124,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                     ) : null}
                   </div>
                 ) : (
-                  <p className="mt-4 text-sm text-zinc-600">No narrative is available for this vibed repo yet.</p>
+                  <p className="mt-4 text-sm text-zinc-600">No narrative is available for this Repo VCP yet.</p>
                 )}
               </div>
 
@@ -1146,7 +1146,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Your Vibed profile</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Your Unified VCP</p>
                       <p className="mt-1 text-sm font-semibold text-zinc-900">
                         {typeof profileContribution.profileTotalRepos === "number"
                           ? `${profileContribution.profileTotalRepos} repos`

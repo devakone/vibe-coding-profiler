@@ -5,7 +5,7 @@
 This document cross-references the Perplexity-based `AI-Era Coding Personas` research and the ChatGPT-derived `AI-Era Developer Personas` research. Together they provide:
 
 1. A unified persona taxonomy for Bolokono.
-2. Product signals we want to surface in the “Vibed” narrative layer.
+2. Product signals we want to surface in the “Vibe Coding Profile” narrative layer.
 3. Architectural guidance for what data to capture and how to compute metrics.
 
 ## Unified Persona Taxonomy
@@ -20,7 +20,7 @@ This document cross-references the Perplexity-based `AI-Era Coding Personas` res
 | Infrastructure Architect | Perplexity | Governance docs, consistent patterns, cross-service rules | Use for compliance/craft insight layers. |
 | Hands-On Debugger / Rapid Risk Taker | Perplexity / ChatGPT | Hotfix spikes, direct commits to main, odd-hour pushes | Show “fix ratio” vs “velocity” and confidence disclaimers. |
 
-## Product Insights (Vibed Layer)
+## Product Insights (Vibe Coding Profile Layer)
 
 - **Narrative cards** should mention persona-aligned observations (e.g., “You lay down tests before code, which matches your Validator rhythm,” “Friday evening prototypes keep your creative streak alive”).
 - **Confidence language** sourced from persona confidence levels—high-confidence personas can have bolder observations; medium ones are framed probabilistically.
@@ -45,4 +45,4 @@ Next steps (confirmed by both docs):
 
 ## Closing Thought
 
-Both research streams converge on the idea that Bolokono should celebrate diverse craftsmanship paths while grounding every claim in observable data. Implementing the data captures above keeps the product aligned with this vision—narrative cards for the Vibed layer, deep-dive evidence for trust, and architecture-level JSON that future APIs or share cards can reuse.
+Both research streams converge on the idea that Bolokono should celebrate diverse craftsmanship paths while grounding every claim in observable data. Implementing the data captures above keeps the product aligned with this vision—narrative cards for the Vibe Coding Profile layer, deep-dive evidence for trust, and architecture-level JSON that future APIs or share cards can reuse.

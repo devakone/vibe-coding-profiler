@@ -1,9 +1,9 @@
-# Vibed Analysis Pipeline — Technical Architecture
+# Vibe Coding Profile Analysis Pipeline — Technical Architecture
 
 > **Last Updated:** January 2026  
 > **Maintainer:** Update this document when analysis logic, data models, or algorithms change.
 
-This document provides a comprehensive technical reference for how Vibed Coding analyzes repositories and generates user profiles. It covers data flow, algorithms, type definitions, and links to source code.
+This document provides a comprehensive technical reference for how Vibe Coding Profile analyzes repositories and generates Repo VCPs and Unified VCPs. It covers data flow, algorithms, type definitions, and links to source code.
 
 ---
 
@@ -815,7 +815,7 @@ erDiagram
 
 ## Related Documentation
 
-- [How Vibed Works (Product Overview)](../how-vibed-works.md)
+- [How Vibe Coding Profile Works (Product Overview)](../how-vibed-works.md)
 - [Vibe Metrics v2](./vibe-metrics-v2.md) — Original axis design
 - [Inngest Integration](./inngest-integration.md) — Job processing details
 - [Architecture Overview](./overview.md) — System components

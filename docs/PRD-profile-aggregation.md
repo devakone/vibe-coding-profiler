@@ -1,9 +1,9 @@
-# PRD: Profile Aggregation — One Persona Per User
+# PRD: Profile Aggregation — Unified VCP Per User
 
 **Status:** Core Implementation Complete — See `docs/implementation-trackers/profile-aggregation.md` for details
 
 > **Reference Documentation:** For technical details on aggregation, see:
-> - [Vibed Analysis Pipeline](./architecture/vibed-analysis-pipeline.md#profile-aggregation) — Aggregation algorithm details
+> - [Vibe Coding Profile Analysis Pipeline](./architecture/vibed-analysis-pipeline.md#profile-aggregation) — Aggregation algorithm details
 
 ## The Problem
 
@@ -13,7 +13,7 @@ We built personas per repo. The PRDs say personas should aggregate per user.
 
 From `PRD-vibed-ux.md`:
 
-> "Vibed Coding builds a profile of your AI-era coding style **across projects**. One repo gives you a snapshot. Three repos show patterns. Five repos reveal who you really are when you're building with AI tools."
+> "Vibe Coding Profile builds a profile of your AI-era coding style **across projects**. One repo gives you a Repo VCP. Three repos show patterns. Five repos reveal your Unified VCP when you're building with AI tools."
 
 > "**One project = one data point.** We can tell you what we see, but we can't know if that's 'you' or just 'this project.' **Multiple projects = actual patterns.** Now we can say with confidence: 'This is how you work, not just how this codebase works.'"
 
@@ -42,7 +42,7 @@ The PRD even mocked the target:
 
 1. **Accuracy**: One repo might be a hackathon, another is work. Combined = the real you.
 2. **Engagement**: "Add more repos to sharpen your profile" is the natural growth loop.
-3. **Value**: Cross-repo insights are unique to Vibed — no one else does this.
+3. **Value**: Cross-repo insights are unique to Vibe Coding Profile — no one else does this.
 
 ---
 
@@ -348,7 +348,7 @@ The user's aggregated profile page (the "home base"):
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  YOUR VIBED PROFILE                                             │
+│  YOUR UNIFIED VCP                                             │
 │  Based on 3 repos · 847 commits                                 │
 │                                                                 │
 │  ┌───────────────────────────────────────────────────────────┐  │

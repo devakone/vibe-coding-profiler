@@ -7,7 +7,7 @@ export default function LoginPage() {
     <div className={`flex min-h-screen items-center justify-center ${wrappedTheme.container}`}>
       <div className={`w-full max-w-md p-6 ${wrappedTheme.card}`}>
         <h1 className={`text-2xl font-semibold tracking-tight ${wrappedTheme.gradientText}`}>
-          Vibed Coding
+          Vibe Coding Profile
         </h1>
         <p className="mt-2 text-sm text-zinc-600">
           Sign in to analyze your build patterns from git history.

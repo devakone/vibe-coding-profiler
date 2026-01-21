@@ -1,9 +1,9 @@
-# How Vibed Coding Works
+# How Vibe Coding Profile Works
 
 > **Last Updated:** January 2026  
 > **Maintainer:** Update this document when analysis logic, personas, or metrics change.
 
-Vibed Coding analyzes your git history to reveal your vibe coding/ AI Assited Engineering style and patterns. Think of it as "Spotify Wrapped for vibe coders." We look at *how* you build, not *what* you build.
+Vibe Coding Profile analyzes your git history to reveal your vibe coding/ AI Assisted Engineering style and patterns. Think of it as "Spotify Wrapped for vibe coders." We look at *how* you build, not *what* you build.
 
 Note: The term "vibe coding" can be polarizing, but it captures the cultural moment around AI-shaped development. We personally prefer "AI Assisted Engineering" because it’s more explicit about the role of AI. This is a playful side project, so we lean into the pop framing and keep it approachable for non-technical folks.
 
@@ -12,14 +12,14 @@ Note: The term "vibe coding" can be polarizing, but it captures the cultural mom
 ## The Big Picture
 
 ```
-Your Git History → Analysis → Vibe Profile
+Your Git History → Analysis → Vibe Coding Profile (VCP)
      ↓                ↓            ↓
   Commits         Metrics      Persona + Insights
   PRs             Axes         Narrative
   Timing          Scores       Share Cards
 ```
 
-**Key Principle:** Vibed is *observational, not judgmental*. We detect patterns, not quality. Every coding style has strengths.
+**Key Principle:** Vibe Coding Profile is *observational, not judgmental*. We detect patterns, not quality. Every coding style has strengths.
 
 ---
 
@@ -117,12 +117,12 @@ If LLM is configured, we generate a human-readable narrative about your *enginee
 ### Single Repo Analysis
 One repo gives you a snapshot of your coding style for that project.
 
-### Multi-Repo User Profile
-When you analyze multiple repos, Vibed aggregates them into a single **User Profile**:
+### Multi-Repo Unified VCP
+When you analyze multiple repos, Vibe Coding Profile aggregates them into a single **Unified VCP**:
 
 ```
 Repo A Analysis  ─┐
-Repo B Analysis  ─┼─→ Aggregated User Profile
+Repo B Analysis  ─┼─→ Unified VCP
 Repo C Analysis  ─┘
 ```
 
@@ -146,7 +146,7 @@ Every insight includes a confidence level:
 
 ---
 
-## What Vibed Is NOT
+## What Vibe Coding Profile Is NOT
 
 - **Not a productivity tracker:** We don't measure "good" vs "bad"
 - **Not a code quality tool:** We don't analyze code, just patterns
@@ -166,7 +166,7 @@ Every insight includes a confidence level:
 
 ## Attribution
 
-Vibed Coding builds on research and concepts from the developer tooling community:
+Vibe Coding Profile builds on research and concepts from the developer tooling community:
 
 - **"Vibe coding"**: Term coined by [Andrej Karpathy](https://x.com/karpathy/status/1886192184808149383) in February 2025, later named [Collins Dictionary Word of the Year 2025](https://en.wikipedia.org/wiki/Vibe_coding).
 - **Orchestrator vs Conductor patterns**: From [Addy Osmani's work on agentic coding](https://addyosmani.com/blog/future-agentic-coding/).
@@ -181,7 +181,7 @@ Our internal research documents are available in [docs/research/](./research/).
 
 - [Technical Architecture](./architecture/vibed-analysis-pipeline.md): Deep dive with Mermaid diagrams
 - [Vibe Metrics v2](./architecture/vibe-metrics-v2.md): Axis computation details
-- [PRD: Vibed Narrative Layer](./PRD-vibed.md): Product requirements
+- [PRD: Vibe Coding Profile Narrative Layer](./PRD-vibed.md): Product requirements
 - [PRD: Profile Aggregation](./PRD-profile-aggregation.md): Multi-repo aggregation
 
 ---

@@ -1,12 +1,12 @@
 # GitHub Setup
 
-This document summarizes what you need to do before you can authenticate via GitHub and analyze repositories in Vibed Coding.
+This document summarizes what you need to do before you can authenticate via GitHub and analyze repositories in Vibe Coding Profile.
 
 ## 1. Create a GitHub OAuth App
 
 1. Open GitHub → Settings → Developer settings → OAuth Apps → **New OAuth App**.
 2. Fill in the required URLs for local development:
-   - **Application name:** e.g., `Vibed Coding Local`
+   - **Application name:** e.g., `Vibe Coding Profile Local`
    - **Homepage URL:** `http://localhost:8108`
    - **Authorization callback URL:** `http://localhost:54421/auth/v1/callback`
 3. Save the Client ID and Client Secret; you will store both in your local environment file (`.env.local`).
@@ -49,7 +49,7 @@ When you create a new OAuth app or Supabase account (GitHub, Supabase service cr
 
 | Integration | Field | Suggested value / tip |
 |-------------|-------|-----------------------|
-| GitHub OAuth App | Application name | "Vibed Coding Local" or "Vibed Coding Dev" |
+| GitHub OAuth App | Application name | "Vibe Coding Profile Local" or "Vibe Coding Profile Dev" |
 |  | Homepage URL | `http://localhost:8108` (local) / production URL when ready |
 |  | Authorization callback URL | `http://localhost:54421/auth/v1/callback` |
 |  | Client ID / Client Secret | Store securely (env file, vault) |

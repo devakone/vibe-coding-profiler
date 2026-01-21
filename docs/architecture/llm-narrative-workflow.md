@@ -6,7 +6,7 @@ This document describes how LLM narratives are generated, stored, and aggregated
 
 ## Overview
 
-Vibed generates two types of narratives:
+Vibe Coding Profile generates two types of narratives:
 
 1. **Individual Repo Narrative** — Generated per analysis job, stored in `analysis_reports.narrative_json`
 2. **Profile Narrative** — Generated from aggregated data across all repos, stored in `user_profiles.narrative_json`
@@ -386,6 +386,6 @@ Whether LLM or fallback, the profile narrative is generated from:
 
 ## Related Documentation
 
-- [Vibed Analysis Pipeline](./vibed-analysis-pipeline.md) — Full pipeline architecture
+- [Vibe Coding Profile Analysis Pipeline](./vibed-analysis-pipeline.md) — Full pipeline architecture
 - [PRD: Profile Aggregation](../PRD-profile-aggregation.md) — Original design
 - [LLM Setup Guide](../llm-setup.md) — User-facing LLM configuration

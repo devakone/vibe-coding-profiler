@@ -1,4 +1,4 @@
-# PRD: Vibed UX — The Pop Version of Developer Analytics
+# PRD: Vibe Coding Profile UX — The Pop Version of Developer Analytics
 
 **Status:** Partially Implemented — Core persona detection and profile pages are live. Share cards and some UX polish items are in progress.
 
@@ -20,7 +20,7 @@
 | Error codes | Friendly "we hit a snag" messages |
 | Developer-speak everywhere | Warm, curious, personality-quiz energy |
 
-**The real value:** Vibed Coding builds a profile of your AI-era coding style across projects. One repo gives you a snapshot. Three repos show patterns. Five repos reveal who you really are when you're building with AI tools.
+**The real value:** Vibe Coding Profile builds a profile of your AI-era coding style across projects. One repo gives you a snapshot (Repo VCP). Three repos show patterns. Five repos reveal your Unified VCP when you're building with AI tools.
 
 **The goal:** A developer connects their GitHub, picks a repo, waits 30 seconds, gets a surprising insight, and thinks "I wonder what I'd learn if I added more projects..."
 
@@ -30,7 +30,7 @@
 
 ### The Core Insight
 
-Vibed Coding isn't about analyzing repos — it's about **understanding how you work with AI tools**. Every commit tells a story about your relationship with AI-assisted coding:
+Vibe Coding Profile isn't about analyzing repos — it's about **understanding how you work with AI tools**. Every commit tells a story about your relationship with AI-assisted coding:
 
 - Do you vibe-code in bursts and clean up later?
 - Do you spec things out before letting AI generate?
@@ -93,7 +93,7 @@ try adding a different kind of project."
 
 ### The Profile Page (New Concept)
 
-Beyond individual repo vibes, users should have an **aggregate profile**:
+Beyond individual Repo VCPs, users should have a **Unified VCP**:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -160,11 +160,11 @@ Important: We're not asking for access to everything. The model is:
 
 ## 0. Page Inventory & Transformation Map
 
-Every page in the application must reflect the Vibed personality. Here's the complete transformation:
+Every page in the application must reflect the Vibe Coding Profile personality. Here's the complete transformation:
 
-| Current Page | Current Feel | Vibed Feel | Key Changes |
+| Current Page | Current Feel | Vibe Coding Profile Feel | Key Changes |
 |--------------|--------------|------------|-------------|
-| `/` (Landing) | Technical explainer | Personality quiz invitation | Lead with "What's your vibe?" not "What does Vibed do?" |
+| `/` (Landing) | Technical explainer | Personality quiz invitation | Lead with "What's your vibe?" not "What does Vibe Coding Profile do?" |
 | `/` (Dashboard) | Stats dashboard | Profile home base | Show aggregate profile + clarity meter + next actions |
 | `/login` | Standard OAuth | Trust-building moment | Emphasize "peek at commits" language, inline security |
 | `/repos` | CRUD list | "Build your profile" | Visual commit density, profile clarity progress |
@@ -183,7 +183,7 @@ Every page in the application must reflect the Vibed personality. Here's the com
 
 ## 1. The Vision
 
-Vibed Coding should feel like taking a personality quiz that actually knows you, except it's based on real data from your commits. Think BuzzFeed meets Spotify Wrapped for vibe coders. The user should laugh, nod in recognition, screenshot something, and text it to a coworker within 5 minutes of their first analysis.
+Vibe Coding Profile should feel like taking a personality quiz that actually knows you, except it's based on real data from your commits. Think BuzzFeed meets Spotify Wrapped for vibe coders. The user should laugh, nod in recognition, screenshot something, and text it to a coworker within 5 minutes of their first analysis.
 
 **What we're NOT building:**
 - A performance review tool
@@ -233,9 +233,9 @@ The entire first-time experience should take under 5 minutes from landing to sha
 
 ### 3.1 First Contact (Landing Page) — `/`
 
-**Current state:** Technical explanation of what Vibed does, developer-focused language.
+**Current state:** Technical explanation of what Vibe Coding Profile does, developer-focused language.
 
-**Vibed state:**
+**Vibe Coding Profile state:**
 
 ```
 [Hero Section]
@@ -263,7 +263,7 @@ what kind of builder you are — with receipts.
 
 **Current state:** Standard "Sign in with GitHub" flow
 
-**Vibed state:**
+**Vibe Coding Profile state:**
 
 ```
 [Minimal screen]
@@ -290,7 +290,7 @@ file counts. Never your actual code.
 
 **Current state:** List of repos with Connect/Analyze buttons
 
-**Vibed state:**
+**Vibe Coding Profile state:**
 
 ```
 [Header]
@@ -328,7 +328,7 @@ the clearer your vibe comes through.
 
 **Current state:** Technical job status with progress indicators
 
-**Vibed state:**
+**Vibe Coding Profile state:**
 
 ```
 [Animated illustration of commits being "read"]
@@ -448,7 +448,7 @@ Share your coding vibe
 │                                         │
 │  THE VIBE PROTOTYPER                    │
 │  23-day streak · Friday 4-7pm zone      │
-│  vibed.coding                           │
+│  vibecoding.profile                           │
 └─────────────────────────────────────────┘
 
 [Download image]  [Copy link]
@@ -464,7 +464,7 @@ Share your coding vibe
 Pre-written caption:
 "Just discovered I'm a Vibe Prototyper — I build to
 think. What's your coding personality?
-vibed.coding #CodingVibe"
+vibecoding.profile #VCP"
 ```
 
 **Share asset requirements (v1):**
@@ -477,7 +477,7 @@ vibed.coding #CodingVibe"
 - Headline must wrap to max 2 lines with ellipsis if needed.
 - Subhead must wrap to max 2 lines with ellipsis if needed.
 - Metrics display must remain readable when scaled down to 50% (mobile feed).
-- Include a subtle watermark (e.g. `vibed.coding`) that survives cropping.
+- Include a subtle watermark (e.g. `vibecoding.profile`) that survives cropping.
 - Never include raw commit SHAs, file paths, or repo names in share assets by default.
 
 **Share copy requirements (v1):**
@@ -497,7 +497,7 @@ vibed.coding #CodingVibe"
 
 **Current state:** Analysis list with technical job details
 
-**Vibed state:**
+**Vibe Coding Profile state:**
 
 ```
 [Header]
@@ -537,7 +537,7 @@ Something changed."
 
 **Current state:** Stats cards showing "Connected repos: 3", "Finished analyses: 5", "Queued or running: 1" with technical job status
 
-**Vibed state — Profile-centric:**
+**Vibe Coding Profile state — Profile-centric:**
 
 ```
 [Header — warm, personal greeting]
@@ -603,13 +603,13 @@ Something changed."
 
 **Current state:** Dense policy text
 
-**Vibed state:**
+**Vibe Coding Profile state:**
 
 ```
 [Header]
 "Your code stays yours"
 
-We built Vibed to be paranoid about privacy.
+We built Vibe Coding Profile to be paranoid about privacy.
 Here's exactly what we access and what we don't.
 
 [Visual trust checklist]
@@ -637,7 +637,7 @@ Here's exactly what we access and what we don't.
 ▸ How do I delete my data?
 
 [Footer]
-Questions? security@vibed.coding
+Questions? security@vibecoding.profile
 ```
 
 ### 3.10 First-Time Onboarding (Inline, Not Separate Wizard)
@@ -677,7 +677,7 @@ we found. It can change as your style evolves!"
 
 **Current:** "Error: Job failed with status code 500"
 
-**Vibed:**
+**Vibe Coding Profile:**
 
 ```
 [Friendly error card]
@@ -689,7 +689,7 @@ we found. It can change as your style evolves!"
 │                                                     │
 │  [Try again]  [Pick different project]              │
 │                                                     │
-│  Still stuck? Let us know: help@vibed.coding       │
+│  Still stuck? Let us know: help@vibecoding.profile       │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -756,13 +756,13 @@ This one has 23 — check back when you've shipped more!
 **Technical (old):**
 > "Analysis complete. 847 commits processed. Persona classification: Iterative Prototyper with 78% confidence based on commit frequency and file scope metrics."
 
-**Vibed (new):**
+**Vibe Coding Profile (new):**
 > "We read 847 commits and the vibe is clear — you're a Prototyper. You build to think, and code is your sketchpad. We're 78% sure about this, based on how often you ship and how focused your changes are."
 
 **Technical (old):**
 > "Your average inter-commit time is 4.2 hours with peak activity between 16:00-19:00 on Fridays."
 
-**Vibed (new):**
+**Vibe Coding Profile (new):**
 > "Friday afternoon is your creative playground. When 4pm hits, something clicks and the commits start flowing."
 
 ### 4.3 Persona Voice Examples
@@ -809,7 +809,7 @@ Each persona has a tagline and a "vibe description":
 
 ## 6. Mobile Experience
 
-The entire Vibed experience should work on mobile because:
+The entire Vibe Coding Profile experience should work on mobile because:
 1. People share from their phones
 2. Someone might get a link and open it on mobile
 3. The "show a coworker" moment often happens in person with a phone
@@ -845,7 +845,7 @@ The entire Vibed experience should work on mobile because:
 /analysis/550e8400-e29b-41d4-a716-446655440000
 ```
 
-**Vibed (friendly):**
+**Vibe Coding Profile (friendly):**
 ```
 /vibe/acme-dashboard-jan-2026
 ```
@@ -877,7 +877,7 @@ Keep old `/analysis/[jobId]` routes working via redirect:
 
 Share links should be short and memorable:
 ```
-vibed.coding/v/abc123
+vibecoding.profile/v/abc123
 ```
 
 Short code resolves to full vibe page with optional "shared view" mode (read-only, no auth required if owner enabled sharing).
@@ -888,7 +888,7 @@ Short code resolves to full vibe page with optional "shared view" mode (read-onl
 
 ### Phase 1: Foundation & Flow (Week 1-2)
 
-**Goal:** Complete first-time user flow works end-to-end with Vibed UX
+**Goal:** Complete first-time user flow works end-to-end with Vibe Coding Profile UX
 
 | Page | Priority | Changes |
 |------|----------|---------|

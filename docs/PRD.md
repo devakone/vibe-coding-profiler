@@ -1,15 +1,15 @@
-# PRD: Bolokono (Vibed Coding)
+# PRD: Bolokono (Vibe Coding Profile)
 
-**Product name:** Bolokono (publicly branded as **Vibed Coding**)
+**Product name:** Bolokono (publicly branded as **Vibe Coding Profile**)
 **Author:** Abou Kone
 **Status:** Draft v4 (Monorepo architecture) — Core features implemented
 **Audience:** Product, Engineering (human + AI agents)
 
-> **Terminology Note:** This PRD uses the original "Bolokono" terminology. In the codebase and user-facing product, this has been rebranded to **Vibed Coding**. "Bolokono types" are now called **Vibe Personas**, and "Bolokono profiles" are now **Vibe Profiles**. See `docs/PRD-vibed-ux.md` for the current UX direction.
+> **Terminology Note:** This PRD uses the original "Bolokono" terminology. In the codebase and user-facing product, this has been rebranded to **Vibe Coding Profile**. "Bolokono types" are now called **Vibe Personas**, and "Bolokono profiles" are now **Vibe Coding Profiles (VCP)**. See `docs/PRD-vibed-ux.md` for the current UX direction.
 
 > **Reference Documentation:** For a complete explanation of how analysis works, see:
-> - [How Vibed Works](./how-vibed-works.md) — Product-friendly overview
-> - [Vibed Analysis Pipeline](./architecture/vibed-analysis-pipeline.md) — Technical architecture with diagrams
+> - [How Vibe Coding Profile Works](./how-vibed-works.md) — Product-friendly overview
+> - [Vibe Coding Profile Analysis Pipeline](./architecture/vibed-analysis-pipeline.md) — Technical architecture with diagrams
 
 ---
 
@@ -1486,7 +1486,7 @@ Each task depends on the previous.
 ### Phase 1D: Multi-Repo Aggregation
 #### Summary
 
-**Goal:** A single **Vibed Coding Profile** per user that becomes more accurate as more repos are analyzed.
+**Goal:** A single **Unified VCP** per user that becomes more accurate as more repos are analyzed.
 
 **Non-goal:** A “persona per repository” product. Repo-level personas can exist as *facets*, but the primary experience is the **user-level aggregate profile**.
 
@@ -1629,7 +1629,7 @@ APIs:
 
 #### Success Criteria
 
-- After analyzing N repos, user sees exactly one “Current Vibed Profile persona” reflecting aggregate signals.
+- After analyzing N repos, user sees exactly one “Current Unified VCP persona” reflecting aggregate signals.
 - Adding a new repo analysis updates the profile and appends to the history timeline.
 - User can still open any specific repo run and see the repo facet/persona without losing the main profile thread.
 

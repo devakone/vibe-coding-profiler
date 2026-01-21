@@ -16,7 +16,7 @@ import {
 } from "@vibed/core";
 
 const heroFeatures = [
-  "A Vibed profile built from AI-assisted engineering signals in your commit history",
+  "A Vibe Coding Profile (VCP) built from AI-assisted engineering signals in your commit history",
   "Persona snapshots that evolve as you add more repos",
   "Share-ready cards that highlight your vibe coding patterns",
   "Deep dive metrics and evidence when you want receipts",
@@ -49,9 +49,14 @@ const timeline = [
       "If you opt in, we summarize patterns using metadata only—never code or message content.",
   },
   {
-    title: "Aggregate your profile",
+    title: "Create Repo VCP",
     description:
-      "Multiple repos roll into a single Vibed profile, weighted by commit volume.",
+      "Each repo gets its own Repo VCP—a snapshot of your vibe coding style for that project.",
+  },
+  {
+    title: "Aggregate into Unified VCP",
+    description:
+      "Multiple Repo VCPs roll into your Unified VCP, weighted by commit volume across all repos.",
   },
 ];
 
@@ -828,13 +833,12 @@ function MarketingLanding() {
             </p>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 sm:text-5xl">
               <span className={wrappedTheme.gradientText}>
-                Find your Vibed AI-assisted engineering profile
+                Find your Vibe Coding Profile (VCP)
               </span>{" "}
               and the personality behind your workflow
             </h1>
             <p className="max-w-2xl text-base text-zinc-700 sm:text-lg">
-              Vibed is a playful experiment by vibe coders who want to understand their AI-assisted
-              engineering patterns. We surface signals from your commit history to shine a light on
+              A <strong>Vibe Coding Profile (VCP)</strong> is your AI-assisted engineering persona—revealed through patterns in your commit history. We surface signals from your git history to shine a light on
               how you build with AI, what feels like you, what feels new, and how your workflow is
               evolving.
             </p>
@@ -937,7 +941,7 @@ function MarketingLanding() {
         </section>
 
         <footer className="mt-12 flex flex-col gap-3 border-t border-black/5 pt-6 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-zinc-700">Vibed Coding</p>
+          <p className="text-zinc-700">Vibe Coding Profile</p>
           <p className="font-mono text-xs text-zinc-400">v0.1.0</p>
         </footer>
       </div>
@@ -1147,7 +1151,7 @@ function AuthenticatedDashboard({
             <div className="relative">
               <div className="flex items-start justify-between gap-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500">
-                  Your Vibed Profile
+                  Your Unified VCP
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {stats.completedJobs > 0 ? (
@@ -1158,12 +1162,12 @@ function AuthenticatedDashboard({
                       >
                         Add repo
                       </Link>
-                      <Link
-                        href="/analysis"
-                        className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800"
-                      >
-                        View vibed repos
-                      </Link>
+                    <Link
+                      href="/analysis"
+                      className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800"
+                    >
+                      View Repo VCPs
+                    </Link>
                     </>
                   ) : (
                     <Link
@@ -1311,7 +1315,7 @@ function AuthenticatedDashboard({
               <div className="rounded-2xl border border-black/5 bg-zinc-50/50 p-4 text-center">
                 <p className="text-3xl font-bold text-zinc-900">{stats.completedJobs}</p>
                 <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
-                  Vibed repos
+                  Repo VCPs
                 </p>
               </div>
               <div className="rounded-2xl border border-black/5 bg-zinc-50/50 p-4 text-center">
@@ -1473,7 +1477,7 @@ function AuthenticatedDashboard({
                       Add repo
                     </Link>
                     <Link href="/analysis" className={wrappedTheme.primaryButton}>
-                      View vibed repos
+                      View Repo VCPs
                     </Link>
                   </>
                 )}

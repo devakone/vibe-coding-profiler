@@ -18,7 +18,7 @@ export function ShareCard({
   avatarUrl,
   headerLabel,
 }: ShareCardProps) {
-  const defaultHeader = variant === "profile" ? "My Vibed Coding Profile" : "My Vibe Coding Style";
+  const defaultHeader = variant === "profile" ? "My Unified VCP" : "My Repo VCP";
   const header = headerLabel ?? defaultHeader;
 
   return (

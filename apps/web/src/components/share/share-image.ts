@@ -173,10 +173,10 @@ export function createShareSvg(
     Persona: ${escapeXml(template.persona_archetype.label)} · ${escapeXml(archetypes)}
   </text>
   <text x="${x}" y="${hashY}" font-size="${cfg.metaSize}" fill="rgba(224,242,254,0.85)" font-family="Space Grotesk, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
-    #Vibed
+    #VCP
   </text>
   <text x="${watermarkX}" y="${watermarkY}" font-size="${cfg.watermarkSize}" text-anchor="end" fill="rgba(255,255,255,0.75)" font-family="Geist, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
-    vibed.coding
+    vibe.coding.profile
   </text>
 </svg>`;
 }
@@ -225,7 +225,7 @@ export async function downloadSharePng(
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("png_encode_failed"))), "image/png");
     });
 
-    downloadBlob(pngBlob, `vibed-coding-${entityId}-${format}.png`);
+    downloadBlob(pngBlob, `vcp-${entityId}-${format}.png`);
   } finally {
     URL.revokeObjectURL(svgUrl);
   }
@@ -238,5 +238,5 @@ export function downloadShareSvg(
 ): void {
   const svg = createShareSvg(template, format);
   const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  downloadBlob(blob, `vibed-coding-${entityId}-${format}.svg`);
+  downloadBlob(blob, `vcp-${entityId}-${format}.svg`);
 }

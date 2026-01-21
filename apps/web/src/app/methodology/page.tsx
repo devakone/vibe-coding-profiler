@@ -14,7 +14,7 @@ export default async function MethodologyPage() {
             How we compute your persona
           </h1>
           <p className="max-w-2xl text-lg text-zinc-700">
-            Vibed infers your Vibe Coding persona by spotting AI-assisted engineering patterns in the
+            Vibe Coding Profile infers your Vibe Coding persona by spotting AI-assisted engineering patterns in the
             Git history of repos you connect.
           </p>
           <p className="max-w-2xl text-sm text-zinc-700">

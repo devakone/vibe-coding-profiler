@@ -1,20 +1,20 @@
-<!-- Vibed PRD: product definition for persona insights, share layer, api + worker -->
+<!-- Vibe Coding Profile PRD: product definition for persona insights, share layer, api + worker -->
 
-# PRD: Vibed Narrative Layer
+# PRD: Vibe Coding Profile Narrative Layer
 
 **Status:** Mostly Implemented — See `docs/implementation-trackers/vibed.md` for details
 
 > **Reference Documentation:** For technical details on how analysis works, see:
-> - [How Vibed Works](./how-vibed-works.md) — Product-friendly overview
-> - [Vibed Analysis Pipeline](./architecture/vibed-analysis-pipeline.md) — Technical architecture
+> - [How Vibe Coding Profile Works](./how-vibed-works.md) — Product-friendly overview
+> - [Vibe Coding Profile Analysis Pipeline](./architecture/vibed-analysis-pipeline.md) — Technical architecture
 
 ## 1. Context & Vision
 
-Bolokono now surfaces “vibe coding profiles” through the Vibed experience: a playful, reflective interpretation of commit history modeled on Spotify Wrapped. The goal is to make craftsmanship visible—narrative cards first, data second—while preserving trust through evidence-backed insights. This PRD defines the UX, UI, API, database, and worker investments required to deliver deterministic insights, persona-aware storytelling, and share-ready outputs.
+Bolokono now surfaces “vibe coding profiles” through the Vibe Coding Profile experience: a playful, reflective interpretation of commit history modeled on Spotify Wrapped. The goal is to make craftsmanship visible—narrative cards first, data second—while preserving trust through evidence-backed insights. This PRD defines the UX, UI, API, database, and worker investments required to deliver deterministic insights, persona-aware storytelling, and share-ready outputs.
 
 ## 2. Product Goals
 
-1. **Craftsmanship-first narrative**: Provide a high-level Vibed layer that highlights streaks, preferred rhythms, chunkiness, persona clues, and confidence-fueled observations.
+1. **Craftsmanship-first narrative**: Provide a high-level Vibe Coding Profile layer that highlights streaks, preferred rhythms, chunkiness, persona clues, and confidence-fueled observations.
 2. **Deterministic insights**: Move Wrapped computation server-side so the client only renders consistent cards regardless of locale or UI refactors.
 3. **Share & reflect**: Enable share cards (PNG/SVG) and copy-ready summaries tied to the same deterministic data.
 4. **Evidence & depth**: Keep a deep-dive layer with raw metrics, commit samples, evidence SHAs, and persona signal explanations for power users.
@@ -56,11 +56,11 @@ Spec-Driven Architect, Test-First Validator, Vibe Prototyper, Agent Orchestrator
 
 ## 5. Experience Requirements
 
-### Vibed Highlights layer (UX)
+### Vibe Coding Profile Highlights layer (UX)
 - Hero cards: “Your longest coding streak”, “Friday evenings are your sweet spot”, “Fixes are your most common commits”, “You deliver X features for every fix”, “Chunky commit average” etc.
 - Each card shows persona-aligned service message + confidence level + evidence reference metadata (metric + sample SHA).
 - Provide filters for time range (Last 30 days, 90 days, Year, All time).
-- Share section: generate share cards (PNG/SVG) plus copyable summary text; underlying data identical to vibed cards; include persona badge/confidence.
+- Share section: generate share cards (PNG/SVG) plus copyable summary text; underlying data identical to VCP cards; include persona badge/confidence.
 - Embed “Show me the data” toggle to reveal deep dive table (timeline, metrics, evidence, persona signals).
 
 ### Deep Dive layer
@@ -105,7 +105,7 @@ Spec-Driven Architect, Test-First Validator, Vibe Prototyper, Agent Orchestrator
 1. Finalize insights schema and persona classifier (per `persona-insight-synthesis` document).
 2. Extend worker to compute insights, persist to new table, and feed narrative generation.
 3. Update API routes + Supabase RLS to expose insights and share payloads.
-4. Build Vibed UI (high-level cards, share layer, toggles for data). Ensure persona confidence badges/wording.
+4. Build Vibe Coding Profile UI (high-level cards, share layer, toggles for data). Ensure persona confidence badges/wording.
 5. Expand documentation (research, persona map) and implement tests for deterministic logic + share card assets.
 6. Optional: add share card export job (server side) or pre-render from reusable component.
 

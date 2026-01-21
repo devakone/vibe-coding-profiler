@@ -32,7 +32,7 @@ The UI is doing interpretation work. This holds short-term but should move to th
 3. **Tech signals** – Collect GitHub language breakdowns or extension counts (no file contents) so we can say “TypeScript-heavy” vs. “backend focus”.
 4. **Craftsmanship language** – Focus on how work unfolds (stabilize before expand, revisit quickly after shipping) using fix-after-feature, inter-commit timing, and refactor density.
 5. **Confidence language** – Each insight should include claim + confidence + evidence refs (`insight { claim, confidence, evidence_refs[] }`) to stay observational and probabilistic.
-6. **Theming** – Keep the playful “Vibed” theme for Wrapped/analysis while leaving other routes neutral; later consider toggles or recap pages.
+6. **Theming** – Keep the playful “Vibe Coding Profile” theme for Wrapped/analysis while leaving other routes neutral; later consider toggles or recap pages.
 
 ## Signals for Classification
 

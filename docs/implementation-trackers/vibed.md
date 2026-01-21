@@ -1,12 +1,12 @@
-# Implementation Tracker: Vibed Narrative Layer
+# Implementation Tracker: Vibe Coding Profile Narrative Layer
 
 ## Context
-This tracker accompanies `docs/PRD-vibed.md`. It captures the discrete implementation tasks needed to move from a metrics-heavy analysis tool to the Vibed narrative experience, covering schema, worker, API, UI, and sharing layers.
+This tracker accompanies `docs/PRD-vibed.md`. It captures the discrete implementation tasks needed to move from a metrics-heavy analysis tool to the Vibe Coding Profile narrative experience, covering schema, worker, API, UI, and sharing layers.
 
 ## Tracker
 
 ### F1. Insights & Persona Schema
-**Task:** Design `analysis_insights` (and related persona signals) to capture deterministic Vibed outputs.
+**Task:** Design `analysis_insights` (and related persona signals) to capture deterministic Vibe Coding Profile outputs.
 **Deliverables:**
 - [x] Schema defined (longest streak, weekday/time window, chunkiness, persona tag + confidence, tech signals, share template).
 - [x] Migration file created for `analysis_insights` (`0005_add_analysis_insights.sql`, `0006_enrich_analysis_insights.sql`).
@@ -33,14 +33,14 @@ This tracker accompanies `docs/PRD-vibed.md`. It captures the discrete implement
 **Depends on:** F2
 **Blocks:** F4
 
-### F4. Vibed UX/UI + Share Experience
+### F4. Vibe Coding Profile UX/UI + Share Experience
 **Task:** Build the new hero/data UI plus "Show me the data" deep dive and share cards.
 **Deliverables:**
-- [x] Vibed highlights layer (streak, rhythms, chunkiness, persona archetype line, confidence text).
+- [x] Vibe Coding Profile highlights layer (streak, rhythms, chunkiness, persona archetype line, confidence text).
 - [x] Persona timeline/history component showing persona evolution per job/repo.
 - [x] Deep dive panel linking to raw metrics/narrative/evidence and persona signals.
 - [ ] Share section offering PNG/SVG export plus copyable summary (partially implemented).
-- [ ] Light theme/sticker aesthetic consistent with Vibed marketing (ongoing polish).
+- [ ] Light theme/sticker aesthetic consistent with Vibe Coding Profile marketing (ongoing polish).
 **Depends on:** F3
 
 ### F5. Reflection & Testing
@@ -59,6 +59,6 @@ This tracker accompanies `docs/PRD-vibed.md`. It captures the discrete implement
 | F1. Insights & Persona Schema | ✅ Complete | Multiple migrations applied |
 | F2. Worker & Narrative Pipeline | ✅ Complete | Inngest + fallback worker |
 | F3. API + Supabase Access | ✅ Complete | RLS policies in place |
-| F4. Vibed UX/UI + Share Experience | 🟡 Mostly Complete | Share export needs polish |
+| F4. Vibe Coding Profile UX/UI + Share Experience | 🟡 Mostly Complete | Share export needs polish |
 | F5. Reflection & Testing | 🟡 Mostly Complete | Visual regression pending |
 

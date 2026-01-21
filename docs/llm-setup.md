@@ -1,10 +1,10 @@
 # LLM Setup Guide
 
-This guide explains how to configure LLM (Large Language Model) providers for Vibed Coding. LLM powers the AI-generated narrative reports that accompany commit analysis.
+This guide explains how to configure LLM (Large Language Model) providers for Vibe Coding Profile. LLM powers the AI-generated narrative reports that accompany commit analysis.
 
 ## Overview
 
-Vibed Coding supports three LLM providers:
+Vibe Coding Profile supports three LLM providers:
 
 | Provider | Models | Best For |
 |----------|--------|----------|
@@ -111,7 +111,7 @@ After the free analysis:
 
 ## Running Without LLM
 
-Vibed Coding works without any LLM configuration. When no LLM is available:
+Vibe Coding Profile works without any LLM configuration. When no LLM is available:
 
 1. All narratives use the **metrics-based fallback** (no AI generation)
 2. The UI shows "LLM narrative unavailable" with the reason
@@ -126,7 +126,7 @@ This is useful for:
 
 ## Processing Architecture
 
-Vibed Coding has two job processing paths with different LLM capabilities:
+Vibe Coding Profile has two job processing paths with different LLM capabilities:
 
 ### Inngest (Primary - Recommended)
 
@@ -173,7 +173,7 @@ A standalone background worker for self-hosted deployments without Inngest.
 
 ## Self-Hosting Checklist
 
-When self-hosting Vibed Coding, configure LLM based on your needs:
+When self-hosting Vibe Coding Profile, configure LLM based on your needs:
 
 ### Minimal (No LLM)
 ```bash

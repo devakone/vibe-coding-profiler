@@ -102,13 +102,13 @@ export default async function AnalysisIndexPage() {
       <div className="mx-auto max-w-5xl space-y-8">
         <header className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
-            Vibed Repos
+            Repo VCPs
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">
-            Your Vibed Repos
+            Your Repo VCPs
           </h1>
           <p className="max-w-2xl text-sm text-zinc-700 sm:text-base">
-            Each vibed repo reveals your coding persona, confidence level, and the evidence behind it.
+            Each Repo VCP reveals your coding persona, confidence level, and the evidence behind it.
           </p>
         </header>
 

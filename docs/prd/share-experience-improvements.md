@@ -9,12 +9,12 @@
 
 ## Problem Statement
 
-Vibed Coding generates rich insights but buries them. The share experience—our primary viral growth mechanism—is hidden behind a collapsible section, and the aggregated profile page has no share functionality at all.
+Vibe Coding Profile generates rich insights but buries them. The share experience—our primary viral growth mechanism—is hidden behind a collapsible section, and the Unified VCP page has no share functionality at all.
 
 **Current issues:**
 
 1. **Share is hidden on repo analysis page** — buried in a `<details>` section labeled "Share, timeline, and details"
-2. **No share on profile page** — profile aggregation is complete but share is "deferred to P7"
+2. **No share on Unified VCP page** — profile aggregation is complete but share is "deferred to P7"
 3. **Rich metrics computed but not displayed** — multi-agent signals, tech signals, timing patterns are computed but invisible
 4. **LLM narratives unused on profile** — generated and stored but never rendered
 5. **Share card is an afterthought** — not the hero experience it should be
@@ -71,8 +71,8 @@ Non-LLM users should get a great experience. LLM adds flavor but isn't required 
    - Surface additional computed metrics
    - Improve LLM vs non-LLM narrative handling
 
-2. **Profile Page (`/` when authenticated):**
-   - Add share card for aggregated profile
+2. **Unified VCP Page (`/` when authenticated):**
+   - Add share card for Unified VCP
    - Surface LLM narrative if available
    - Create cohesive single-card story
 
@@ -128,7 +128,7 @@ Non-LLM users should get a great experience. LLM adds flavor but isn't required 
 │  │  │ Streak   │ │ 4-7pm    │ │ Surgeon  │ │ Build/Fix│   │    │
 │  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘   │    │
 │  │                                                         │    │
-│  │  847 commits · 42 active days · vibed.coding           │    │
+│  │  847 commits · 42 active days · vibecoding.profile           │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                  │
 │  [Copy text] [Copy link] [Download PNG ▾] [Twitter] [LinkedIn]  │
@@ -215,7 +215,7 @@ The profile page should have a share card that aggregates across all repos.
 │  ┌─────────────────────────────────────────────────────────┐    │
 │  │  [Gradient background]                                   │    │
 │  │                                                         │    │
-│  │  MY VIBED CODING PROFILE                                │    │
+│  │  MY UNIFIED VCP                                │    │
 │  │                                                         │    │
 │  │  🎭 The Vibe Prototyper                                │    │
 │  │  "You build to think — code is your sketchpad"         │    │
@@ -230,7 +230,7 @@ The profile page should have a share card that aggregates across all repos.
 │  │  │    72     │ │    45     │ │   68     │               │    │
 │  │  └──────────┘ └──────────┘ └──────────┘               │    │
 │  │                                                         │    │
-│  │  vibed.coding                                           │    │
+│  │  vibecoding.profile                                           │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                  │
 │  [Copy text] [Copy link] [Download PNG ▾] [Twitter] [LinkedIn]  │
@@ -293,7 +293,7 @@ interface ShareCardProps {
     value: string;
   }>;
   footer: {
-    left: string;  // e.g., "vibed.coding"
+    left: string;  // e.g., "vibecoding.profile"
     right: string; // e.g., "847 commits · 42 days"
   };
   colors: {
@@ -379,7 +379,7 @@ interface ProfileShareTemplate {
     primary: string;
     accent: string;
   };
-  headline: string;      // "My Vibed Coding Profile"
+  headline: string;      // "My Unified VCP"
   personaLabel: string;  // "The Vibe Prototyper"
   tagline: string;       // "You build to think..."
   confidence: string;    // "High confidence"
@@ -520,13 +520,13 @@ function createShareSvg(
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  YOUR VIBED PROFILE                          [Add repo] [Vibes] │
+│  YOUR UNIFIED VCP                          [Add repo] [VCPs] │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │  [SHARE CARD - GRADIENT BACKGROUND]                       │  │
 │  │                                                           │  │
-│  │  MY VIBED CODING PROFILE                                  │  │
+│  │  MY UNIFIED VCP                                  │  │
 │  │                                                           │  │
 │  │  🎭 The Vibe Prototyper                                  │  │
 │  │  "You build to think — code is your sketchpad"           │  │
@@ -539,7 +539,7 @@ function createShareSvg(
 │  │  │    72    │ │    45    │ │    68    │                  │  │
 │  │  └──────────┘ └──────────┘ └──────────┘                  │  │
 │  │                                                           │  │
-│  │  vibed.coding                                             │  │
+│  │  vibecoding.profile                                             │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                  │
 │  ┌───────────────────────────────────────────────────────────┐  │

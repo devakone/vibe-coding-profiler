@@ -84,17 +84,17 @@ export function ProfileShareSection({
 
   const shareText = useMemo(() => {
     const metricsLine = `${totalRepos} repos · ${totalCommits.toLocaleString()} commits · ${clarity}% clarity`;
-    return `My Vibed Coding Profile: ${personaName}\n${personaTagline ?? ""}\n${metricsLine}\n#Vibed`;
+    return `My Unified VCP: ${personaName}\n${personaTagline ?? ""}\n${metricsLine}\n#VCP`;
   }, [personaName, personaTagline, totalRepos, totalCommits, clarity]);
 
   const shareCaption = useMemo(() => {
-    return `My Vibed Coding Profile: ${personaName} — ${personaTagline ?? ""}. ${totalRepos} repos, ${totalCommits.toLocaleString()} commits. #Vibed`;
+    return `My Unified VCP: ${personaName} — ${personaTagline ?? ""}. ${totalRepos} repos, ${totalCommits.toLocaleString()} commits. #VCP`;
   }, [personaName, personaTagline, totalRepos, totalCommits]);
 
   const shareImageTemplate: ShareImageTemplate = useMemo(() => {
     return {
       colors,
-      headline: `Vibed as ${personaName}`,
+      headline: `Unified VCP: ${personaName}`,
       subhead: personaTagline ?? `${personaConfidence} confidence`,
       metrics: shareCardMetrics,
       persona_archetype: {
@@ -124,7 +124,7 @@ export function ProfileShareSection({
         shareUrl={shareUrl}
         shareText={shareText}
         shareCaption={shareCaption}
-        shareHeadline={`Vibed as ${personaName}`}
+        shareHeadline={`Unified VCP: ${personaName}`}
         shareTemplate={shareImageTemplate}
         entityId="profile"
       />

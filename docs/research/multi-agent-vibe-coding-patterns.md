@@ -2,13 +2,13 @@
 
 ## Research Summary
 **Date:** January 2026  
-**Goal:** Document how Vibed currently detects “agentic” workflows, what multi-agent/worktree workflows look like in Git signals, and what’s missing to detect them reliably.
+**Goal:** Document how Vibe Coding Profile currently detects “agentic” workflows, what multi-agent/worktree workflows look like in Git signals, and what’s missing to detect them reliably.
 
-Multi-agent workflow (for Vibed) means: multiple autonomous tools/agents working in parallel with human steering via PR review, commit trailers, structured instructions, and/or branch management. It is adjacent to “automation” but not the same as bot maintenance (Dependabot/Renovate).
+Multi-agent workflow (for Vibe Coding Profile) means: multiple autonomous tools/agents working in parallel with human steering via PR review, commit trailers, structured instructions, and/or branch management. It is adjacent to “automation” but not the same as bot maintenance (Dependabot/Renovate).
 
 ---
 
-## 1) What Vibed Can Observe Today (Repo Audit)
+## 1) What Vibe Coding Profile Can Observe Today (Repo Audit)
 
 ### What data we actually ingest
 
@@ -54,7 +54,7 @@ Reference: [vibe-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/do
 
 ## 2) Worktrees: What We Can and Cannot Detect
 
-**Hard limitation:** local Git worktrees are not visible to GitHub APIs. Worktree metadata lives in `.git/worktrees/*` locally, so Vibed cannot “see worktrees” for GitHub-hosted analysis unless we ingest local repo state (we do not).
+**Hard limitation:** local Git worktrees are not visible to GitHub APIs. Worktree metadata lives in `.git/worktrees/*` locally, so Vibe Coding Profile cannot “see worktrees” for GitHub-hosted analysis unless we ingest local repo state (we do not).
 
 Practical implication: “worktree usage” must be inferred indirectly via GitHub-visible artifacts:
 - branch naming conventions
@@ -143,7 +143,7 @@ Worktree workflows typically imply:
 - frequent short-lived branches
 - predictable prefixes like `copilot/`, `agent/`, `cursor/`, `claude/`, `wt/`
 
-GitHub exposes branch refs and PR metadata, but Vibed would need to fetch and persist those.
+GitHub exposes branch refs and PR metadata, but Vibe Coding Profile would need to fetch and persist those.
 
 ### C) Commit-to-PR mapping (enabler)
 
@@ -158,7 +158,7 @@ Reference architecture: [vibe-metrics-v2.md](file:///Users/devakone/Projects/vib
 
 ## 5) Patterns We’re Missing (Beyond Multi-Agent)
 
-These are “emerging or consolidating” Git-visible patterns that align with vibed-coding behaviors, and can be measured without reading code contents.
+These are “emerging or consolidating” Git-visible patterns that align with vibe-coding behaviors, and can be measured without reading code contents.
 
 ### A) Provenance and accountability conventions
 - Git trailers indicating AI assistance or review structure (pair-programming, agent authorship, supervisor co-authorship).
