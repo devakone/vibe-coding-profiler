@@ -101,7 +101,7 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| P1. Platform Client Abstraction | ⬜ Not Started | Foundation for multi-platform |
+| P1. Platform Client Abstraction | 🟡 In Progress | GitHub client complete; GitLab/Bitbucket stubs |
 | P2. Database Schema Evolution | ⬜ Not Started | Rename/extend existing tables |
 | P3. Unified OAuth Routes | ⬜ Not Started | Single dynamic route |
 | P4. Settings UI - Platform Management | ⬜ Not Started | Extend /settings/repos |
