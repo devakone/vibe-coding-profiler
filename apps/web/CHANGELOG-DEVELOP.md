@@ -10,6 +10,7 @@
 * **notifications:** add notification dropdown to header ([aadc064](https://github.com/devakone/vibe-coding-profile/commit/aadc064c2e26ae654e228f1e69912282863a8061))
 * update ShareCard component to incorporate persona aura backgrounds and icons ([ad2d4a0](https://github.com/devakone/vibe-coding-profile/commit/ad2d4a0db7b50a8f1299a05734e5ad93c58a5a68))
 * **vcp:** add unified and repo VCP display components (P3) ([b6a6179](https://github.com/devakone/vibe-coding-profile/commit/b6a617948ff68601f7b468edaa374cfd79c88004))
+* **web:** add tooltip component and integrate into VCP sections ([699433c](https://github.com/devakone/vibe-coding-profile/commit/699433c0f1a3fcae572d58133594d1e9223f6ebb))
 * **web:** enhance sharing features with LLM-generated taglines ([ef3b589](https://github.com/devakone/vibe-coding-profile/commit/ef3b589a6cdf71485c2ebef11f20a4692a49be13))
 * **web:** enhance user profile sharing and navigation updates ([85ed9a2](https://github.com/devakone/vibe-coding-profile/commit/85ed9a215cc9bd7b2a4a466a586a093614a33638))
 * **web:** implement P2 navigation & routes restructure ([9ad5734](https://github.com/devakone/vibe-coding-profile/commit/9ad5734ab6b462e576e81aba39051fb438b4484f))
