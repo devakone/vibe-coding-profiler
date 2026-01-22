@@ -181,7 +181,7 @@ This tracker covers all implementation work for the Information Architecture Res
 
 ### P3. VCP Display Unification
 
-**Status:** `[~] In Progress`  
+**Status:** `[x] Complete`  
 **Depends on:** F1, F2  
 **Blocks:** X2
 
@@ -199,8 +199,8 @@ This tracker covers all implementation work for the Information Architecture Res
 | Implement `RepoMetricsGrid` | `[x]` | `repo/RepoMetricsGrid.tsx` |
 | Implement `RepoAxesSection` | `[x]` | `repo/RepoAxesSection.tsx` |
 | Implement `ProfileContributionCard` | `[x]` | `repo/ProfileContributionCard.tsx` |
-| Refactor `app/page.tsx` to use new components | `[ ]` | `app/page.tsx` |
-| Refactor `AnalysisClient.tsx` to use new components | `[ ]` | `app/analysis/[jobId]/AnalysisClient.tsx` |
+| Refactor `app/page.tsx` to use new components | `[x]` | `app/page.tsx` |
+| Refactor `AnalysisClient.tsx` to use new components | `[x]` | `app/analysis/[jobId]/AnalysisClient.tsx` |
 
 **Success Criteria:**
 - Both VCPs use shared primitives and blocks
@@ -212,7 +212,7 @@ This tracker covers all implementation work for the Information Architecture Res
 - Component interfaces updated to match actual page data shapes (Option A approach)
 - Light theme styling used for Unified VCP (zinc text, subtle backgrounds)
 - Components exported via barrel exports in `components/vcp/index.ts`
-- Page refactoring pending — components are now compatible with page data
+- Page refactoring complete — components now drive Unified/Repo VCP screens
 
 ---
 
@@ -270,11 +270,11 @@ This tracker covers all implementation work for the Information Architecture Res
 
 | Task | Status | File(s) |
 |------|--------|---------|
-| Add tagline prompt to LLM integration | `[ ]` | `packages/core/src/llm/...` |
-| Add `tagline` field to analysis result schema | `[ ]` | `packages/db/src/schema.ts` |
-| Create migration for tagline column | `[ ]` | `supabase/migrations/...` |
-| Generate tagline during VCP analysis | `[ ]` | `lib/analysis/...` |
-| Fallback to persona tagline if missing | `[ ]` | `components/share/...` |
+| Add tagline prompt to LLM integration | `[x]` | `apps/web/src/inngest/functions/analyze-repo.ts`, `apps/worker/src/index.ts` |
+| Add `tagline` field to analysis result schema | `[x]` | `supabase/migrations/0021_add_analysis_insights_tagline.sql`, `packages/db/src/database.types.ts`, `apps/web/src/inngest/functions/analyze-repo.ts` |
+| Create migration for tagline column | `[x]` | `supabase/migrations/0021_add_analysis_insights_tagline.sql` |
+| Generate tagline during VCP analysis | `[x]` | `apps/web/src/inngest/functions/analyze-repo.ts`, `apps/worker/src/index.ts` |
+| Fallback to persona tagline if missing | `[x]` | `apps/web/src/app/analysis/[jobId]/AnalysisClient.tsx`, `apps/web/src/components/share/share-image.ts`, `apps/web/src/components/share/ProfileShareSection.tsx` |
 
 **Success Criteria:**
 - Tagline generated during analysis
@@ -360,14 +360,14 @@ This tracker covers all implementation work for the Information Architecture Res
 | F3: Shared Utilities | 5 | 4 | `[~] In Progress` |
 | P1: ShareCard Redesign | 7 | 7 | `[x] Complete` |
 | P2: Navigation & Routes | 8 | 8 | `[x] Complete` |
-| P3: VCP Display Unification | 14 | 12 | `[~] In Progress` |
+| P3: VCP Display Unification | 14 | 14 | `[x] Complete` |
 | P4: Notification System | 6 | 6 | `[x] Complete` |
 | P5: Vertical Stories ShareCard | 7 | 6 | `[~] In Progress` |
-| P6: LLM Tagline Generation | 5 | 0 | `[ ] Not Started` |
+| P6: LLM Tagline Generation | 5 | 5 | `[x] Complete` |
 | X1: Migration & Redirects | 5 | 0 | `[ ] Not Started` |
 | X2: Polish & Testing | 7 | 0 | `[ ] Not Started` |
 | X3: Documentation | 5 | 0 | `[ ] Not Started` |
-| **Total** | **91** | **59** | **65%** |
+| **Total** | **91** | **61** | **67%** |
 
 ---
 
@@ -410,7 +410,7 @@ This tracker covers all implementation work for the Information Architecture Res
   - `docs/prd/ux/share-experience-improvements.md` — Added Appendix B with metrics specification
   - `docs/prd/ux/information-architecture-restructure.md` — Added Section 4.3 for ShareCard metrics
   - Updated mockups to show new metrics layout (Strongest, Style, Rhythm, Peak)
-- **P3 In Progress:** VCP Display Unification components created:
+- **P3 Complete:** VCP Display Unification components created:
   - Created `components/vcp/unified/` with 6 components:
     - `UnifiedIdentitySection` — Main identity header with persona, tagline, stats
     - `UnifiedInsightSection` — LLM narrative display with violet accent
@@ -424,7 +424,7 @@ This tracker covers all implementation work for the Information Architecture Res
     - `RepoAxesSection` — 6-axis grid for Repo VCP
     - `ProfileContributionCard` — Shows repo contribution to unified profile
   - Updated `components/vcp/index.ts` to export unified/ and repo/ components
-  - Page refactoring deferred — components ready for integration
+  - Page refactoring complete — components integrated into Unified/Repo pages
 
 ### 2026-01-22 (continued)
 - **P4 Fix:** Updated `NotificationDropdown` footer link from `/analysis` to `/vibes`
@@ -438,3 +438,6 @@ This tracker covers all implementation work for the Information Architecture Res
   - `UnifiedIdentitySection`: Added `analyzedRepos` and `analyzedCommits` props for "Profile forming" state
   - `EvolutionSection`: Changed `vibeShifts` to accept `string | number` for "New"/"Steady" values
 - Components now compatible with page data — ready for page refactoring
+- **P3 Complete:** Unified/Repo VCP pages now use shared components:
+  - `app/page.tsx`: Replaced inline Unified VCP sections with unified components
+  - `AnalysisClient.tsx`: Swapped Repo VCP identity/metrics/contribution sections to repo components

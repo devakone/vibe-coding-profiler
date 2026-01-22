@@ -9,6 +9,12 @@ import { computeShareCardMetrics } from "@/lib/vcp/metrics";
 import { isVibeAxes } from "@/lib/vcp/validators";
 import { ShareCard, ShareActions } from "@/components/share";
 import type { ShareImageTemplate, ShareCardMetric } from "@/components/share";
+import {
+  RepoIdentitySection,
+  RepoAxesSection,
+  RepoMetricsGrid,
+  ProfileContributionCard,
+} from "@/components/vcp/repo";
 
 type Job = {
   id: string;
@@ -176,15 +182,6 @@ function isNarrativeJson(v: unknown): v is NarrativeJson {
 
   return true;
 }
-
-const VIBE_AXIS_KEYS: (keyof VibeAxes)[] = [
-  "automation_heaviness",
-  "guardrail_strength",
-  "iteration_loop_intensity",
-  "planning_signal",
-  "surface_area_per_change",
-  "shipping_rhythm",
-] as const;
 
 function isVibeInsightsRow(v: unknown): v is VibeInsightsRow {
   if (!isRecord(v)) return false;
@@ -459,19 +456,14 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
   const persona = wrapped.persona;
   const shareTemplate = wrapped.share_template;
-  const profileContributionLabel = (() => {
-    if (!profileContribution) return null;
-    if (profileContribution.includedInProfile === true) return "Included in your Unified VCP";
-    if (profileContribution.includedInProfile === false) return "Not yet included in your Unified VCP";
-    return "Unified VCP impact";
-  })();
 
   const shareText = useMemo(() => {
     if (!shareTemplate) return "";
     const metricsLine = shareTemplate.metrics
       .map((metric) => `${metric.label}: ${metric.value}`)
       .join(" · ");
-    return `${shareTemplate.headline}\n${shareTemplate.subhead}\n${metricsLine}\n#VCP`;
+    const taglineLine = shareTemplate.tagline ?? shareTemplate.subhead;
+    return `${shareTemplate.headline}\n${taglineLine}\n${metricsLine}\n#VCP`;
   }, [shareTemplate]);
 
   const shareUrl = useMemo(() => {
@@ -485,7 +477,8 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
       .slice(0, 3)
       .map((metric) => `${metric.label}: ${metric.value}`)
       .join(" · ");
-    return `${shareTemplate.headline} — ${shareTemplate.subhead}\n${metricsLine}\n#VCP`;
+    const taglineLine = shareTemplate.tagline ?? shareTemplate.subhead;
+    return `${shareTemplate.headline} — ${taglineLine}\n${metricsLine}\n#VCP`;
   }, [shareTemplate]);
 
   const storyEndpoint = data?.userId
@@ -523,11 +516,17 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
     ];
   }, [persona, parsedVibeInsights, wrapped, insightsJson]);
 
+  const repoAxes =
+    parsedVibeInsights && isVibeAxes(parsedVibeInsights.axes_json)
+      ? parsedVibeInsights.axes_json
+      : null;
+
   const shareImageTemplate: ShareImageTemplate | null = shareTemplate
     ? {
         colors: shareTemplate.colors,
         headline: shareTemplate.headline,
         subhead: shareTemplate.subhead,
+        tagline: shareTemplate.tagline ?? shareTemplate.subhead,
         metrics: shareCardMetrics,
         persona_archetype: shareTemplate.persona_archetype,
       }
@@ -813,7 +812,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                 }}
                 colors={shareTemplate.colors}
                 avatarUrl={data?.userAvatarUrl}
-                tagline={shareTemplate.subhead ?? persona.description}
+                tagline={shareTemplate.tagline ?? persona.description}
               />
               <ShareActions
                 shareUrl={shareUrl}
@@ -887,127 +886,26 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
           <div className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-white shadow-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-violet-500/8 via-transparent to-indigo-500/8" />
             <div className="relative p-8">
-              <div className="max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Your vibe</p>
-                <h2 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-950">
-                  {persona.label}
-                </h2>
-                <p className="mt-3 text-base text-zinc-600">{persona.description}</p>
-                {narrative?.summary ? (
-                  <p className="mt-3 text-sm font-medium text-zinc-800">{narrative.summary}</p>
-                ) : null}
-              </div>
+              <RepoIdentitySection
+                persona={persona}
+                narrative={narrative ? { summary: narrative.summary } : null}
+                matchedCriteria={matchedCriteria}
+              />
 
-              <div className="mt-5 rounded-2xl border border-black/5 bg-white/60 p-4 backdrop-blur">
-                <details>
-                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
-                    How we got this
-                  </summary>
-                  <div className="mt-3 space-y-3 text-sm text-zinc-700">
-                    <p>
-                      This report is inferred from Git/PR metadata (commit timing, commit size,
-                      file paths, and message patterns). We do not use your prompts, IDE workflow,
-                      PR comments, or code content—so this is an informed guess based on what lands
-                      in Git.
-                    </p>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
-                        Matched criteria
-                      </p>
-                      {matchedCriteria.length > 0 ? (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {matchedCriteria.map((c) => (
-                            <span
-                              key={c}
-                              className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs text-zinc-700"
-                            >
-                              {formatMetricLabel(c)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-sm text-zinc-600">
-                          This report didn’t include explicit matched criteria.
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <Link
-                        href="/methodology"
-                        className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-700 underline decoration-zinc-400 underline-offset-4"
-                      >
-                        Methodology
-                      </Link>
-                    </div>
-                  </div>
-                </details>
-              </div>
+              {repoAxes ? (
+                <div className="mt-6">
+                  <RepoAxesSection axes={repoAxes} />
+                </div>
+              ) : null}
 
-              <div className="mt-6 grid gap-3 rounded-2xl border border-black/5 bg-white/60 p-4 backdrop-blur sm:grid-cols-2 lg:grid-cols-5">
-                <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Streak</p>
-                  <p className="mt-1 text-2xl font-semibold text-zinc-900">
-                    {wrapped.streak.longest_days} day{wrapped.streak.longest_days === 1 ? "" : "s"}
-                  </p>
-                  {wrapped.streak.start_day && wrapped.streak.end_day ? (
-                    <p className="mt-1 text-xs text-zinc-500">{wrapped.streak.start_day} → {wrapped.streak.end_day}</p>
-                  ) : null}
-                </div>
-                <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Peak day</p>
-                  <p className="mt-1 text-2xl font-semibold text-zinc-900">
-                    {wrapped.timing.peak_weekday !== null ? weekdayName(wrapped.timing.peak_weekday) : "—"}
-                  </p>
-                  {wrapped.timing.peak_window ? (
-                    <p className="mt-1 text-xs text-zinc-500">{formatMetricLabel(wrapped.timing.peak_window)} (UTC)</p>
-                  ) : null}
-                </div>
-                <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Focus</p>
-                  <p className="mt-1 text-2xl font-semibold capitalize text-zinc-900">
-                    {wrapped.commits.top_category ?? "—"}
-                  </p>
-                  {wrapped.commits.top_category ? (
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {wrapped.commits.category_counts[wrapped.commits.top_category] ?? 0} of {wrapped.totals.commits} commits
-                    </p>
-                  ) : null}
-                </div>
-                <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Build vs Fix</p>
-                  <p className="mt-1 text-2xl font-semibold text-zinc-900">
-                    {wrapped.commits.features_per_fix !== null
-                      ? `${wrapped.commits.features_per_fix.toFixed(1)} : 1`
-                      : wrapped.commits.fixes_per_feature !== null
-                        ? `1 : ${wrapped.commits.fixes_per_feature.toFixed(1)}`
-                        : "—"}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {wrapped.commits.features_per_fix !== null
-                      ? "features per fix"
-                      : wrapped.commits.fixes_per_feature !== null
-                        ? "fixes per feature"
-                        : "balanced"}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Scope</p>
-                  <p className="mt-1 text-2xl font-semibold text-zinc-900">
-                    {wrapped.chunkiness.avg_files_changed !== null
-                      ? `${wrapped.chunkiness.avg_files_changed.toFixed(1)}`
-                      : "—"}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {wrapped.chunkiness.label === "chunker"
-                      ? "files/commit (wide)"
-                      : wrapped.chunkiness.label === "mixer"
-                        ? "files/commit (balanced)"
-                        : wrapped.chunkiness.label === "slicer"
-                          ? "files/commit (focused)"
-                          : "files/commit"}
-                  </p>
-                </div>
-              </div>
+              <RepoMetricsGrid
+                className="mt-6"
+                streak={wrapped.streak}
+                timing={wrapped.timing}
+                commits={wrapped.commits}
+                chunkiness={wrapped.chunkiness}
+                totals={wrapped.totals}
+              />
 
               {/* Artifact Traceability Section */}
               {wrapped.artifact_traceability ? (
@@ -1170,55 +1068,15 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
               </div>
 
               {profileContribution ? (
-                <div className="mt-6 rounded-2xl border border-black/5 bg-white/60 p-4 backdrop-blur">
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
-                    {profileContributionLabel}
-                  </p>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">This repo</p>
-                      <p className="mt-1 text-sm font-semibold text-zinc-900">
-                        {profileContribution.repoName ?? "—"}
-                      </p>
-                      <p className="mt-1 text-xs text-zinc-600">
-                        {typeof profileContribution.jobCommitCount === "number"
-                          ? `${profileContribution.jobCommitCount} commits`
-                          : "Commit count unavailable"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Your Unified VCP</p>
-                      <p className="mt-1 text-sm font-semibold text-zinc-900">
-                        {typeof profileContribution.profileTotalRepos === "number"
-                          ? `${profileContribution.profileTotalRepos} repos`
-                          : "—"}
-                      </p>
-                      <p className="mt-1 text-xs text-zinc-600">
-                        {typeof profileContribution.profileTotalCommits === "number"
-                          ? `${profileContribution.profileTotalCommits} commits`
-                          : "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Current persona</p>
-                      <p className="mt-1 text-sm font-semibold text-zinc-900">
-                        {profileContribution.profilePersonaName ?? "—"}
-                      </p>
-                      {profileContribution.profileUpdatedAt ? (
-                        <p className="mt-1 text-xs text-zinc-600">
-                          Updated {fmtDate(profileContribution.profileUpdatedAt)}
-                        </p>
-                      ) : (
-                        <p className="mt-1 text-xs text-zinc-600">—</p>
-                      )}
-                    </div>
-                  </div>
-                  {profileContribution.includedInProfile === false ? (
-                    <p className="mt-3 text-xs text-zinc-500">
-                      The profile aggregate can lag behind analysis completion by a moment.
-                    </p>
-                  ) : null}
-                </div>
+                <ProfileContributionCard
+                  contribution={profileContribution}
+                  isRebuilding={rebuildingProfile}
+                  rebuildStatus={profileRebuildStatus}
+                  onRebuild={
+                    profileContribution.includedInProfile === false ? triggerProfileRebuild : undefined
+                  }
+                  className="mt-6"
+                />
               ) : null}
             </div>
           </div>
