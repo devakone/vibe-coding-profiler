@@ -37,6 +37,10 @@ supabase/.temp/
 *~
 .cursor-memory
 
+# Claude Code
+CLAUDE.local.md
+.claude/settings.local.json
+
 # OS
 .DS_Store
 Thumbs.db

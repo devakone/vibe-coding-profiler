@@ -63,7 +63,7 @@ npm run dev
 Copy the example env file and fill in values:
 
 ```bash
-cp .env.example .env.local
+cp .env.example apps/web/.env.local
 ```
 
 Required variables:
@@ -108,45 +108,21 @@ psql "postgresql://postgres:postgres@127.0.0.1:XXXXX/postgres" -c "YOUR SQL HERE
 - Always use `psql` with the local DB URL from `npm run supabase:status`
 - The MCP Supabase tools are for remote database operations only
 
-### Supabase Project References
-
-| Environment | Project Ref | Dashboard URL | Branch |
-|-------------|-------------|---------------|--------|
-| Local | N/A | `npm run supabase:start` → http://127.0.0.1:54423 | - |
-| Development | `ljxvzqjkwwwsgdnvgpgm` | https://supabase.com/dashboard/project/ljxvzqjkwwwsgdnvgpgm | `develop` |
-| Production | `idjewtwnfrufbxoxulmq` | https://supabase.com/dashboard/project/idjewtwnfrufbxoxulmq | `main` |
-
-**Default remote:** Development (`ljxvzqjkwwwsgdnvgpgm`)
-
 ### Switching Between Environments
 
-By default, the Supabase CLI points to the **development** remote. You only need to explicitly link when switching to production.
+The project may have multiple remote environments (development, staging, production). Use the Supabase CLI to switch:
 
 ```bash
 # Check which environment is currently linked
-npm run supabase:which
+npx supabase projects list
 
-# Link to production (CAUTION: only for production deployments)
-npm run supabase:link:prod
-
-# Link back to development (restore default)
-npm run supabase:link:dev
-```
-
-Add these scripts to `package.json`:
-```json
-{
-  "scripts": {
-    "supabase:which": "npx supabase projects list",
-    "supabase:link:dev": "npx supabase link --project-ref <DEV_PROJECT_REF>",
-    "supabase:link:prod": "npx supabase link --project-ref <PROD_PROJECT_REF>"
-  }
-}
+# Link to a specific project
+npx supabase link --project-ref <PROJECT_REF>
 ```
 
 **When to use each:**
 - **Local:** Default for all development work
-- **Development remote (default):** Testing against shared dev data, deploying previews, pushing migrations
+- **Development remote:** Testing against shared dev data, deploying previews, pushing migrations
 - **Production remote:** Only for production deployments or critical debugging
 
 ---
@@ -232,26 +208,21 @@ npx supabase migration list --linked
 
 ### Local Dev Test User
 
-For testing authenticated flows locally, create this test user:
+For testing authenticated flows locally, you can create a test user in the local Supabase instance.
 
-| Field | Value |
-|-------|-------|
-| Email | `testuser@vibed.coding` |
-| Password | `TestPass123!` |
-
-**To create the test user:**
+**To create a test user:**
 
 1. Start local Supabase: `npm run supabase:start`
 2. Go to local Supabase Studio: `http://127.0.0.1:54323`
 3. Navigate to Authentication → Users
-4. Click "Add User" and enter the credentials above
+4. Click "Add User" and enter test credentials
 
 **Alternative via SQL:**
 ```bash
 # Get DB URL first
 npm run supabase:status
 
-# Create user (replace XXXXX with actual port)
+# Create user (replace XXXXX with actual port, EMAIL and PASSWORD with your values)
 psql "postgresql://postgres:postgres@127.0.0.1:XXXXX/postgres" -c "
 INSERT INTO auth.users (
   id,
@@ -262,8 +233,8 @@ INSERT INTO auth.users (
   updated_at
 ) VALUES (
   gen_random_uuid(),
-  'testuser@vibed.coding',
-  crypt('TestPass123!', gen_salt('bf')),
+  'YOUR_TEST_EMAIL',
+  crypt('YOUR_TEST_PASSWORD', gen_salt('bf')),
   now(),
   now(),
   now()
@@ -275,8 +246,8 @@ INSERT INTO auth.users (
 
 For GitHub OAuth testing locally:
 1. Create a GitHub OAuth App at https://github.com/settings/developers
-2. Set callback URL to `http://localhost:54421/auth/v1/callback`
-3. Add credentials to `.env.local`
+2. Set callback URL to `http://localhost:54321/auth/v1/callback`
+3. Add credentials to `apps/web/.env.local`
 
 ---
 
@@ -498,9 +469,9 @@ npx supabase migration repair --status applied <version>
 
 1. **Most common cause:** Supabase was started without env vars. Restart with `npm run supabase:stop && npm run supabase:start`
 2. **Stale browser state:** Clear cookies and site data for `localhost` in your browser, then try again
-3. Check callback URL in GitHub OAuth App matches: `http://localhost:54421/auth/v1/callback`
+3. Check callback URL in GitHub OAuth App matches: `http://localhost:54321/auth/v1/callback`
 4. Verify `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are set in `apps/web/.env.local`
-5. Check Supabase Auth settings in local Studio: `http://127.0.0.1:54423`
+5. Check Supabase Auth settings in local Studio: `http://127.0.0.1:54323`
 6. Use `localhost:8108` consistently (not `127.0.0.1:8108`) to avoid OAuth state mismatches
 
 ### MCP Tools Not Connecting
@@ -537,69 +508,4 @@ MCP Supabase tools connect to remote projects, not local. For local development:
 
 ---
 
-## Workflow Capture
-
-**IMPORTANT:** This project is also a learning tool for improving the development process.
-
-### When to Log
-
-Add entries to `docs/WorkflowJournal.md` when you observe:
-
-| Tag | When to Use |
-|-----|-------------|
-| `[MANUAL]` | User or agent did something by hand that could be scripted |
-| `[REPETITIVE]` | Did something that's been done in other projects |
-| `[FRICTION]` | Hit a snag, needed a workaround, or found unexpected complexity |
-| `[INSIGHT]` | Learned something worth remembering for future projects |
-| `[DECISION]` | Made a choice between alternatives (capture the reasoning) |
-
-### Entry Format
-
-```markdown
-### YYYY-MM-DD HH:MM - [TAG] Short title
-**Context:** What were you trying to do?
-**Action:** What did you actually do?
-**Time spent:** Estimate
-**Automation opportunity:** None | Low | Medium | High
-**Notes:** Any additional context
-```
-
-### Examples of What to Capture
-
-**Do log:**
-- Creating a new file that follows a pattern from other projects
-- Running a manual command that could be in a script
-- Discovering a gotcha or workaround
-- Choosing between libraries, approaches, or patterns
-- Anything that took longer than expected
-
-**Don't log:**
-- Routine code edits
-- Standard git operations
-- Things already documented elsewhere
-
-### Proactive Capture
-
-When completing a task, briefly consider:
-1. Was any part of this manual when it could be automated?
-2. Have I done this exact thing in another project?
-3. Did I learn something that would help next time?
-
-If yes to any, add a journal entry before moving on.
-
----
-
-## Related Workflow Documents
-
-| Document | Purpose |
-|----------|---------|
-| `docs/Workflow.md` | The playbook—how projects are started (template for future) |
-| `docs/WorkflowJournal.md` | Real-time capture during this project |
-| `docs/PRD.md` | Product requirements |
-| `docs/Agents.md` | This file—agent instructions |
-
-The journal feeds insights back into the playbook. Over time, high-automation-opportunity items become scripts or templates.
-
----
-
-*Last updated: Phase 0 initialization*
+*Last updated: 2026-01-22*
