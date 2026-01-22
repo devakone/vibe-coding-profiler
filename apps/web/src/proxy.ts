@@ -50,7 +50,7 @@ export async function proxy(request: NextRequest) {
   }
 
   const path = request.nextUrl.pathname;
-  const protectedPrefixes = ["/repos", "/repo", "/analysis", "/profile"];
+  const protectedPrefixes = ["/repos", "/repo", "/analysis", "/profile", "/vibes", "/settings"];
 
   const isProtected = protectedPrefixes.some(
     (p) => path === p || path.startsWith(`${p}/`)

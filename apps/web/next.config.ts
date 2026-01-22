@@ -13,6 +13,25 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/reports",
+        destination: "/vibes",
+        permanent: true,
+      },
+      {
+        source: "/reports/:jobId",
+        destination: "/analysis/:jobId",
+        permanent: true,
+      },
+      {
+        source: "/repos",
+        destination: "/settings/repos",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -288,16 +288,16 @@ This tracker covers all implementation work for the Information Architecture Res
 
 ### X1. Migration & Redirects
 
-**Status:** `[ ] Not Started`  
+**Status:** `[~] In Progress`  
 **Depends on:** P2  
 **Blocks:** X2
 
 | Task | Status | File(s) |
 |------|--------|---------|
-| Add redirect: `/reports` → `/vibes` | `[ ]` | `next.config.js` or middleware |
-| Add redirect: `/reports/[id]` → `/vibes/.../[id]` | `[ ]` | `next.config.js` or middleware |
-| Add redirect: `/repos` → `/settings/repos` | `[ ]` | `next.config.js` or middleware |
-| Update all internal links | `[ ]` | Various |
+| Add redirect: `/reports` → `/vibes` | `[x]` | `next.config.ts` |
+| Add redirect: `/reports/[id]` → `/analysis/[id]` | `[x]` | `next.config.ts` |
+| Add redirect: `/repos` → `/settings/repos` | `[x]` | `next.config.ts` |
+| Update all internal links | `[x]` | `app/analysis/AnalysisListClient.tsx` |
 | Update email templates (if any) | `[ ]` | — |
 
 **Success Criteria:**
@@ -364,10 +364,10 @@ This tracker covers all implementation work for the Information Architecture Res
 | P4: Notification System | 6 | 6 | `[x] Complete` |
 | P5: Vertical Stories ShareCard | 7 | 6 | `[~] In Progress` |
 | P6: LLM Tagline Generation | 5 | 5 | `[x] Complete` |
-| X1: Migration & Redirects | 5 | 0 | `[ ] Not Started` |
+| X1: Migration & Redirects | 5 | 4 | `[~] In Progress` |
 | X2: Polish & Testing | 7 | 0 | `[ ] Not Started` |
 | X3: Documentation | 5 | 0 | `[ ] Not Started` |
-| **Total** | **91** | **64** | **70%** |
+| **Total** | **91** | **68** | **75%** |
 
 ---
 
