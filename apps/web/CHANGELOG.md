@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.3...web-v0.1.4) (2026-01-22)
+
+
+### Bug Fixes
+
+* **web:** update branding from "vibed.app" to "vibe-coding-profiler.com" ([852cfc5](https://github.com/devakone/vibe-coding-profiler/commit/852cfc511c21b1c40ba29a310668d7686e9af533))
+
 ## [0.1.3](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.2...web-v0.1.3) (2026-01-22)
 
 
