@@ -181,28 +181,37 @@ This tracker covers all implementation work for the Information Architecture Res
 
 ### P3. VCP Display Unification
 
-**Status:** `[ ] Not Started`  
+**Status:** `[~] In Progress`  
 **Depends on:** F1, F2  
 **Blocks:** X2
 
 | Task | Status | File(s) |
 |------|--------|---------|
-| Create `components/vcp/unified/` directory | `[ ]` | — |
-| Implement `UnifiedVCPCard` | `[ ]` | `unified/UnifiedVCPCard.tsx` |
-| Implement `EvolutionSection` | `[ ]` | `unified/EvolutionSection.tsx` |
-| Implement `RepoBreakdownSection` | `[ ]` | `unified/RepoBreakdownSection.tsx` |
+| Create `components/vcp/unified/` directory | `[x]` | — |
+| Implement `UnifiedIdentitySection` | `[x]` | `unified/UnifiedIdentitySection.tsx` |
+| Implement `UnifiedInsightSection` | `[x]` | `unified/UnifiedInsightSection.tsx` |
+| Implement `UnifiedAxesSection` | `[x]` | `unified/UnifiedAxesSection.tsx` |
+| Implement `EvolutionSection` | `[x]` | `unified/EvolutionSection.tsx` |
+| Implement `RepoBreakdownSection` | `[x]` | `unified/RepoBreakdownSection.tsx` |
+| Implement `UnifiedMethodologySection` | `[x]` | `unified/UnifiedMethodologySection.tsx` |
+| Create `components/vcp/repo/` directory | `[x]` | — |
+| Implement `RepoIdentitySection` | `[x]` | `repo/RepoIdentitySection.tsx` |
+| Implement `RepoMetricsGrid` | `[x]` | `repo/RepoMetricsGrid.tsx` |
+| Implement `RepoAxesSection` | `[x]` | `repo/RepoAxesSection.tsx` |
+| Implement `ProfileContributionCard` | `[x]` | `repo/ProfileContributionCard.tsx` |
 | Refactor `app/page.tsx` to use new components | `[ ]` | `app/page.tsx` |
-| Create `components/vcp/repo/` directory | `[ ]` | — |
-| Implement `RepoVCPCard` | `[ ]` | `repo/RepoVCPCard.tsx` |
-| Implement `RepoMetricsSection` | `[ ]` | `repo/RepoMetricsSection.tsx` |
-| Implement `WorkflowStyleSection` | `[ ]` | `repo/WorkflowStyleSection.tsx` |
-| Implement `ProfileContribution` | `[ ]` | `repo/ProfileContribution.tsx` |
 | Refactor `AnalysisClient.tsx` to use new components | `[ ]` | `app/analysis/[jobId]/AnalysisClient.tsx` |
 
 **Success Criteria:**
 - Both VCPs use shared primitives and blocks
 - Visual parity with current designs
 - Reduced code duplication
+
+**Notes:**
+- Components created for both Unified VCP and Repo VCP
+- Page refactoring deferred — components are ready for integration
+- Light theme styling used for Unified VCP (zinc text, subtle backgrounds)
+- Components exported via barrel exports in `components/vcp/index.ts`
 
 ---
 
@@ -350,14 +359,14 @@ This tracker covers all implementation work for the Information Architecture Res
 | F3: Shared Utilities | 5 | 4 | `[~] In Progress` |
 | P1: ShareCard Redesign | 7 | 7 | `[x] Complete` |
 | P2: Navigation & Routes | 8 | 8 | `[x] Complete` |
-| P3: VCP Display Unification | 11 | 0 | `[ ] Not Started` |
+| P3: VCP Display Unification | 14 | 12 | `[~] In Progress` |
 | P4: Notification System | 6 | 6 | `[x] Complete` |
 | P5: Vertical Stories ShareCard | 7 | 0 | `[ ] Not Started` |
 | P6: LLM Tagline Generation | 5 | 0 | `[ ] Not Started` |
 | X1: Migration & Redirects | 5 | 0 | `[ ] Not Started` |
 | X2: Polish & Testing | 7 | 0 | `[ ] Not Started` |
 | X3: Documentation | 5 | 0 | `[ ] Not Started` |
-| **Total** | **88** | **47** | **53%** |
+| **Total** | **91** | **59** | **65%** |
 
 ---
 
@@ -389,13 +398,29 @@ This tracker covers all implementation work for the Information Architecture Res
   - Added settings tabs (LLM Keys / Repos) for consistent settings navigation
   - Deferred `/vibes/[repoId]` routes — using expandable rows and existing `/analysis/[jobId]` links instead
   - Clicking completed job navigates to VCP and marks as read
-- **P1 In Progress:** ShareCard redesign partially implemented:
+- **P1 Complete:** ShareCard redesign fully implemented:
   - Updated `ShareCardMetric` interface with optional `detail` property
   - Added `tagline?: string | null` prop to `ShareCardProps`
   - Added tagline row rendering in `ShareCard.tsx`
   - Updated `ProfileShareSection` to use `computeShareCardMetrics()` with new metrics (Strongest, Style, Rhythm, Peak)
-  - Footer still uses dynamic `shareOrigin`; Repo VCP share section pending update
+  - Updated `AnalysisClient.tsx` (Repo VCP) to use `computeShareCardMetrics()` with new metrics
+  - Footer now uses `NEXT_PUBLIC_APP_URL` hostname + repo/commit context
 - **Documentation Updated:** Updated ShareCard metrics documentation in:
   - `docs/prd/ux/share-experience-improvements.md` — Added Appendix B with metrics specification
   - `docs/prd/ux/information-architecture-restructure.md` — Added Section 4.3 for ShareCard metrics
   - Updated mockups to show new metrics layout (Strongest, Style, Rhythm, Peak)
+- **P3 In Progress:** VCP Display Unification components created:
+  - Created `components/vcp/unified/` with 6 components:
+    - `UnifiedIdentitySection` — Main identity header with persona, tagline, stats
+    - `UnifiedInsightSection` — LLM narrative display with violet accent
+    - `UnifiedAxesSection` — 6-axis grid for Unified VCP
+    - `EvolutionSection` — Repo VCP count, vibe shifts, dominant vibe stats
+    - `RepoBreakdownSection` — Per-repo contribution breakdown
+    - `UnifiedMethodologySection` — Collapsible methodology/how we got this
+  - Created `components/vcp/repo/` with 4 components:
+    - `RepoIdentitySection` — Repo VCP identity with methodology collapsible
+    - `RepoMetricsGrid` — 5-column metrics (Streak, Peak Day, Focus, Build vs Fix, Scope)
+    - `RepoAxesSection` — 6-axis grid for Repo VCP
+    - `ProfileContributionCard` — Shows repo contribution to unified profile
+  - Updated `components/vcp/index.ts` to export unified/ and repo/ components
+  - Page refactoring deferred — components ready for integration

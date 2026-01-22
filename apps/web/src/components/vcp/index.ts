@@ -16,3 +16,9 @@ export * from "./primitives";
 
 // Blocks
 export * from "./blocks";
+
+// Unified VCP components (profile page)
+export * from "./unified";
+
+// Repo VCP components (analysis page)
+export * from "./repo";
