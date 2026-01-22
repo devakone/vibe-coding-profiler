@@ -47,6 +47,7 @@ export function ShareActions({
   shareTemplate,
   entityId,
   disabled = false,
+  storyEndpoint,
 }: ShareActionsProps) {
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);

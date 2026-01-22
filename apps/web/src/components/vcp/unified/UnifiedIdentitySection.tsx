@@ -18,6 +18,10 @@ interface UnifiedIdentitySectionProps {
   clarity?: number;
   /** Number of completed analyses */
   completedJobs: number;
+  /** Fallback: analyzed repos count (for "profile forming" state) */
+  analyzedRepos?: number;
+  /** Fallback: analyzed commits count (for "profile forming" state) */
+  analyzedCommits?: number;
   /** Fallback persona (from latest job, if no profile) */
   latestPersona?: {
     label: string | null;
@@ -41,10 +45,13 @@ export function UnifiedIdentitySection({
   totalCommits,
   clarity,
   completedJobs,
+  analyzedRepos,
+  analyzedCommits,
   latestPersona,
   className,
 }: UnifiedIdentitySectionProps) {
   const hasProfile = Boolean(confidence && totalRepos);
+  const isForming = !hasProfile && (analyzedRepos ?? 0) > 0;
 
   return (
     <div
@@ -104,6 +111,14 @@ export function UnifiedIdentitySection({
               <span>{totalCommits?.toLocaleString()} commits</span>
               <span>·</span>
               <span>{clarity}% clarity</span>
+            </>
+          ) : isForming ? (
+            <>
+              <span>{analyzedRepos} repos</span>
+              <span>·</span>
+              <span>{analyzedCommits?.toLocaleString()} commits</span>
+              <span>·</span>
+              <span>Profile forming</span>
             </>
           ) : latestPersona ? (
             <>

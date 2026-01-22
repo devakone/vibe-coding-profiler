@@ -226,11 +226,11 @@ export function NotificationDropdown() {
         {recentJobs.length > 0 && (
           <div className="border-t border-zinc-200 px-4 py-2">
             <Link
-              href="/analysis"
+              href="/vibes"
               onClick={() => setIsOpen(false)}
               className="block text-center text-xs font-medium text-zinc-500 hover:text-zinc-700"
             >
-              View all reports →
+              View Repo VCPs →
             </Link>
           </div>
         )}

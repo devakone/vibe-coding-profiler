@@ -14,6 +14,14 @@ import {
   type VibeAxes,
   type VibeCommitEvent,
 } from "@vibed/core";
+import {
+  UnifiedIdentitySection,
+  UnifiedInsightSection,
+  UnifiedAxesSection,
+  EvolutionSection,
+  RepoBreakdownSection,
+  UnifiedMethodologySection,
+} from "@/components/vcp/unified";
 
 const heroFeatures = [
   "A Vibe Coding Profile (VCP) built from AI-assisted engineering signals in your commit history",
@@ -796,7 +804,7 @@ export default async function Home({
       }
     : null;
 
-  return <AuthenticatedDashboard stats={stats} debugInfo={debugInfo} />;
+  return <AuthenticatedDashboard stats={stats} debugInfo={debugInfo} userId={user.id} />;
 }
 
 function MarketingLanding() {
@@ -952,9 +960,11 @@ function MarketingLanding() {
 function AuthenticatedDashboard({
   stats,
   debugInfo,
+  userId,
 }: {
   stats: AuthStats;
   debugInfo: Record<string, unknown> | null;
+  userId: string;
 }) {
   const isAxisValue = (v: unknown): v is { score: number; level: string; why: string[] } => {
     if (typeof v !== "object" || v === null) return false;
@@ -1136,7 +1146,7 @@ function AuthenticatedDashboard({
             topAxes={topAxes}
             insight={crossRepoInsight}
             axes={stats.userProfile.axes as unknown as VibeAxes}
-            userId={user?.id ?? ""}
+            userId={userId}
           />
         ) : null}
 
@@ -1159,13 +1169,13 @@ function AuthenticatedDashboard({
                   {stats.completedJobs > 0 ? (
                     <>
                       <Link
-                        href="/repos"
+                        href="/settings/repos"
                         className="rounded-full border border-black/10 bg-white/80 px-4 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm transition hover:bg-white"
                       >
                         Add repo
                       </Link>
                     <Link
-                      href="/analysis"
+                      href="/vibes"
                       className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800"
                     >
                       View Repo VCPs
@@ -1173,7 +1183,7 @@ function AuthenticatedDashboard({
                     </>
                   ) : (
                     <Link
-                      href="/repos"
+                      href="/settings/repos"
                       className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800"
                     >
                       Pick a repo
@@ -1468,7 +1478,7 @@ function AuthenticatedDashboard({
               <div className="flex flex-wrap gap-3">
                 {stats.completedJobs === 0 ? (
                   <>
-                    <Link href="/repos" className={wrappedTheme.primaryButton}>
+                    <Link href="/settings/repos" className={wrappedTheme.primaryButton}>
                       Pick a repo
                     </Link>
                     <Link href="/security" className={wrappedTheme.secondaryButton}>
@@ -1477,10 +1487,10 @@ function AuthenticatedDashboard({
                   </>
                 ) : (
                   <>
-                    <Link href="/repos" className={wrappedTheme.secondaryButton}>
+                    <Link href="/settings/repos" className={wrappedTheme.secondaryButton}>
                       Add repo
                     </Link>
-                    <Link href="/analysis" className={wrappedTheme.primaryButton}>
+                    <Link href="/vibes" className={wrappedTheme.primaryButton}>
                       View Repo VCPs
                     </Link>
                   </>

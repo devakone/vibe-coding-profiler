@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 interface EvolutionSectionProps {
   /** Number of completed repo VCPs */
   repoVcpCount: number;
-  /** Number of persona shifts detected */
-  vibeShifts: number;
-  /** Dominant persona name (short) */
+  /** Vibe shifts value (can be number, "New", or "Steady") */
+  vibeShifts: string | number;
+  /** Dominant persona name (short, typically first word of persona) */
   dominantVibe: string | null;
   /** Helper text explaining shift history */
   shiftHelper?: string;

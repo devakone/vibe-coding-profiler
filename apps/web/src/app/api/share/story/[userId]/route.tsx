@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "edge";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseClientInstance = any;
+
 const STORY_WIDTH = 1080;
 const STORY_HEIGHT = 1920;
 
@@ -73,8 +76,19 @@ const buildMetricsFromAxes = (axes: VibeAxes): ShareCardMetric[] => {
   ];
 };
 
+interface UserProfileRow {
+  axes_json?: unknown;
+  cards_json?: unknown;
+  persona_id?: string;
+  persona_name?: string | null;
+  persona_tagline?: string | null;
+  persona_confidence?: string | null;
+  total_commits?: number | null;
+  total_repos?: number | null;
+}
+
 async function buildProfileStory(
-  supabase: ReturnType<typeof createSupabaseServerClient>,
+  supabase: SupabaseClientInstance,
   userId: string,
   appUrl: string
 ): Promise<StoryData | null> {
@@ -86,27 +100,30 @@ async function buildProfileStory(
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (!profile || typeof profile !== "object") return null;
+  const profileRow = (profile ?? null) as UserProfileRow | null;
+  if (!profileRow) return null;
 
-  const axes = isVibeAxes(profile.axes_json) ? profile.axes_json : null;
+  const axes = isVibeAxes(profileRow.axes_json) ? profileRow.axes_json : null;
   const metrics = axes ? buildMetricsFromAxes(axes) : [];
-  const highlight = parseCardsHighlight(profile.cards_json);
-  const colors = STORY_THEMES[profile.persona_id ?? ""] ?? DEFAULT_THEME;
+  const highlight = parseCardsHighlight(profileRow.cards_json);
+  const colors = STORY_THEMES[profileRow.persona_id ?? ""] ?? DEFAULT_THEME;
   const subhead =
-    profile.persona_tagline?.trim().length ? profile.persona_tagline : `${profile.persona_confidence} confidence`;
+    profileRow.persona_tagline?.trim().length
+      ? profileRow.persona_tagline
+      : `${profileRow.persona_confidence ?? "medium"} confidence`;
   const stats = [
-    `${profile.total_commits?.toLocaleString() ?? "0"} commits`,
-    `${profile.total_repos ?? 0} repos included`,
+    `${profileRow.total_commits?.toLocaleString() ?? "0"} commits`,
+    `${profileRow.total_repos ?? 0} repos included`,
   ];
   const topAxes = axes ? formatAxesList(axes) : [];
 
   return {
     headline: "My Vibed Profile",
     subhead,
-    personaName: profile.persona_name ?? "Vibe Coder",
+    personaName: profileRow.persona_name ?? "Vibe Coder",
     personaTagline: subhead,
-    personaId: profile.persona_id ?? "balanced_builder",
-    personaConfidence: profile.persona_confidence ?? "medium",
+    personaId: profileRow.persona_id ?? "balanced_builder",
+    personaConfidence: profileRow.persona_confidence ?? "medium",
     metrics: metrics.length ? metrics : stats.slice(0, 4).map((value, idx) => ({ label: ["Commits", "Repos", "Profile", "Vibes"][idx] ?? `Stat ${idx + 1}`, value })),
     highlight,
     topAxes,
@@ -117,7 +134,7 @@ async function buildProfileStory(
 }
 
 async function buildJobStory(
-  supabase: ReturnType<typeof createSupabaseServerClient>,
+  supabase: SupabaseClientInstance,
   userId: string,
   jobId: string,
   appUrl: string
@@ -414,7 +431,7 @@ const renderStoryImage = async (story: StoryData, qrDataUrl: string) => {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.vibed.app";
   const supabase = await createSupabaseServerClient();
@@ -422,7 +439,8 @@ export async function GET(
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || user.id !== params.userId) {
+  const { userId } = await params;
+  if (!user || user.id !== userId) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

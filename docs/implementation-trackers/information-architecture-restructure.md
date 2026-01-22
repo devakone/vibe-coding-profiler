@@ -209,9 +209,10 @@ This tracker covers all implementation work for the Information Architecture Res
 
 **Notes:**
 - Components created for both Unified VCP and Repo VCP
-- Page refactoring deferred — components are ready for integration
+- Component interfaces updated to match actual page data shapes (Option A approach)
 - Light theme styling used for Unified VCP (zinc text, subtle backgrounds)
 - Components exported via barrel exports in `components/vcp/index.ts`
+- Page refactoring pending — components are now compatible with page data
 
 ---
 
@@ -424,3 +425,16 @@ This tracker covers all implementation work for the Information Architecture Res
     - `ProfileContributionCard` — Shows repo contribution to unified profile
   - Updated `components/vcp/index.ts` to export unified/ and repo/ components
   - Page refactoring deferred — components ready for integration
+
+### 2026-01-22 (continued)
+- **P4 Fix:** Updated `NotificationDropdown` footer link from `/analysis` to `/vibes`
+- **Type Errors Fixed:**
+  - `ShareActions.tsx`: Added missing `storyEndpoint` prop destructuring
+  - `page.tsx`: Added `userId` prop to `AuthenticatedDashboard` to fix scope issue
+  - `route.tsx`: Fixed Supabase client type with `any` cast
+- **Route Updates:** Updated `/repos` and `/analysis` links in `page.tsx` to use `/settings/repos` and `/vibes`
+- **P3 Component Interface Updates (Option A):**
+  - `UnifiedMethodologySection`: Changed to accept `matchedRules: string[]` and `caveats: string[]` directly from `detectVibePersona` output
+  - `UnifiedIdentitySection`: Added `analyzedRepos` and `analyzedCommits` props for "Profile forming" state
+  - `EvolutionSection`: Changed `vibeShifts` to accept `string | number` for "New"/"Steady" values
+- Components now compatible with page data — ready for page refactoring
