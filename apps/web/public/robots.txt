@@ -1,0 +1,13 @@
+# Vibe Coding Profiler - robots.txt
+# https://vibed.dev
+
+User-agent: *
+Allow: /
+
+# Disallow private/authenticated routes
+Disallow: /api/
+Disallow: /settings/
+Disallow: /admin/
+
+# Sitemap
+Sitemap: https://vibed.dev/sitemap.xml

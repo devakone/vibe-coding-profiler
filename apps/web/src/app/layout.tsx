@@ -21,24 +21,33 @@ const geistMono = Geist_Mono({
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:8108";
 
 export const metadata: Metadata = {
-  title: "Vibe Coding Profile · Your AI coding profile",
+  title: "Vibe Coding Profiler · Discover your AI coding style",
   description:
-    "Turn your commit history into a Vibe Coding Profile (VCP) — patterns, insights, and shareable profiles grounded in commit evidence.",
+    "Vibe Coding Profiler analyzes your commit history to reveal your unique Vibe Coding Profile (VCP) — patterns, insights, and shareable profiles grounded in commit evidence.",
   metadataBase: new URL(appUrl),
   openGraph: {
-    title: "Vibe Coding Profile · Your AI coding profile",
+    title: "Vibe Coding Profiler · Discover your AI coding style",
     description:
-      "A shareable Vibe Coding Profile (VCP) from your commit history — patterns and insights grounded in evidence.",
+      "Analyze your commit history to discover your Vibe Coding Profile (VCP) — patterns and insights grounded in evidence. Share your unique AI-era coding persona.",
     url: appUrl,
     locale: "en_US",
     type: "website",
-    siteName: "Vibe Coding Profile",
+    siteName: "Vibe Coding Profiler",
+    images: [
+      {
+        url: `${appUrl}/api/og`,
+        width: 1200,
+        height: 630,
+        alt: "Vibe Coding Profiler - Discover your AI coding style",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Vibe Coding Profile · Your AI coding profile",
+    title: "Vibe Coding Profiler · Discover your AI coding style",
     description:
-      "A shareable Vibe Coding Profile (VCP) from your commit history — patterns and insights grounded in evidence.",
+      "Analyze your commit history to discover your Vibe Coding Profile (VCP) — patterns and insights grounded in evidence. Share your unique AI-era coding persona.",
+    images: [`${appUrl}/api/og`],
   },
 };
 

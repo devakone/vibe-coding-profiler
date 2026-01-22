@@ -15,8 +15,10 @@
  */
 
 export interface PersonaAura {
-  /** Full-card background image */
+  /** Full-card background image (horizontal) */
   background: string;
+  /** Vertical background for stories (9:16 aspect ratio) */
+  verticalBackground: string;
   /** Compact icon/badge image */
   icon: string;
   /** Alt text describing the visual metaphor */
@@ -44,18 +46,21 @@ export const PERSONA_AURAS: Record<string, PersonaAura> = {
   // Dynamic/fast personas
   rapid_risk_taker: {
     background: "/aura-backgrounds/bg-rapid-risk-taker-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-rapid-risk-taker-vertical.webp",
     icon: "/aura-icons/icon-rapid-risk-taker.webp",
     alt: "Purple flames and speed lines suggesting bold, fast movement",
     description: "Ships fast, skips guardrails, embraces risk",
   },
   prompt_sprinter: {
     background: "/aura-backgrounds/bg-prompt-sprinter-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-prompt-sprinter-vertical.webp",
     icon: "/aura-icons/icon-prompt-sprinter.webp",
     alt: "Lightning bolts and iteration circles suggesting rapid prompting",
     description: "Rapid iteration cycles, fast prompting and fixing",
   },
   fix_loop_hacker: {
     background: "/aura-backgrounds/bg-prompt-sprinter-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-prompt-sprinter-vertical.webp",
     icon: "/aura-icons/icon-fix-loop-hacker.webp",
     alt: "Loop arrows with bug being squashed - rapid debug cycles",
     description: "Quick fixes and rapid iteration loops",
@@ -64,18 +69,21 @@ export const PERSONA_AURAS: Record<string, PersonaAura> = {
   // Balanced/thoughtful personas
   balanced_builder: {
     background: "/aura-backgrounds/bg-reflective-balancer-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-reflective-balancer-vertical.webp",
     icon: "/aura-icons/icon-balanced-builder.webp",
     alt: "Balance scale weighing building blocks - thoughtful construction",
     description: "Balanced approach between speed and safety",
   },
   reflective_balancer: {
     background: "/aura-backgrounds/bg-reflective-balancer-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-reflective-balancer-vertical.webp",
     icon: "/aura-icons/icon-reflective-balancer.webp",
     alt: "Balance scales and yin-yang suggesting thoughtful equilibrium",
     description: "Thoughtful consideration of tradeoffs",
   },
   guardrailed_viber: {
     background: "/aura-backgrounds/bg-guardrailed-viber-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-guardrailed-viber-vertical.webp",
     icon: "/aura-icons/icon-guardrailed-viber.webp",
     alt: "Shield with engineered guardrails and safety net mesh suggesting protection",
     description: "Tests as contracts, safety nets before shipping",
@@ -84,12 +92,14 @@ export const PERSONA_AURAS: Record<string, PersonaAura> = {
   // Structured/methodical personas
   spec_first_director: {
     background: "/aura-backgrounds/bg-methodical-architect-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-methodical-architect-vertical.webp",
     icon: "/aura-icons/icon-spec-first-director.webp",
     alt: "Clipboard with flowchart directing arrows outward",
     description: "Specs and plans before implementation",
   },
   methodical_architect: {
     background: "/aura-backgrounds/bg-methodical-architect-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-methodical-architect-vertical.webp",
     icon: "/aura-icons/icon-methodical-architect.webp",
     alt: "Isometric blocks on blueprint grid suggesting structured planning",
     description: "Plans carefully before building",
@@ -99,6 +109,7 @@ export const PERSONA_AURAS: Record<string, PersonaAura> = {
   // Gas Pump (Gas Town) for agent coordination
   vertical_slice_shipper: {
     background: "/aura-backgrounds/bg-orchestrator-v5.webp",
+    verticalBackground: "/aura-backgrounds/bg-orchestrator-vertical.webp",
     icon: "/aura-icons/icon-vertical-slice-shipper.webp",
     alt: "Rocket carrying full stack - shipping complete end-to-end",
     description: "Ships complete vertical slices end-to-end",
@@ -106,12 +117,14 @@ export const PERSONA_AURAS: Record<string, PersonaAura> = {
   // Factory for building/manufacturing personas
   toolsmith_viber: {
     background: "/aura-backgrounds/bg-orchestrator-factory.webp",
+    verticalBackground: "/aura-backgrounds/bg-orchestrator-factory-vertical.webp",
     icon: "/aura-icons/icon-toolsmith-viber.webp",
     alt: "Anvil forging a gear with sparks - crafting tools",
     description: "Builds and coordinates tools and workflows",
   },
   infra_weaver: {
     background: "/aura-backgrounds/bg-orchestrator-factory.webp",
+    verticalBackground: "/aura-backgrounds/bg-orchestrator-factory-vertical.webp",
     icon: "/aura-icons/icon-infra-weaver.webp",
     alt: "Spider web network with glowing nodes - weaving infrastructure",
     description: "Weaves infrastructure and systems together",
@@ -120,42 +133,49 @@ export const PERSONA_AURAS: Record<string, PersonaAura> = {
   // Legacy persona IDs (for backwards compatibility)
   "vibe-prototyper": {
     background: "/aura-backgrounds/bg-prompt-sprinter-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-prompt-sprinter-vertical.webp",
     icon: "/aura-icons/icon-prompt-sprinter.webp",
     alt: "Creative burst pattern",
     description: "Fast prototyping and experimentation",
   },
   "test-validator": {
     background: "/aura-backgrounds/bg-guardrailed-viber-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-guardrailed-viber-vertical.webp",
     icon: "/aura-icons/icon-guardrailed-viber.webp",
     alt: "Protective shield pattern",
     description: "Tests first, validates before shipping",
   },
   "spec-architect": {
     background: "/aura-backgrounds/bg-methodical-architect-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-methodical-architect-vertical.webp",
     icon: "/aura-icons/icon-methodical-architect.webp",
     alt: "Blueprint grid pattern",
     description: "Architecture and specs before code",
   },
   "agent-orchestrator": {
     background: "/aura-backgrounds/bg-orchestrator-v5.webp",
+    verticalBackground: "/aura-backgrounds/bg-orchestrator-vertical.webp",
     icon: "/aura-icons/icon-orchestrator.webp",
     alt: "Gas Town - fueling station for agent coordination",
     description: "Coordinates AI agents and workflows",
   },
   "reflective-balancer": {
     background: "/aura-backgrounds/bg-reflective-balancer-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-reflective-balancer-vertical.webp",
     icon: "/aura-icons/icon-reflective-balancer.webp",
     alt: "Balance and equilibrium pattern",
     description: "Balances competing priorities",
   },
   "infra-architect": {
     background: "/aura-backgrounds/bg-orchestrator-factory.webp",
+    verticalBackground: "/aura-backgrounds/bg-orchestrator-factory-vertical.webp",
     icon: "/aura-icons/icon-infra-weaver.webp",
     alt: "Factory infrastructure weaving pattern",
     description: "Infrastructure governance and system design",
   },
   "specialist-consultant": {
     background: "/aura-backgrounds/bg-methodical-architect-v2.webp",
+    verticalBackground: "/aura-backgrounds/bg-methodical-architect-vertical.webp",
     icon: "/aura-icons/icon-spec-first-director.webp",
     alt: "Specification-driven direction and planning",
     description: "Assigns roles and review steps with precision",
@@ -165,6 +185,7 @@ export const PERSONA_AURAS: Record<string, PersonaAura> = {
 // Default aura for unknown personas - use the balanced one as neutral
 export const DEFAULT_AURA: PersonaAura = {
   background: "/aura-backgrounds/bg-reflective-balancer-v2.webp",
+  verticalBackground: "/aura-backgrounds/bg-reflective-balancer-vertical.webp",
   icon: "/aura-icons/icon-reflective-balancer.webp",
   alt: "Abstract balanced pattern",
   description: "Your unique coding style",

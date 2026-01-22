@@ -39,7 +39,7 @@ export default function SecurityPage() {
           <section className={`${wrappedTheme.card} p-8`}>
             <h2 className="text-xl font-semibold text-zinc-950">What we do</h2>
             <p className="mt-3 text-sm text-zinc-700">
-              Vibe Coding Profile connects to GitHub, fetches commit history, computes metrics, and stores the
+              Vibe Coding Profiler connects to GitHub, fetches commit history, computes metrics, and stores the
               results in Supabase Postgres. Access to rows is scoped to your authenticated account
               via Supabase Row Level Security (RLS) policies for user-facing reads.
             </p>
@@ -66,7 +66,7 @@ export default function SecurityPage() {
             </ul>
             <p className="mt-5 text-sm text-zinc-700">
               Note: when fetching commit details from GitHub, the API response can include file
-              paths and diff snippets. Vibe Coding Profile’s current worker extracts and stores counts/stats
+              paths and diff snippets. Vibe Coding Profiler’s current worker extracts and stores counts/stats
               (like number of files and additions/deletions), not file contents.
             </p>
           </section>
@@ -88,7 +88,7 @@ export default function SecurityPage() {
           <section className="rounded-3xl border border-black/5 bg-gradient-to-br from-violet-100/80 via-indigo-100/70 to-violet-50/80 p-8 shadow-[0_25px_80px_rgba(30,27,75,0.06)]">
             <h2 className="text-xl font-semibold text-zinc-950">Recommendations</h2>
             <p className="mt-3 text-sm text-zinc-700">
-              Vibe Coding Profile is designed for personal insight. Keep the blast radius small.
+              Vibe Coding Profiler is designed for personal insight. Keep the blast radius small.
             </p>
             <ul className="mt-5 space-y-3 text-sm text-zinc-800">
               {recommendations.map((item) => (
@@ -106,7 +106,7 @@ export default function SecurityPage() {
         </div>
 
         <footer className="mt-12 flex flex-col gap-3 border-t border-black/5 pt-6 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-zinc-700">Vibe Coding Profile</p>
+          <p className="text-zinc-700">Vibe Coding Profiler</p>
           <div className="flex flex-wrap gap-4">
             <Link href="/" className="transition hover:text-zinc-900">
               Home

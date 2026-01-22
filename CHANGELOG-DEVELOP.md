@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.0-alpha.4](https://github.com/devakone/vibe-coding-profiler/compare/vibed-coding-v0.1.0-alpha.3...vibed-coding-v0.1.0-alpha.4) (2026-01-22)
+
+
+### Features
+
+* **web:** add agents.txt and robots.txt files, update branding to "Vibe Coding Profiler" ([0afc2c8](https://github.com/devakone/vibe-coding-profiler/commit/0afc2c864b9b1a7fce79d7d5fddbf60c2a7a2490))
+* **web:** add new aura backgrounds and update persona aura structure ([3590f97](https://github.com/devakone/vibe-coding-profiler/commit/3590f97b9690ff59feb3f50b38de23d06b6be1c1))
+* **web:** enhance Open Graph metadata and add dynamic OG image generation ([6b68e45](https://github.com/devakone/vibe-coding-profiler/commit/6b68e455263114fd4fb2a37bb7335270c612fdca))
+
+
+### Bug Fixes
+
+* **web:** update branding from "vibed.app" to "vibe-coding-profiler.com" ([852cfc5](https://github.com/devakone/vibe-coding-profiler/commit/852cfc511c21b1c40ba29a310668d7686e9af533))
+
 ## [0.1.0-alpha.3](https://github.com/devakone/vibe-coding-profile/compare/vibed-coding-v0.1.0-alpha.2...vibed-coding-v0.1.0-alpha.3) (2026-01-22)
 
 
