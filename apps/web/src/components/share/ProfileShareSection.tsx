@@ -97,27 +97,31 @@ export function ProfileShareSection({
     return shareOrigin; // Profile is at root
   }, [shareOrigin]);
 
+  const shareTagline = insight ?? personaTagline ?? "";
+
   const shareText = useMemo(() => {
     const metricsLine = `${totalRepos} repos · ${totalCommits.toLocaleString()} commits · ${clarity}% clarity`;
-    return `My Unified VCP: ${personaName}\n${personaTagline ?? ""}\n${metricsLine}\n#VCP`;
-  }, [personaName, personaTagline, totalRepos, totalCommits, clarity]);
+    return `My Unified VCP: ${personaName}\n${shareTagline}\n${metricsLine}\n#VCP`;
+  }, [personaName, shareTagline, totalRepos, totalCommits, clarity]);
 
   const shareCaption = useMemo(() => {
-    return `My Unified VCP: ${personaName} — ${personaTagline ?? ""}. ${totalRepos} repos, ${totalCommits.toLocaleString()} commits. #VCP`;
-  }, [personaName, personaTagline, totalRepos, totalCommits]);
+    const taglineSegment = shareTagline ? ` — ${shareTagline}` : "";
+    return `My Unified VCP: ${personaName}${taglineSegment}. ${totalRepos} repos, ${totalCommits.toLocaleString()} commits. #VCP`;
+  }, [personaName, shareTagline, totalRepos, totalCommits]);
 
   const shareImageTemplate: ShareImageTemplate = useMemo(() => {
     return {
       colors,
       headline: `Unified VCP: ${personaName}`,
       subhead: personaTagline ?? `${personaConfidence} confidence`,
+      tagline: shareTagline || `${personaConfidence} confidence`,
       metrics: shareCardMetrics,
       persona_archetype: {
         label: personaName,
         archetypes: topAxes.slice(0, 3).map((a) => `${a.name}: ${a.score}`),
       },
     };
-  }, [personaName, personaTagline, personaConfidence, colors, shareCardMetrics, topAxes]);
+  }, [personaName, personaTagline, personaConfidence, colors, shareCardMetrics, topAxes, shareTagline]);
 
   return (
     <div className="space-y-4">

@@ -152,6 +152,7 @@ function computeEpisodeSummary(events: CommitEvent[]): Array<{
  */
 interface NarrativeResult {
   narrative: AnalysisReport["narrative"];
+  tagline: string | null;
   inputTokens: number;
   outputTokens: number;
 }
@@ -227,9 +228,10 @@ export async function generateNarrativeWithLLM(params: {
     "- Never infer intent, skill, or code quality. Avoid speculation and motivational language.",
     "- Every claim must cite at least one specific metric name and value (e.g. burstiness_score=0.42).",
     "- Each section must include evidence: 2-6 commit SHAs that support the section.",
+    "- Provide a concise tagline (<=60 characters) that describes the developer's vibe. This will be displayed on the share card and must remain observational.",
     "",
     "Output must be STRICT JSON with this schema:",
-    '{"summary":"...","sections":[{"title":"...","content":"...","evidence":["sha", "..."]}],"highlights":[{"metric":"...","value":"...","interpretation":"..."}]}',
+    '{"summary":"...","tagline":"...","sections":[{"title":"...","content":"...","evidence":["sha", "..."]}],"highlights":[{"metric":"...","value":"...","interpretation":"..."}]}',
   ].join("\n");
 
   const userPrompt = [
@@ -307,6 +309,7 @@ export async function generateNarrativeWithLLM(params: {
 
   const obj = parsed as {
     summary?: unknown;
+    tagline?: unknown;
     sections?: unknown;
     highlights?: unknown;
   };
@@ -335,8 +338,13 @@ export async function generateNarrativeWithLLM(params: {
     highlights.push({ metric: hi.metric, value: hi.value, interpretation: hi.interpretation });
   }
 
+  // Enforce 60-char limit as specified in the prompt
+  const rawTagline = typeof obj.tagline === "string" ? obj.tagline.trim() : null;
+  const tagline = rawTagline ? rawTagline.slice(0, 60) : null;
+
   return {
     narrative: { summary: obj.summary, sections, highlights },
+    tagline,
     inputTokens: response.inputTokens,
     outputTokens: response.outputTokens,
   };
@@ -1044,6 +1052,7 @@ export const analyzeRepo = inngest.createFunction(
       const llmResolution = await resolveLLMConfig(userId, repoId);
       let llmNarrative: AnalysisReport["narrative"] | null = null;
       let llmModelUsed: string | null = null;
+      let llmTagline: string | null = null;
       const llmKeySource: LLMKeySource = llmResolution.source;
       const llmConfig: LLMConfig | null = llmResolution.config;
 
@@ -1070,6 +1079,7 @@ export const analyzeRepo = inngest.createFunction(
             if (result) {
               llmNarrative = result.narrative;
               llmModelUsed = candidate;
+              llmTagline = result.tagline;
 
               // Record successful usage with token counts
               await recordLLMUsage({
@@ -1137,22 +1147,28 @@ export const analyzeRepo = inngest.createFunction(
       );
       if (reportError) throw new Error(`Failed to upsert report: ${reportError.message}`);
 
+      const personaTaglineFallback = insights.persona.description ?? "";
+      const finalTagline =
+        llmTagline?.trim()?.length ? llmTagline.trim() : personaTaglineFallback;
+      insights.share_template.tagline = finalTagline;
+
       // Save legacy insights
       const { error: insightsError } = await supabase.from("analysis_insights").upsert(
-        {
-          job_id: jobId,
-          insights_json: insights,
-          generator_version: ANALYZER_VERSION,
-          persona_id: insights.persona.id,
-          persona_label: insights.persona.label,
-          persona_confidence: insights.persona.confidence,
-          tech_signals: insights.tech_signals,
-          share_template: insights.share_template,
-          persona_delta: insights.persona_delta,
-          sources: insights.sources,
-        },
-        { onConflict: "job_id" }
-      );
+          {
+            job_id: jobId,
+            insights_json: insights,
+            generator_version: ANALYZER_VERSION,
+            persona_id: insights.persona.id,
+            persona_label: insights.persona.label,
+            persona_confidence: insights.persona.confidence,
+            tech_signals: insights.tech_signals,
+            share_template: insights.share_template,
+            persona_delta: insights.persona_delta,
+            sources: insights.sources,
+            tagline: finalTagline,
+          },
+          { onConflict: "job_id" }
+        );
       if (insightsError) throw new Error(`Failed to upsert insights: ${insightsError.message}`);
 
       // Save vibe v2 insights

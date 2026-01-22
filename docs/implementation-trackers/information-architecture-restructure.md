@@ -229,7 +229,7 @@ This tracker covers all implementation work for the Information Architecture Res
 | Integrate with `JobsContext` | `[x]` | `components/notifications/NotificationDropdown.tsx` |
 | Add to navigation header | `[x]` | `app/AppHeader.tsx` |
 | Implement "Clear all" functionality | `[x]` | `components/notifications/NotificationDropdown.tsx` |
-| Remove Jobs tab from Reports page | `[~]` | N/A (Jobs tab doesn't exist as separate component) |
+| Remove Jobs tab from Reports page | `[x]` | N/A (Jobs tab doesn't exist as separate component) |
 
 **Success Criteria:**
 - [x] Notifications show in-progress and completed jobs
@@ -240,7 +240,7 @@ This tracker covers all implementation work for the Information Architecture Res
 
 ### P5. Vertical Stories ShareCard
 
-**Status:** `[ ] Not Started`  
+**Status:** `[~] In Progress`  
 **Depends on:** P1, F3  
 **Blocks:** X2
 
@@ -264,7 +264,7 @@ This tracker covers all implementation work for the Information Architecture Res
 
 ### P6. LLM Tagline Generation
 
-**Status:** `[ ] Not Started`  
+**Status:** `[x] Complete`  
 **Depends on:** None  
 **Blocks:** P1
 
@@ -367,7 +367,7 @@ This tracker covers all implementation work for the Information Architecture Res
 | X1: Migration & Redirects | 5 | 0 | `[ ] Not Started` |
 | X2: Polish & Testing | 7 | 0 | `[ ] Not Started` |
 | X3: Documentation | 5 | 0 | `[ ] Not Started` |
-| **Total** | **91** | **61** | **67%** |
+| **Total** | **91** | **64** | **70%** |
 
 ---
 
@@ -418,6 +418,10 @@ This tracker covers all implementation work for the Information Architecture Res
     - `EvolutionSection` — Repo VCP count, vibe shifts, dominant vibe stats
     - `RepoBreakdownSection` — Per-repo contribution breakdown
     - `UnifiedMethodologySection` — Collapsible methodology/how we got this
+- **P6 Complete:** LLM-generated taglines now feed share cards and analytics:
+  - Inngest worker and standalone worker prompts emit a `tagline` string as part of the narrative JSON.
+  - `analysis_insights` gained a `tagline` column via `supabase/migrations/0021_add_analysis_insights_tagline.sql` and the Supabase types were updated.
+  - Share cards and story exports use `shareTemplate.tagline` with persona fallback plus updated share-image tooling for the tagline row.
   - Created `components/vcp/repo/` with 4 components:
     - `RepoIdentitySection` — Repo VCP identity with methodology collapsible
     - `RepoMetricsGrid` — 5-column metrics (Streak, Peak Day, Focus, Build vs Fix, Scope)

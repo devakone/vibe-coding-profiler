@@ -2,21 +2,13 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { VibeAxes } from "@vibed/core";
-import { AXIS_METADATA, AXIS_ORDER } from "../constants";
 import { formatMatchedRule, AXIS_LEGEND } from "@/lib/format-labels";
 
 interface UnifiedMethodologySectionProps {
-  /** Persona name */
-  personaName: string;
-  /** Confidence level */
-  confidence: string;
   /** Matched rules from detectVibePersona (string array like ["A>=70", "C>=65"]) */
   matchedRules: string[];
   /** Caveats from detectVibePersona */
   caveats: string[];
-  /** User's vibe axes */
-  axes: VibeAxes;
   /** Additional class names */
   className?: string;
 }
@@ -27,11 +19,8 @@ interface UnifiedMethodologySectionProps {
  * Accepts data directly from detectVibePersona output
  */
 export function UnifiedMethodologySection({
-  personaName,
-  confidence,
   matchedRules,
   caveats,
-  axes,
   className,
 }: UnifiedMethodologySectionProps) {
   return (

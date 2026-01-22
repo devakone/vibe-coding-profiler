@@ -67,6 +67,7 @@ export interface ShareImageTemplate {
   colors: ShareCardColors;
   headline: string;
   subhead: string;
+  tagline?: string | null;
   metrics: ShareCardMetric[];
   persona_archetype: {
     label: string;

@@ -180,6 +180,7 @@ async function buildJobStory(
           metrics?: Array<{ label: string; value: string }>;
           headline?: string;
           subhead?: string;
+          tagline?: string;
         })
       : null;
 
@@ -191,6 +192,7 @@ async function buildJobStory(
     (vibeRow?.persona_id ?? insightsResult?.data?.persona_id ?? "balanced_builder") as string;
   const personaTagline =
     vibeRow?.persona_tagline ??
+    shareTemplate?.tagline ??
     shareTemplate?.headline ??
     `${insightsResult?.data?.persona_confidence ?? "medium"} confidence`;
   const colors = shareTemplate?.colors
@@ -208,7 +210,7 @@ async function buildJobStory(
           value: metric.value,
         })) ?? [];
 
-  const highlight = shareTemplate?.subhead ?? shareTemplate?.headline;
+  const highlight = shareTemplate?.tagline ?? shareTemplate?.subhead ?? shareTemplate?.headline;
   const topAxes = axes ? formatAxesList(axes) : [];
   const stats = [`${job.commit_count ?? 0} commits`, repoName];
 
@@ -395,6 +397,7 @@ const renderStoryImage = async (story: StoryData, qrDataUrl: string) => {
               background: "rgba(255,255,255,0.15)",
             }}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={qrDataUrl}
               width={126}

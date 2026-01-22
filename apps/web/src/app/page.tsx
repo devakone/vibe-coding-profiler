@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@vibed/db";
 import { wrappedTheme } from "@/lib/theme";
-import { formatMatchedRule, AXIS_LEGEND } from "@/lib/format-labels";
 import { ProfileShareSection } from "@/components/share";
 import { ProfileVersionSelector } from "@/components/ProfileVersionSelector";
 import { createClient } from "@supabase/supabase-js";
@@ -1071,8 +1070,6 @@ function AuthenticatedDashboard({
     },
   } as const;
 
-  const axisKeys = Object.keys(axisMeta) as Array<keyof typeof axisMeta>;
-
   function generateCrossRepoInsight(): string {
     if (!stats.userProfile) return "Add more repos to unlock cross-repo insights.";
     const repos = stats.userProfile.repoPersonas ?? [];
@@ -1158,309 +1155,57 @@ function AuthenticatedDashboard({
         {/* Unified Profile Card */}
         <div className="overflow-hidden rounded-[2.5rem] border border-black/5 bg-white shadow-[0_30px_120px_rgba(2,6,23,0.08)]">
           {/* Section 1: Identity */}
-          <div className="relative bg-gradient-to-br from-violet-500/8 via-indigo-500/5 to-violet-500/8 p-8 sm:p-10">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.06),transparent_50%)]" />
-            <div className="relative">
-              <div className="flex items-start justify-between gap-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500">
-                  Your Unified VCP
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {stats.completedJobs > 0 ? (
-                    <>
-                      <Link
-                        href="/settings/repos"
-                        className="rounded-full border border-black/10 bg-white/80 px-4 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm transition hover:bg-white"
-                      >
-                        Add repo
-                      </Link>
-                    <Link
-                      href="/vibes"
-                      className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800"
-                    >
-                      View Repo VCPs
-                    </Link>
-                    </>
-                  ) : (
-                    <Link
-                      href="/settings/repos"
-                      className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800"
-                    >
-                      Pick a repo
-                    </Link>
-                  )}
-                </div>
-              </div>
-              <h1 className="mt-4 text-4xl font-bold tracking-tight text-zinc-950 sm:text-5xl">
-                {stats.userProfile?.personaName ?? stats.latestPersona?.label ?? "Still forming"}
-              </h1>
-              {stats.userProfile?.personaTagline ? (
-                <p className="mt-3 text-lg text-zinc-700">
-                  “{stats.userProfile.personaTagline}”
-                </p>
-              ) : null}
-              <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-zinc-600">
-                {stats.userProfile ? (
-                  <>
-                    <span className="rounded-full bg-white/80 px-3 py-1 font-medium text-zinc-800 shadow-sm">
-                      {stats.userProfile.personaConfidence} confidence
-                    </span>
-                    <span>{stats.userProfile.totalRepos} repos</span>
-                    <span>·</span>
-                    <span>{stats.userProfile.totalCommits.toLocaleString()} commits</span>
-                    <span>·</span>
-                    <span>{clarity}% clarity</span>
-                  </>
-                ) : stats.analyzedRepos > 0 ? (
-                  <>
-                    <span>{stats.analyzedRepos} repos</span>
-                    <span>·</span>
-                    <span>{stats.analyzedCommits.toLocaleString()} commits</span>
-                    <span>·</span>
-                    <span>Profile forming</span>
-                  </>
-                ) : stats.latestPersona ? (
-                  <>
-                    <span className="rounded-full bg-white/80 px-3 py-1 font-medium text-zinc-800 shadow-sm">
-                      {stats.latestPersona.confidence}
-                    </span>
-                    {stats.latestPersona.repoName ? (
-                      <span>Based on {stats.latestPersona.repoName}</span>
-                    ) : null}
-                  </>
-                ) : (
-                  <span>Run a vibe check to get your first read</span>
-                )}
-              </div>
-            </div>
-          </div>
+          <UnifiedIdentitySection
+            personaName={stats.userProfile?.personaName ?? stats.latestPersona?.label ?? "Still forming"}
+            personaTagline={stats.userProfile?.personaTagline}
+            confidence={stats.userProfile?.personaConfidence}
+            totalRepos={stats.userProfile?.totalRepos}
+            totalCommits={stats.userProfile?.totalCommits}
+            clarity={clarity}
+            completedJobs={stats.completedJobs}
+            analyzedRepos={stats.analyzedRepos}
+            analyzedCommits={stats.analyzedCommits}
+            latestPersona={stats.latestPersona}
+          />
 
-          {/* Section 2: Insight (the juicy synthesis) - now uses purple left border style */}
+          {/* Section 2: Insight */}
           {stats.userProfile ? (
-            <div className="border-t border-black/5 px-8 py-6 sm:px-10">
-              <div className="rounded-xl border-l-4 border-l-violet-500 bg-violet-50 px-5 py-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-600">
-                    Insight
-                  </p>
-                  {hasLLMNarrative && stats.userProfile.llmModel ? (
-                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-600">
-                      AI-generated
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-2 text-base font-medium leading-relaxed text-slate-800 sm:text-lg">
-                  {crossRepoInsight}
-                </p>
-                {narrativeParagraphs.length > 0 ? (
-                  <div className="mt-4 space-y-3">
-                    {narrativeParagraphs.map((paragraph, idx) => (
-                      <p key={idx} className="text-sm leading-relaxed text-slate-700">
-                        {paragraph}
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
-                {narrativeHighlights.length > 0 ? (
-                  <ul className="mt-4 space-y-1">
-                    {narrativeHighlights.map((highlight, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
-                        <span className="mt-1 text-violet-400">•</span>
-                        <span>{highlight}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            </div>
+            <UnifiedInsightSection
+              headline={crossRepoInsight}
+              paragraphs={narrativeParagraphs}
+              highlights={narrativeHighlights}
+              isLLMGenerated={hasLLMNarrative}
+              llmModel={stats.userProfile.llmModel}
+            />
           ) : null}
 
-          {/* Section 3: Your Axes (the 6 signals) */}
+          {/* Section 3: Your Axes */}
+          {stats.userProfile && isVibeAxes(stats.userProfile.axes) ? (
+            <UnifiedAxesSection axes={stats.userProfile.axes} />
+          ) : null}
+
+          {/* Section 4: Evolution */}
+          <EvolutionSection
+            repoVcpCount={stats.completedJobs}
+            vibeShifts={shiftValue}
+            dominantVibe={dominantPersona ? dominantPersona.split(" ")[0] : null}
+            shiftHelper={recentLabels.length >= 2 ? shiftHelper : undefined}
+          />
+
+          {/* Section 5: Repo Breakdown */}
           {stats.userProfile ? (
-            <div className="border-t border-black/5 p-8 sm:p-10">
-              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500">
-                Your Axes
-              </p>
-              <p className="mt-1 text-sm text-zinc-600">
-                The 6 signals that define your AI-assisted engineering (vibe coding) style
-              </p>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {axisKeys.map((key) => {
-                  const axis = stats.userProfile?.axes[key];
-                  const meta = axisMeta[key];
-                  const score = axis?.score ?? 50;
-
-                  return (
-                    <div
-                      key={key}
-                      className="rounded-2xl border border-black/5 bg-zinc-50/50 p-4"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-zinc-900">{meta.name}</p>
-                          <p className="mt-0.5 text-xs text-zinc-500">{meta.description}</p>
-                        </div>
-                        <span className="text-xl font-bold text-zinc-900">{score}</span>
-                      </div>
-                      <div className="mt-3 h-1.5 w-full rounded-full bg-slate-100">
-                        <div
-                          className="h-1.5 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500"
-                          style={{ width: `${score}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <RepoBreakdownSection
+              repoPersonas={stats.userProfile.repoPersonas}
+              totalCommits={stats.userProfile.totalCommits}
+            />
           ) : null}
 
-          {/* Section 4: Evolution (shifts, trends) */}
-          <div className="border-t border-black/5 p-8 sm:p-10">
-            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500">
-              Evolution
-            </p>
-            <p className="mt-1 text-sm text-zinc-600">
-              How your vibe has developed over time
-            </p>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-black/5 bg-zinc-50/50 p-4 text-center">
-                <p className="text-3xl font-bold text-zinc-900">{stats.completedJobs}</p>
-                <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
-                  Repo VCPs
-                </p>
-              </div>
-              <div className="rounded-2xl border border-black/5 bg-zinc-50/50 p-4 text-center">
-                <p className="text-3xl font-bold text-zinc-900">{shiftValue}</p>
-                <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
-                  Vibe shifts
-                </p>
-              </div>
-              <div className="rounded-2xl border border-black/5 bg-zinc-50/50 p-4 text-center">
-                <p className="text-3xl font-bold text-zinc-900">
-                  {dominantPersona ? dominantPersona.split(" ")[0] : "—"}
-                </p>
-                <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
-                  Dominant vibe
-                </p>
-              </div>
-            </div>
-
-            {recentLabels.length >= 2 ? (
-              <p className="mt-4 text-xs text-zinc-500">
-                {shiftHelper}
-              </p>
-            ) : null}
-          </div>
-
-          {/* Section 5: Your Repos (breakdown) */}
-          {stats.userProfile && stats.userProfile.repoPersonas.length > 0 ? (
-            <div className="border-t border-black/5 p-8 sm:p-10">
-              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500">
-                Repo Breakdown
-              </p>
-              <p className="mt-1 text-sm text-zinc-600">
-                Each repo contributes to your profile, weighted by commits
-              </p>
-
-              <div className="mt-6 space-y-3">
-                {stats.userProfile.repoPersonas.map((repo, i) => {
-                  const percentage = Math.round(
-                    (repo.commitCount / (stats.userProfile?.totalCommits ?? 1)) * 100
-                  );
-                  return (
-                    <div
-                      key={`${repo.repoName}-${i}`}
-                      className="flex items-center gap-4"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <p className="truncate text-sm font-medium text-zinc-900">
-                            {repo.repoName}
-                          </p>
-                          <span className="ml-2 text-xs text-zinc-500">{percentage}%</span>
-                        </div>
-                        <div className="mt-1.5 h-1.5 w-full rounded-full bg-slate-100">
-                          <div
-                            className="h-1.5 rounded-full bg-gradient-to-r from-violet-400 to-indigo-400"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                        <p className="mt-1 text-xs text-zinc-500">
-                          {repo.personaName} · {repo.commitCount.toLocaleString()} commits
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {/* Section 6: How we got this (collapsible details) */}
-          {personaExplanation && stats.userProfile ? (
-            <div className="border-t border-black/5 p-8 sm:p-10">
-              <details>
-                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500 hover:text-zinc-700">
-                  How we got this
-                </summary>
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500">
-                      Matched signals
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {personaExplanation.matched_rules.length > 0 ? (
-                        personaExplanation.matched_rules.map((rule) => (
-                          <span
-                            key={rule}
-                            className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700"
-                          >
-                            {formatMatchedRule(rule)}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-sm text-zinc-600">
-                          Selected by nearest-fit across all signals
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
-                    {Object.entries(AXIS_LEGEND).map(([k, v]) => (
-                      <span key={k}>
-                        {k} = {v}
-                      </span>
-                    ))}
-                  </div>
-
-                  {personaExplanation.caveats.length > 0 ? (
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500">
-                        Caveats
-                      </p>
-                      <ul className="mt-2 space-y-1">
-                        {personaExplanation.caveats.map((caveat) => (
-                          <li key={caveat} className="text-sm text-zinc-600">
-                            • {caveat}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-
-                  <Link
-                    href="/methodology"
-                    className="inline-block text-xs font-semibold uppercase tracking-[0.3em] text-zinc-600 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-900"
-                  >
-                    View full methodology
-                  </Link>
-                </div>
-              </details>
-            </div>
+          {/* Section 6: Methodology */}
+          {personaExplanation && stats.userProfile && isVibeAxes(stats.userProfile.axes) ? (
+            <UnifiedMethodologySection
+              matchedRules={personaExplanation.matched_rules}
+              caveats={personaExplanation.caveats}
+            />
           ) : null}
 
           {/* Actions footer */}

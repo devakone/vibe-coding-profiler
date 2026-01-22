@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { computeAnalysisInsights } from "@vibed/core";
-import type { AnalysisInsights, AnalysisMetrics, CommitEvent, VibeAxes } from "@vibed/core";
+import type { AnalysisInsights, AnalysisMetrics, CommitEvent } from "@vibed/core";
 import { formatMetricLabel, formatMetricValue } from "@/lib/format-labels";
 import { computeShareCardMetrics } from "@/lib/vcp/metrics";
 import { isVibeAxes } from "@/lib/vcp/validators";
@@ -379,10 +379,6 @@ function fmtDate(iso: string | null): string {
   return d.toLocaleString();
 }
 
-
-function weekdayName(dow: number): string {
-  return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dow] ?? "—";
-}
 
 export default function AnalysisClient({ jobId }: { jobId: string }) {
   const [data, setData] = useState<ApiResponse | null>(null);
