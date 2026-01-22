@@ -1,8 +1,8 @@
 # Implementation Tracker: Information Architecture Restructure
 
 **PRD Reference:** `docs/prd/ux/information-architecture-restructure.md`  
-**Status:** Planning  
-**Last Updated:** 2026-01-21
+**Status:** In Progress  
+**Last Updated:** 2026-01-22
 
 ---
 
@@ -57,76 +57,76 @@ This tracker covers all implementation work for the Information Architecture Res
 
 ### F1. VCP Primitives
 
-**Status:** `[ ] Not Started`  
+**Status:** `[x] Complete`  
 **Depends on:** None  
 **Blocks:** F2, P1, P3
 
 | Task | Status | File(s) |
 |------|--------|---------|
-| Create `components/vcp/primitives/` directory | `[ ]` | — |
-| Implement `VCPCard` | `[ ]` | `VCPCard.tsx` |
-| Implement `VCPSection` | `[ ]` | `VCPSection.tsx` |
-| Implement `VCPSectionTitle` | `[ ]` | `VCPSectionTitle.tsx` |
-| Implement `VCPStatCard` | `[ ]` | `VCPStatCard.tsx` |
-| Implement `VCPProgressBar` | `[ ]` | `VCPProgressBar.tsx` |
-| Implement `VCPBadge` | `[ ]` | `VCPBadge.tsx` |
-| Implement `VCPCollapsible` | `[ ]` | `VCPCollapsible.tsx` |
-| Implement `VCPInsightBox` | `[ ]` | `VCPInsightBox.tsx` |
-| Create shared types | `[ ]` | `types.ts` |
-| Create constants (AXIS_METADATA, etc.) | `[ ]` | `constants.ts` |
-| Create barrel export | `[ ]` | `index.ts` |
+| Create `components/vcp/primitives/` directory | `[x]` | — |
+| Implement `VCPCard` | `[x]` | `primitives/VCPCard.tsx` |
+| Implement `VCPSection` | `[x]` | `primitives/VCPSection.tsx` |
+| Implement `VCPSectionTitle` | `[x]` | `primitives/VCPSectionTitle.tsx` |
+| Implement `VCPStatCard` | `[x]` | `primitives/VCPStatCard.tsx` |
+| Implement `VCPProgressBar` | `[x]` | `primitives/VCPProgressBar.tsx` |
+| Implement `VCPBadge` | `[x]` | `primitives/VCPBadge.tsx` |
+| Implement `VCPCollapsible` | `[x]` | `primitives/VCPCollapsible.tsx` |
+| Implement `VCPInsightBox` | `[x]` | `primitives/VCPInsightBox.tsx` |
+| Create shared types | `[x]` | `vcp/types.ts` |
+| Create constants (AXIS_METADATA, etc.) | `[x]` | `vcp/constants.ts` |
+| Create barrel export | `[x]` | `primitives/index.ts` |
 
 **Success Criteria:**
-- All primitives render correctly in isolation
-- Types are properly exported
-- Consistent styling matches PRD specifications
+- [x] All primitives render correctly in isolation
+- [x] Types are properly exported
+- [x] Consistent styling matches PRD specifications
 
 ---
 
 ### F2. VCP Composite Blocks
 
-**Status:** `[ ] Not Started`  
+**Status:** `[x] Complete`  
 **Depends on:** F1  
 **Blocks:** P1, P3
 
 | Task | Status | File(s) |
 |------|--------|---------|
-| Create `components/vcp/blocks/` directory | `[ ]` | — |
-| Implement `VCPIdentityHeader` | `[ ]` | `VCPIdentityHeader.tsx` |
-| Implement `VCPAxesGrid` | `[ ]` | `VCPAxesGrid.tsx` |
-| Implement `VCPStatsGrid` | `[ ]` | `VCPStatsGrid.tsx` |
-| Implement `VCPNarrativeSection` | `[ ]` | `VCPNarrativeSection.tsx` |
-| Implement `VCPMatchedSignals` | `[ ]` | `VCPMatchedSignals.tsx` |
-| Implement `VCPMethodologyLink` | `[ ]` | `VCPMethodologyLink.tsx` |
-| Implement `VCPVersionHistory` | `[ ]` | `VCPVersionHistory.tsx` |
-| Implement `VCPFooter` | `[ ]` | `VCPFooter.tsx` |
-| Create barrel export | `[ ]` | `index.ts` |
+| Create `components/vcp/blocks/` directory | `[x]` | — |
+| Implement `VCPIdentityHeader` | `[x]` | `blocks/VCPIdentityHeader.tsx` |
+| Implement `VCPAxesGrid` | `[x]` | `blocks/VCPAxesGrid.tsx` |
+| Implement `VCPStatsGrid` | `[x]` | `blocks/VCPStatsGrid.tsx` |
+| Implement `VCPNarrativeSection` | `[x]` | `blocks/VCPNarrativeSection.tsx` |
+| Implement `VCPMatchedSignals` | `[x]` | `blocks/VCPMatchedSignals.tsx` |
+| Implement `VCPMethodologyLink` | `[x]` | `blocks/VCPMethodologyLink.tsx` |
+| Implement `VCPVersionHistory` | `[x]` | `blocks/VCPVersionHistory.tsx` |
+| Implement `VCPFooter` | `[x]` | `blocks/VCPFooter.tsx` |
+| Create barrel export | `[x]` | `blocks/index.ts` |
 
 **Success Criteria:**
-- Blocks compose primitives correctly
-- `VCPVersionHistory` works for both Unified and Repo variants
-- All blocks accept proper TypeScript interfaces
+- [x] Blocks compose primitives correctly
+- [x] `VCPVersionHistory` works for both Unified and Repo variants
+- [x] All blocks accept proper TypeScript interfaces
 
 ---
 
 ### F3. Shared Utilities
 
-**Status:** `[ ] Not Started`  
+**Status:** `[x] Complete`  
 **Depends on:** None (can run parallel with F1/F2)  
 **Blocks:** P1, P5
 
 | Task | Status | File(s) |
 |------|--------|---------|
-| Implement `computeStrongestAxis()` | `[ ]` | `lib/vcp/metrics.ts` |
-| Implement `computeStyleDescriptor()` | `[ ]` | `lib/vcp/metrics.ts` |
-| Implement `computeRhythmLabel()` | `[ ]` | `lib/vcp/metrics.ts` |
-| Implement `computePeakLabel()` | `[ ]` | `lib/vcp/metrics.ts` |
+| Implement `computeStrongestAxis()` | `[x]` | `lib/vcp/metrics.ts` |
+| Implement `computeStyleDescriptor()` | `[x]` | `lib/vcp/metrics.ts` |
+| Implement `computeRhythmLabel()` | `[x]` | `lib/vcp/metrics.ts` |
+| Implement `computePeakLabel()` | `[x]` | `lib/vcp/metrics.ts` |
 | Add unit tests for metric functions | `[ ]` | `__tests__/metrics.test.ts` |
 
 **Success Criteria:**
-- All metric computation functions work correctly
-- Edge cases handled (missing data, null values)
-- Tests pass
+- [x] All metric computation functions work correctly
+- [x] Edge cases handled (missing data, null values)
+- [ ] Tests pass (tests not yet written)
 
 ---
 
@@ -345,9 +345,9 @@ This tracker covers all implementation work for the Information Architecture Res
 
 | Phase | Tasks | Completed | Status |
 |-------|-------|-----------|--------|
-| F1: VCP Primitives | 12 | 0 | `[ ] Not Started` |
-| F2: VCP Composite Blocks | 10 | 0 | `[ ] Not Started` |
-| F3: Shared Utilities | 5 | 0 | `[ ] Not Started` |
+| F1: VCP Primitives | 12 | 12 | `[x] Complete` |
+| F2: VCP Composite Blocks | 10 | 10 | `[x] Complete` |
+| F3: Shared Utilities | 5 | 4 | `[~] In Progress` |
 | P1: ShareCard Redesign | 7 | 0 | `[ ] Not Started` |
 | P2: Navigation & Routes | 8 | 0 | `[ ] Not Started` |
 | P3: VCP Display Unification | 11 | 0 | `[ ] Not Started` |
@@ -357,7 +357,7 @@ This tracker covers all implementation work for the Information Architecture Res
 | X1: Migration & Redirects | 5 | 0 | `[ ] Not Started` |
 | X2: Polish & Testing | 7 | 0 | `[ ] Not Started` |
 | X3: Documentation | 5 | 0 | `[ ] Not Started` |
-| **Total** | **88** | **0** | **0%** |
+| **Total** | **88** | **26** | **30%** |
 
 ---
 
@@ -367,3 +367,12 @@ This tracker covers all implementation work for the Information Architecture Res
 - P1-P6 can run in parallel once dependencies are met
 - P6 (LLM Tagline) is a backend task that can start early
 - X1/X2/X3 are finalization steps after parallel work completes
+
+---
+
+## Changelog
+
+### 2026-01-22
+- **F1 Complete:** Implemented all VCP primitives (VCPCard, VCPSection, VCPStatCard, VCPProgressBar, VCPBadge, VCPCollapsible, VCPInsightBox)
+- **F2 Complete:** Implemented all composite blocks (VCPIdentityHeader, VCPAxesGrid, VCPStatsGrid, VCPNarrativeSection, VCPMatchedSignals, VCPMethodologyLink, VCPFooter, VCPVersionHistory)
+- **F3 In Progress:** Implemented metric utilities (computeStrongestAxis, computeStyleDescriptor, computeRhythmLabel, computePeakLabel, analyzePeakWindow). Unit tests pending.
