@@ -1,6 +1,6 @@
 {
   "name": "vibed-coding",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.2",
   "private": true,
   "workspaces": [
     "apps/*",
