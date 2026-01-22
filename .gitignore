@@ -41,6 +41,9 @@ supabase/.temp/
 CLAUDE.local.md
 .claude/settings.local.json
 
+# Personal workflow
+docs/WorkflowJournal.md
+
 # OS
 .DS_Store
 Thumbs.db
