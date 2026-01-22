@@ -113,6 +113,15 @@ Non-LLM users should get a great experience. LLM adds flavor but isn't required 
 
 **Share Card Design:**
 
+The ShareCard displays **computed metrics** derived from the 6 vibe axes, designed to be engaging and curiosity-inducing:
+
+| Metric | Description | Example Values |
+|--------|-------------|----------------|
+| **Strongest** | Highest-scoring axis + score | "Automation 78", "Planning 85" |
+| **Style** | 2-word descriptor from axis combo | "Fast Builder", "Careful Planner" |
+| **Rhythm** | Shipping pattern from bursty/steady | "Bursty", "Steady", "Mixed" |
+| **Peak** | Most active time of day | "Mornings", "Afternoons", "Evenings", "Night Owl" |
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  ┌─────────────────────────────────────────────────────────┐    │
@@ -123,18 +132,25 @@ Non-LLM users should get a great experience. LLM adds flavor but isn't required 
 │  │  🎭 The Vibe Prototyper                                │    │
 │  │  "You build to think — code is your sketchpad"         │    │
 │  │                                                         │    │
+│  │  ┌─────────────────────────────────────────────────┐   │    │
+│  │  │ [LLM-generated tagline if available]            │   │    │
+│  │  └─────────────────────────────────────────────────┘   │    │
+│  │                                                         │    │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │    │
-│  │  │ 23 days  │ │ Friday   │ │ Focused  │ │ 2.1:1    │   │    │
-│  │  │ Streak   │ │ 4-7pm    │ │ Surgeon  │ │ Build/Fix│   │    │
+│  │  │Automation│ │   Fast   │ │  Bursty  │ │Afternoons│   │    │
+│  │  │    78    │ │ Builder  │ │          │ │          │   │    │
+│  │  │ STRONGEST│ │  STYLE   │ │  RHYTHM  │ │   PEAK   │   │    │
 │  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘   │    │
 │  │                                                         │    │
-│  │  847 commits · 42 active days · vibecoding.profile           │    │
+│  │  vibed.dev                  3 repos · 1,245 commits    │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                  │
 │  [Copy text] [Copy link] [Download PNG ▾] [Twitter] [LinkedIn]  │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Note:** These ShareCard metrics are different from the 6 vibe axes displayed in the full VCP detail view. The axes (Automation, Guardrails, Iteration, Planning, Surface, Rhythm) show raw scores; the ShareCard metrics are computed summaries designed for quick scanning and social sharing.
 
 **Requirements:**
 - [ ] Share card is the first thing users see after analysis completes
@@ -215,22 +231,23 @@ The profile page should have a share card that aggregates across all repos.
 │  ┌─────────────────────────────────────────────────────────┐    │
 │  │  [Gradient background]                                   │    │
 │  │                                                         │    │
-│  │  MY UNIFIED VCP                                │    │
+│  │  MY UNIFIED VCP                                         │    │
 │  │                                                         │    │
 │  │  🎭 The Vibe Prototyper                                │    │
 │  │  "You build to think — code is your sketchpad"         │    │
 │  │  High confidence                                        │    │
 │  │                                                         │    │
-│  │  ┌──────────────────────────────────────────────────┐   │    │
-│  │  │ 5 repos · 2,341 commits · 78% clarity            │   │    │
-│  │  └──────────────────────────────────────────────────┘   │    │
+│  │  ┌─────────────────────────────────────────────────┐   │    │
+│  │  │ [LLM-generated tagline if available]            │   │    │
+│  │  └─────────────────────────────────────────────────┘   │    │
 │  │                                                         │    │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐               │    │
-│  │  │ Automation│ │ Guardrails│ │ Rhythm   │               │    │
-│  │  │    72     │ │    45     │ │   68     │               │    │
-│  │  └──────────┘ └──────────┘ └──────────┘               │    │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │    │
+│  │  │Automation│ │   Fast   │ │  Bursty  │ │Afternoons│   │    │
+│  │  │    78    │ │ Builder  │ │          │ │          │   │    │
+│  │  │ STRONGEST│ │  STYLE   │ │  RHYTHM  │ │   PEAK   │   │    │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘   │    │
 │  │                                                         │    │
-│  │  vibecoding.profile                                           │    │
+│  │  vibed.dev                  5 repos · 2,341 commits    │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                  │
 │  [Copy text] [Copy link] [Download PNG ▾] [Twitter] [LinkedIn]  │
@@ -240,7 +257,9 @@ The profile page should have a share card that aggregates across all repos.
 
 **Requirements:**
 - [ ] Profile page has a share card as prominent as repo analysis
-- [ ] Card includes: persona, tagline, confidence, repo count, commit count, top 3 axes
+- [ ] Card displays new ShareCard metrics: Strongest, Style, Rhythm, Peak
+- [ ] Optional LLM-generated tagline row between header and metrics
+- [ ] Footer shows `vibed.dev` branding + repo/commit context
 - [ ] Same share actions as repo analysis page
 - [ ] Card is designed to look good when shared
 
@@ -484,12 +503,15 @@ function createShareSvg(
 │  │  "You build to think — code is your sketchpad"           │  │
 │  │  78% confidence                                           │  │
 │  │                                                           │  │
+│  │  [Optional LLM tagline row]                              │  │
+│  │                                                           │  │
 │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐        │  │
-│  │  │23 days  │ │ Friday  │ │ Focused │ │ 2.1:1   │        │  │
-│  │  │ Streak  │ │ 4-7pm   │ │ Surgeon │ │Build/Fix│        │  │
+│  │  │Automaton│ │  Fast   │ │ Bursty  │ │Afternons│        │  │
+│  │  │   78    │ │ Builder │ │         │ │         │        │  │
+│  │  │STRONGEST│ │  STYLE  │ │  RHYTHM │ │  PEAK   │        │  │
 │  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘        │  │
 │  │                                                           │  │
-│  │  acme/dashboard · 847 commits · vibed.coding             │  │
+│  │  vibed.dev                  1 repo · 847 commits         │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                  │
 │  ┌───────────────────────────────────────────────────────────┐  │
@@ -532,14 +554,15 @@ function createShareSvg(
 │  │  "You build to think — code is your sketchpad"           │  │
 │  │  High confidence                                          │  │
 │  │                                                           │  │
-│  │  5 repos · 2,341 commits · 78% clarity                   │  │
+│  │  [Optional LLM tagline row]                              │  │
 │  │                                                           │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐                  │  │
-│  │  │Automation│ │Guardrails│ │  Rhythm  │                  │  │
-│  │  │    72    │ │    45    │ │    68    │                  │  │
-│  │  └──────────┘ └──────────┘ └──────────┘                  │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐    │  │
+│  │  │Automation│ │   Fast   │ │  Bursty  │ │Afternoons│    │  │
+│  │  │    72    │ │ Builder  │ │          │ │          │    │  │
+│  │  │ STRONGEST│ │  STYLE   │ │  RHYTHM  │ │   PEAK   │    │  │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘    │  │
 │  │                                                           │  │
-│  │  vibecoding.profile                                             │  │
+│  │  vibed.dev                  5 repos · 2,341 commits      │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                  │
 │  ┌───────────────────────────────────────────────────────────┐  │
@@ -611,6 +634,74 @@ apps/web/src/app/analysis/[jobId]/AnalysisClient.tsx
 apps/web/src/app/page.tsx
 └── Uses <ShareCard> and <ShareActions>
 ```
+
+---
+
+## Appendix B: ShareCard Metrics Specification
+
+### Overview
+
+The ShareCard displays **4 computed metrics** derived from the 6 vibe axes. These metrics are designed to be:
+- **Engaging**: Spark curiosity and conversation
+- **Glanceable**: Understood in < 3 seconds
+- **Unique**: Reflect individual vibe coding style, not generic stats
+
+### Metric Definitions
+
+| Metric | Label | Computation | Example Output |
+|--------|-------|-------------|----------------|
+| **Strongest** | `STRONGEST` | Highest-scoring axis name + score | "Automation 78" |
+| **Style** | `STYLE` | 2-word descriptor from axis combo | "Fast Builder" |
+| **Rhythm** | `RHYTHM` | Shipping pattern from `shipping_rhythm` axis | "Bursty", "Steady", "Mixed" |
+| **Peak** | `PEAK` | Most active time of day (from commit timing) | "Mornings", "Afternoons", "Evenings", "Night Owl" |
+
+### Style Descriptor Logic
+
+The "Style" metric combines the top 2 axes to generate a 2-word descriptor:
+
+| Top Axis | Secondary Axis | Style Descriptor |
+|----------|----------------|------------------|
+| automation_heaviness | iteration_loop_intensity | "Fast Builder" |
+| automation_heaviness | planning_signal | "Prompt Architect" |
+| guardrail_strength | planning_signal | "Careful Planner" |
+| planning_signal | surface_area_per_change | "Methodical Architect" |
+| iteration_loop_intensity | guardrail_strength | "Iterative Validator" |
+| *any other* | *any other* | "Balanced Builder" |
+
+### Rhythm Label Logic
+
+| Shipping Rhythm Score | Label |
+|-----------------------|-------|
+| >= 65 | "Bursty" |
+| <= 35 | "Steady" |
+| 36-64 | "Mixed" |
+
+### Peak Time Logic
+
+Based on the most common commit hour:
+| Hour Range | Label |
+|------------|-------|
+| 5am - 11am | "Mornings" |
+| 12pm - 4pm | "Afternoons" |
+| 5pm - 8pm | "Evenings" |
+| 9pm - 4am | "Night Owl" |
+
+### Implementation
+
+These metrics are computed in `apps/web/src/lib/vcp/metrics.ts`:
+
+```typescript
+import { computeShareCardMetrics } from "@/lib/vcp/metrics";
+
+const metrics = computeShareCardMetrics(axes);
+// Returns: { strongest: "Automation 78", style: "Fast Builder", rhythm: "Bursty", peak: "Afternoons" }
+```
+
+### Footer Content
+
+The ShareCard footer displays:
+- **Left**: `vibed.dev` (brand)
+- **Right**: `{N} repos · {M} commits` (context)
 
 ---
 

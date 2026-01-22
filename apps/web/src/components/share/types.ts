@@ -5,6 +5,7 @@
 export interface ShareCardMetric {
   label: string;
   value: string;
+  detail?: string;
 }
 
 export interface ShareCardColors {
@@ -39,6 +40,8 @@ export interface ShareCardProps {
   avatarUrl?: string | null;
   /** Optional header label override */
   headerLabel?: string;
+  /** Optional tagline row (placed between header and metrics) */
+  tagline?: string | null;
 }
 
 export interface ShareActionsProps {

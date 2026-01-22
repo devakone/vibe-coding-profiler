@@ -23,8 +23,8 @@ export default function AppHeader(props: {
 
   const baseLinks = props.isAuthed
     ? [
-        { href: "/", label: "My Vibe" },
-        { href: "/vibes", label: "Vibes" },
+        { href: "/", label: "My VCP" },
+        { href: "/vibes", label: "Repo VCPs" },
         { href: "/settings/repos", label: "Settings" },
         { href: "/methodology", label: "Methodology" },
         { href: "/security", label: "Security" },

@@ -7,7 +7,7 @@ import VibesClient from "./VibesClient";
 export const runtime = "nodejs";
 
 export const metadata = {
-  title: "Vibes · Vibe Coding Profile",
+  title: "Repo VCPs · Vibe Coding Profile",
   description: "View your Vibe Coding Profiles organized by repository",
 };
 
@@ -153,10 +153,10 @@ export default async function VibesPage() {
         <header className="flex items-start justify-between gap-4">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-600">
-              Your Vibes
+              Repo VCPs
             </p>
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
-              Vibe Coding Profiles
+              Vibe Coding Profiles by Repo
             </h1>
             <p className="text-sm text-zinc-700 sm:text-base">
               Your VCPs organized by repository. Expand to see version history.

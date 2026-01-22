@@ -3,8 +3,15 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { computeAnalysisInsights } from "@vibed/core";
-import type { AnalysisInsights, AnalysisMetrics, CommitEvent } from "@vibed/core";
+import type {
+  AnalysisInsights,
+  AnalysisMetrics,
+  CommitEvent,
+  Level,
+  VibeAxes,
+} from "@vibed/core";
 import { formatMetricLabel, formatMetricValue } from "@/lib/format-labels";
+import { computeShareCardMetrics } from "@/lib/vcp/metrics";
 import { ShareCard, ShareActions } from "@/components/share";
 import type { ShareImageTemplate, ShareCardMetric } from "@/components/share";
 
@@ -25,6 +32,7 @@ type ApiResponse = {
   insights: unknown | null;
   profileContribution?: unknown | null;
   userAvatarUrl?: string | null;
+  vibeInsights?: VibeInsightsRow | null;
 };
 
 type StoryMeta = {
@@ -84,6 +92,15 @@ type InsightsRow = {
   insights_json?: unknown;
   generator_version?: string;
   generated_at?: string;
+};
+
+type VibeInsightsRow = {
+  axes_json: unknown;
+  persona_id: string;
+  persona_name: string;
+  persona_tagline: string | null;
+  persona_confidence: string;
+  persona_score: number | null;
 };
 
 type InsightHistoryEntry = {
@@ -161,6 +178,47 @@ function isNarrativeJson(v: unknown): v is NarrativeJson {
     }
   }
 
+  return true;
+}
+
+const VIBE_AXIS_KEYS: (keyof VibeAxes)[] = [
+  "automation_heaviness",
+  "guardrail_strength",
+  "iteration_loop_intensity",
+  "planning_signal",
+  "surface_area_per_change",
+  "shipping_rhythm",
+] as const;
+
+function isAxisValue(v: unknown): v is { score: number; level: Level; why: string[] } {
+  if (!isRecord(v)) return false;
+  const score = v.score;
+  const level = v.level;
+  const why = v.why;
+  if (typeof score !== "number") return false;
+  if (typeof level !== "string") return false;
+  if (!Array.isArray(why)) return false;
+  return why.every((item) => typeof item === "string");
+}
+
+function isVibeAxes(v: unknown): v is VibeAxes {
+  if (!isRecord(v)) return false;
+  for (const key of VIBE_AXIS_KEYS) {
+    const axisValue = (v as Record<string, unknown>)[key];
+    if (!isAxisValue(axisValue)) return false;
+  }
+  return true;
+}
+
+function isVibeInsightsRow(v: unknown): v is VibeInsightsRow {
+  if (!isRecord(v)) return false;
+  if (!isVibeAxes(v.axes_json)) return false;
+  if (typeof v.persona_id !== "string") return false;
+  if (typeof v.persona_name !== "string") return false;
+  if (typeof v.persona_confidence !== "string") return false;
+  const tagline = v.persona_tagline;
+  if (tagline !== null && typeof tagline !== "string") return false;
+  if (typeof v.persona_score !== "number" && v.persona_score !== null) return false;
   return true;
 }
 
@@ -409,6 +467,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
   const parsedReport = data && isReportRow(data.report) ? data.report : null;
   const parsedMetrics = data && isMetricsRow(data.metrics) ? data.metrics : null;
   const parsedInsightsRow = data && isInsightsRow(data.insights) ? data.insights : null;
+  const parsedVibeInsights = data && isVibeInsightsRow(data.vibeInsights) ? data.vibeInsights : null;
   const profileContribution =
     data && isProfileContribution(data.profileContribution) ? data.profileContribution : null;
 
@@ -454,48 +513,45 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
   }, [shareTemplate]);
 
   // Build share template for ShareActions component
+  // Build metrics for ShareCard
+  const shareCardMetrics: ShareCardMetric[] = useMemo(() => {
+    if (parsedVibeInsights && isVibeAxes(parsedVibeInsights.axes_json)) {
+      const axes = parsedVibeInsights.axes_json;
+      const peakWindow = isAnalysisInsights(insightsJson)
+        ? insightsJson.timing.peak_window
+        : null;
+      const computed = computeShareCardMetrics(axes, peakWindow ?? null);
+      return [
+        { label: "Strongest", value: computed.strongest },
+        { label: "Style", value: computed.style },
+        { label: "Rhythm", value: computed.rhythm },
+        { label: "Peak", value: computed.peak },
+      ];
+    }
+
+    const chunkinessLabel = wrapped.chunkiness.label
+      ? `${wrapped.chunkiness.label.charAt(0).toUpperCase()}${wrapped.chunkiness.label.slice(1)}`
+      : "Balanced";
+    const peakWindowLabel = wrapped.timing.peak_window
+      ? formatMetricLabel(wrapped.timing.peak_window)
+      : "Varied";
+    return [
+      { label: "Strongest", value: persona?.label ?? "Vibe coder" },
+      { label: "Style", value: chunkinessLabel },
+      { label: "Rhythm", value: peakWindowLabel },
+      { label: "Peak", value: peakWindowLabel },
+    ];
+  }, [persona, parsedVibeInsights, wrapped, insightsJson]);
+
   const shareImageTemplate: ShareImageTemplate | null = shareTemplate
     ? {
         colors: shareTemplate.colors,
         headline: shareTemplate.headline,
         subhead: shareTemplate.subhead,
-        metrics: shareTemplate.metrics,
+        metrics: shareCardMetrics,
         persona_archetype: shareTemplate.persona_archetype,
       }
     : null;
-
-  // Build metrics for ShareCard
-  const shareCardMetrics: ShareCardMetric[] = useMemo(() => {
-    const metrics: ShareCardMetric[] = [];
-    metrics.push({
-      label: "Longest Streak",
-      value: `${wrapped.streak.longest_days} day${wrapped.streak.longest_days === 1 ? "" : "s"}`,
-    });
-    if (wrapped.timing.peak_window) {
-      metrics.push({
-        label: "Peak Window",
-        value: formatMetricLabel(wrapped.timing.peak_window),
-      });
-    }
-    metrics.push({
-      label: "Commit Style",
-      value: wrapped.chunkiness.label ?? "—",
-    });
-    if (wrapped.commits.features_per_fix !== null) {
-      metrics.push({
-        label: "Feature / Fix",
-        value: `${formatMetricValue(wrapped.commits.features_per_fix, 1)} : 1`,
-      });
-    } else if (wrapped.commits.fixes_per_feature !== null) {
-      metrics.push({
-        label: "Feature / Fix",
-        value: `1 : ${formatMetricValue(wrapped.commits.fixes_per_feature, 1)}`,
-      });
-    } else {
-      metrics.push({ label: "Feature / Fix", value: "Balanced" });
-    }
-    return metrics;
-  }, [wrapped]);
 
   const triggerProfileRebuild = async () => {
     setRebuildingProfile(true);
@@ -770,11 +826,14 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                 }}
                 metrics={shareCardMetrics}
                 footer={{
-                  left: shareOrigin ? new URL(shareOrigin).hostname : "vibed.dev",
+                  left: process.env.NEXT_PUBLIC_APP_URL
+                    ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname
+                    : "vibed.dev",
                   right: `${wrapped.totals.commits} commits${metricsJson?.active_days ? ` · ${metricsJson.active_days} active days` : ""}`,
                 }}
                 colors={shareTemplate.colors}
                 avatarUrl={data?.userAvatarUrl}
+                tagline={shareTemplate.subhead ?? persona.description}
               />
               <ShareActions
                 shareUrl={shareUrl}

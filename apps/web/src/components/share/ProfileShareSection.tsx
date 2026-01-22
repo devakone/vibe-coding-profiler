@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
+import { computeShareCardMetrics } from "@/lib/vcp/metrics";
+import type { VibeAxes } from "@vibed/core";
 import { ShareCard, ShareActions } from "./index";
 import type { ShareCardMetric, ShareImageTemplate } from "./types";
 
@@ -59,6 +61,7 @@ interface ProfileShareSectionProps {
     score: number;
   }>;
   insight: string;
+  axes: VibeAxes;
 }
 
 export function ProfileShareSection({
@@ -71,23 +74,21 @@ export function ProfileShareSection({
   clarity,
   topAxes,
   insight,
+  axes,
 }: ProfileShareSectionProps) {
   const shareOrigin = useOrigin();
 
   const colors = PERSONA_COLORS[personaId ?? ""] ?? DEFAULT_COLORS;
 
   const shareCardMetrics: ShareCardMetric[] = useMemo(() => {
-    const metrics: ShareCardMetric[] = [
-      { label: "Repos", value: String(totalRepos) },
-      { label: "Commits", value: totalCommits.toLocaleString() },
-      { label: "Clarity", value: `${clarity}%` },
+    const computed = computeShareCardMetrics(axes);
+    return [
+      { label: "Strongest", value: computed.strongest },
+      { label: "Style", value: computed.style },
+      { label: "Rhythm", value: computed.rhythm },
+      { label: "Peak", value: computed.peak },
     ];
-    // Add top axis if available
-    if (topAxes.length > 0) {
-      metrics.push({ label: topAxes[0].name, value: String(topAxes[0].score) });
-    }
-    return metrics;
-  }, [totalRepos, totalCommits, clarity, topAxes]);
+  }, [axes]);
 
   const shareUrl = useMemo(() => {
     if (!shareOrigin) return "";
@@ -126,9 +127,12 @@ export function ProfileShareSection({
           tagline: personaTagline ?? insight,
           confidence: personaConfidence,
         }}
+        tagline={insight}
         metrics={shareCardMetrics}
         footer={{
-          left: shareOrigin ? new URL(shareOrigin).hostname : "vibed.dev",
+          left: process.env.NEXT_PUBLIC_APP_URL
+            ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname
+            : "vibed.dev",
           right: `${totalRepos} repos · ${totalCommits.toLocaleString()} commits`,
         }}
         colors={colors}

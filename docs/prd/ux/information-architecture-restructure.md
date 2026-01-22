@@ -323,8 +323,20 @@ Terminology update:
 Both Repo Vibe and Unified Vibe share cards should use:
 - Same persona color palette
 - Same axes visualization (radar chart or bars)
-- Same metrics terminology
 - Same share card structure (with variant flag for context)
+
+### 4.3 ShareCard Metrics
+
+The ShareCard displays **computed metrics** (not raw axes):
+
+| Metric | Description | Example |
+|--------|-------------|---------|
+| **Strongest** | Highest-scoring axis + score | "Automation 78" |
+| **Style** | 2-word descriptor from axis combo | "Fast Builder" |
+| **Rhythm** | Shipping pattern label | "Bursty", "Steady" |
+| **Peak** | Most active time of day | "Afternoons", "Night Owl" |
+
+See `docs/prd/ux/share-experience-improvements.md` Appendix B for detailed computation logic.
 
 ---
 

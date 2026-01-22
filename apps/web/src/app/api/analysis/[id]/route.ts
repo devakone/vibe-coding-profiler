@@ -321,6 +321,14 @@ export async function GET(
       .eq("job_id", id)
       .single();
 
+    const { data: v } = await (supabase as unknown as SupabaseQueryLike)
+      .from("vibe_insights")
+      .select(
+        "job_id, axes_json, persona_id, persona_name, persona_tagline, persona_confidence, persona_score, cards_json"
+      )
+      .eq("job_id", id)
+      .single();
+
     report = r ?? null;
     metrics = m ?? null;
     insights = i ?? null;
@@ -375,7 +383,48 @@ export async function GET(
       profilePersonaName: typeof profile?.persona_name === "string" ? profile.persona_name : null,
       profileUpdatedAt: profile?.updated_at ?? null,
     };
+
+    const computedVibeInsights = (() => {
+      if (v && typeof v === "object") {
+        return v as VibeInsightsRow;
+      }
+      const metricsWithEvents = m as { events_json?: unknown } | null;
+      if (metricsWithEvents && Array.isArray(metricsWithEvents.events_json)) {
+        const commits = toCommitEvents(metricsWithEvents.events_json);
+        if (!commits) return null;
+        const computed = computeVibeFromCommits({ commits, episodeGapHours: 4 });
+        return {
+          job_id: id,
+          axes_json: computed.axes,
+          persona_id: computed.persona.id,
+          persona_name: computed.persona.name,
+          persona_tagline: computed.persona.tagline,
+          persona_confidence: computed.persona.confidence,
+          persona_score: computed.persona.score,
+          cards_json: computed.cards,
+        };
+      }
+      return null;
+    })();
+
+    return NextResponse.json({
+      job,
+      report,
+      metrics,
+      insights,
+      profileContribution,
+      userAvatarUrl,
+      vibeInsights: computedVibeInsights,
+    });
   }
 
-  return NextResponse.json({ job, report, metrics, insights, profileContribution, userAvatarUrl });
+  return NextResponse.json({
+    job,
+    report,
+    metrics,
+    insights,
+    profileContribution,
+    userAvatarUrl,
+    vibeInsights: null,
+  });
 }

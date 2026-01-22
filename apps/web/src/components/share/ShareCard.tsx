@@ -19,6 +19,7 @@ export function ShareCard({
   colors,
   avatarUrl,
   headerLabel,
+  tagline,
 }: ShareCardProps) {
   const defaultHeader = variant === "profile" ? "My Unified VCP" : "My Repo VCP";
   const header = headerLabel ?? defaultHeader;
@@ -86,16 +87,27 @@ export function ShareCard({
           </div>
         </div>
 
+        {tagline ? (
+          <div className="mt-5 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white/80 backdrop-blur">
+            {tagline}
+          </div>
+        ) : null}
+
         {/* Metrics Grid */}
-        <div className={`mt-6 grid gap-4 ${metrics.length <= 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {metrics.slice(0, 4).map((metric, idx) => (
             <div key={`${metric.label}-${idx}`} className="rounded-2xl bg-white/10 p-4 backdrop-blur">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.4em] text-white/60">
                 {metric.label}
               </p>
-              <p className="mt-1 text-2xl font-bold text-white">
+              <p className="mt-2 text-2xl font-bold text-white">
                 {metric.value}
               </p>
+              {metric.detail ? (
+                <p className="mt-1 text-sm text-white/70">
+                  {metric.detail}
+                </p>
+              ) : null}
             </div>
           ))}
         </div>
