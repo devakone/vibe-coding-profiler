@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/devakone/vibe-coding-profiler/compare/worker-v0.1.1...worker-v0.1.2) (2026-01-22)
+
+
+### Features
+
+* **web:** enhance sharing features with LLM-generated taglines ([ef3b589](https://github.com/devakone/vibe-coding-profiler/commit/ef3b589a6cdf71485c2ebef11f20a4692a49be13))
+
 ## [0.1.1](https://github.com/devakone/vibed-coding/compare/worker-v0.1.0...worker-v0.1.1) (2026-01-20)
 
 
