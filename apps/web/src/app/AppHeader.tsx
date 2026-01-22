@@ -44,8 +44,8 @@ export default function AppHeader(props: {
 
   return (
     <header className="sticky top-0 z-50 bg-white/75 backdrop-blur">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500" />
-      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-amber-400 via-fuchsia-500 to-cyan-500 opacity-70" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-violet-500 to-indigo-500" />
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-violet-400 via-indigo-400 to-violet-400 opacity-50" />
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4 sm:px-10 lg:px-20">
         <div className="flex items-center gap-6">
           <Link
@@ -67,17 +67,17 @@ export default function AppHeader(props: {
                   href={l.href}
                   className={
                     isActive
-                      ? "relative rounded-full bg-gradient-to-r from-fuchsia-500/15 via-indigo-500/15 to-cyan-500/15 px-4 py-1.5 font-semibold text-zinc-950"
+                      ? "relative rounded-full bg-violet-100 px-4 py-1.5 font-semibold text-violet-900"
                       : wrappedTheme.pillLink
                   }
                 >
                   {isActive && (
-                    <span className="absolute inset-x-0 -bottom-[17px] mx-auto h-0.5 w-8 rounded-full bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500" />
+                    <span className="absolute inset-x-0 -bottom-[17px] mx-auto h-0.5 w-8 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500" />
                   )}
                   <span className="inline-flex items-center gap-1.5">
                     {l.label}
                     {showBadge && (
-                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500 px-1.5 text-[10px] font-bold text-white">
+                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-1.5 text-[10px] font-bold text-white">
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
                     )}
@@ -100,7 +100,7 @@ export default function AppHeader(props: {
           ) : (
             <Link
               href="/login"
-              className="rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
+              className="rounded-full bg-gradient-to-r from-violet-600 to-indigo-500 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
             >
               Sign in
             </Link>

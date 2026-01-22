@@ -181,7 +181,7 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
                             {r.repoName ?? "Repository"}
                           </p>
                           {isUnread && (
-                            <span className="inline-flex h-2 w-2 rounded-full bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500" />
+                            <span className="inline-flex h-2 w-2 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500" />
                           )}
                         </div>
                         <p className="mt-1 text-xs text-zinc-600">

@@ -893,7 +893,7 @@ function MarketingLanding() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-black/5 bg-gradient-to-br from-fuchsia-200/70 via-indigo-200/60 to-cyan-200/70 p-8 shadow-[0_25px_80px_rgba(2,6,23,0.06)]">
+          <section className="rounded-3xl border border-black/5 bg-gradient-to-br from-violet-100/80 via-indigo-100/70 to-violet-50/80 p-8 shadow-[0_25px_80px_rgba(30,27,75,0.06)]">
             <h2 className="text-2xl font-semibold text-zinc-950">How it works</h2>
             <div className="mt-6 grid gap-4">
               {timeline.map((step) => (
@@ -932,7 +932,7 @@ function MarketingLanding() {
                 key={card.title}
                 className="rounded-2xl border border-black/5 bg-white p-6 shadow-sm"
               >
-                <div className="h-1.5 w-12 rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600" />
+                <div className="h-1.5 w-12 rounded-full bg-gradient-to-r from-violet-600 to-indigo-500" />
                 <p className="mt-4 text-sm font-semibold text-zinc-950">{card.title}</p>
                 <p className="mt-2 text-sm text-zinc-800">{card.description}</p>
               </div>
@@ -1146,8 +1146,8 @@ function AuthenticatedDashboard({
         {/* Unified Profile Card */}
         <div className="overflow-hidden rounded-[2.5rem] border border-black/5 bg-white shadow-[0_30px_120px_rgba(2,6,23,0.08)]">
           {/* Section 1: Identity */}
-          <div className="relative bg-gradient-to-br from-fuchsia-500/10 via-indigo-500/5 to-cyan-500/10 p-8 sm:p-10">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(236,72,153,0.08),transparent_50%)]" />
+          <div className="relative bg-gradient-to-br from-violet-500/8 via-indigo-500/5 to-violet-500/8 p-8 sm:p-10">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.06),transparent_50%)]" />
             <div className="relative">
               <div className="flex items-start justify-between gap-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500">
@@ -1223,41 +1223,43 @@ function AuthenticatedDashboard({
             </div>
           </div>
 
-          {/* Section 2: Insight (the juicy synthesis) */}
+          {/* Section 2: Insight (the juicy synthesis) - now uses purple left border style */}
           {stats.userProfile ? (
-            <div className="border-t border-black/5 bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-8 py-6 sm:px-10">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-white/70">
-                  Insight
+            <div className="border-t border-black/5 px-8 py-6 sm:px-10">
+              <div className="rounded-xl border-l-4 border-l-violet-500 bg-violet-50 px-5 py-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-600">
+                    Insight
+                  </p>
+                  {hasLLMNarrative && stats.userProfile.llmModel ? (
+                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-600">
+                      AI-generated
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-2 text-base font-medium leading-relaxed text-slate-800 sm:text-lg">
+                  {crossRepoInsight}
                 </p>
-                {hasLLMNarrative && stats.userProfile.llmModel ? (
-                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white/80">
-                    AI-generated
-                  </span>
+                {narrativeParagraphs.length > 0 ? (
+                  <div className="mt-4 space-y-3">
+                    {narrativeParagraphs.map((paragraph, idx) => (
+                      <p key={idx} className="text-sm leading-relaxed text-slate-700">
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+                {narrativeHighlights.length > 0 ? (
+                  <ul className="mt-4 space-y-1">
+                    {narrativeHighlights.map((highlight, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
+                        <span className="mt-1 text-violet-400">•</span>
+                        <span>{highlight}</span>
+                      </li>
+                    ))}
+                  </ul>
                 ) : null}
               </div>
-              <p className="mt-2 text-base font-medium leading-relaxed text-white sm:text-lg">
-                {crossRepoInsight}
-              </p>
-              {narrativeParagraphs.length > 0 ? (
-                <div className="mt-4 space-y-3">
-                  {narrativeParagraphs.map((paragraph, idx) => (
-                    <p key={idx} className="text-sm leading-relaxed text-white/90">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              ) : null}
-              {narrativeHighlights.length > 0 ? (
-                <ul className="mt-4 space-y-1">
-                  {narrativeHighlights.map((highlight, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm text-white/85">
-                      <span className="mt-1 text-white/60">•</span>
-                      <span>{highlight}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
             </div>
           ) : null}
 
@@ -1289,9 +1291,9 @@ function AuthenticatedDashboard({
                         </div>
                         <span className="text-xl font-bold text-zinc-900">{score}</span>
                       </div>
-                      <div className="mt-3 h-1.5 w-full rounded-full bg-zinc-200">
+                      <div className="mt-3 h-1.5 w-full rounded-full bg-slate-100">
                         <div
-                          className="h-1.5 rounded-full bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500"
+                          className="h-1.5 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500"
                           style={{ width: `${score}%` }}
                         />
                       </div>
@@ -1368,9 +1370,9 @@ function AuthenticatedDashboard({
                           </p>
                           <span className="ml-2 text-xs text-zinc-500">{percentage}%</span>
                         </div>
-                        <div className="mt-1.5 h-1.5 w-full rounded-full bg-zinc-100">
+                        <div className="mt-1.5 h-1.5 w-full rounded-full bg-slate-100">
                           <div
-                            className="h-1.5 rounded-full bg-gradient-to-r from-fuchsia-400 via-indigo-400 to-cyan-400"
+                            className="h-1.5 rounded-full bg-gradient-to-r from-violet-400 to-indigo-400"
                             style={{ width: `${percentage}%` }}
                           />
                         </div>

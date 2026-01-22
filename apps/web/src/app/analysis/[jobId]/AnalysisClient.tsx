@@ -701,7 +701,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
               </button>
               <button
                 type="button"
-                className="flex-1 rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95"
+                className="flex-1 rounded-full bg-gradient-to-r from-violet-600 to-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95"
                 onClick={handleConfirmRegenerateWithWarning}
               >
                 Continue anyway
@@ -826,7 +826,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Link
               href="/"
-              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
             >
               My Unified VCP
             </Link>
@@ -844,7 +844,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
           {/* Detailed Analysis Card */}
           <div className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-white shadow-sm">
-            <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-500/10 via-transparent to-cyan-500/10" />
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/8 via-transparent to-indigo-500/8" />
             <div className="relative p-8">
               <div className="max-w-2xl">
                 <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Your vibe</p>

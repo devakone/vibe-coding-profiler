@@ -221,7 +221,7 @@ export default async function AdminLLMStatusPage() {
                       <div className="flex-1">
                         <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
                           <div
-                            className="h-full bg-gradient-to-r from-fuchsia-500 to-indigo-500"
+                            className="h-full bg-gradient-to-r from-violet-500 to-indigo-500"
                             style={{ width: `${percentage}%` }}
                           />
                         </div>

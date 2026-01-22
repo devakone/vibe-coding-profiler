@@ -128,7 +128,7 @@ export default async function AdminUserDetailPage({
                         </div>
                         <div className="mt-2 h-2 w-full rounded-full bg-zinc-200">
                           <div
-                            className="h-2 rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600"
+                            className="h-2 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500"
                             style={{ width: `${axis?.score ?? 0}%` }}
                           />
                         </div>

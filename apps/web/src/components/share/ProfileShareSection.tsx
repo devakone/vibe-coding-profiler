@@ -13,26 +13,38 @@ function useOrigin(): string {
   );
 }
 
-// Default persona colors for profile share cards
+/**
+ * Persona colors for profile share cards
+ * 
+ * All personas now use the unified violet-indigo palette with subtle variations
+ * to maintain brand consistency while still providing visual differentiation.
+ */
 const PERSONA_COLORS: Record<string, { primary: string; accent: string }> = {
-  "prompt_sprinter": { primary: "#c026d3", accent: "#7c3aed" },
-  "guardrailed_viber": { primary: "#0891b2", accent: "#4f46e5" },
-  "spec_first_director": { primary: "#4f46e5", accent: "#7c3aed" },
-  "vertical_slice_shipper": { primary: "#7c3aed", accent: "#0ea5e9" },
-  "fix_loop_hacker": { primary: "#dc2626", accent: "#f97316" },
-  "toolsmith_viber": { primary: "#059669", accent: "#0891b2" },
-  "infra_weaver": { primary: "#475569", accent: "#0891b2" },
-  "rapid_risk_taker": { primary: "#f97316", accent: "#dc2626" },
-  "balanced_builder": { primary: "#6366f1", accent: "#8b5cf6" },
-  // Fallback for older persona IDs
-  "vibe-prototyper": { primary: "#c026d3", accent: "#7c3aed" },
-  "test-validator": { primary: "#0891b2", accent: "#4f46e5" },
+  // Dynamic/fast personas - brighter violet
+  "prompt_sprinter": { primary: "#7c3aed", accent: "#6366f1" }, // violet-600 → indigo-500
+  "rapid_risk_taker": { primary: "#8b5cf6", accent: "#6366f1" }, // violet-500 → indigo-500
+  "fix_loop_hacker": { primary: "#7c3aed", accent: "#818cf8" }, // violet-600 → indigo-400
+  
+  // Balanced/thoughtful personas - deeper tones
+  "guardrailed_viber": { primary: "#6366f1", accent: "#7c3aed" }, // indigo-500 → violet-600
+  "spec_first_director": { primary: "#4f46e5", accent: "#7c3aed" }, // indigo-600 → violet-600
+  "balanced_builder": { primary: "#6366f1", accent: "#8b5cf6" }, // indigo-500 → violet-500
+  
+  // Technical/structured personas - cooler indigo
+  "vertical_slice_shipper": { primary: "#6366f1", accent: "#818cf8" }, // indigo-500 → indigo-400
+  "toolsmith_viber": { primary: "#4f46e5", accent: "#6366f1" }, // indigo-600 → indigo-500
+  "infra_weaver": { primary: "#4338ca", accent: "#6366f1" }, // indigo-700 → indigo-500
+  
+  // Fallback for older persona IDs - all mapped to unified palette
+  "vibe-prototyper": { primary: "#7c3aed", accent: "#6366f1" },
+  "test-validator": { primary: "#6366f1", accent: "#7c3aed" },
   "spec-architect": { primary: "#4f46e5", accent: "#7c3aed" },
-  "agent-orchestrator": { primary: "#7c3aed", accent: "#0ea5e9" },
+  "agent-orchestrator": { primary: "#6366f1", accent: "#818cf8" },
   "reflective-balancer": { primary: "#6366f1", accent: "#8b5cf6" },
 };
 
-const DEFAULT_COLORS = { primary: "#c026d3", accent: "#06b6d4" };
+// Default uses the primary brand gradient
+const DEFAULT_COLORS = { primary: "#7c3aed", accent: "#6366f1" };
 
 interface ProfileShareSectionProps {
   personaName: string;
