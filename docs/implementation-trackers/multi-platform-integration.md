@@ -10,24 +10,29 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 **Deliverables:**
 - [ ] Platform types created (`packages/core/src/platforms/types.ts`)
 - [ ] GitHub client extracted from existing code
-- [ ] GitLab client implemented
-- [ ] Bitbucket client implemented
+- [ ] GitLab client implemented (including file_paths via diff endpoint)
+- [ ] Bitbucket client implemented (including file_paths via diffstat endpoint)
 - [ ] Factory and exports created (`packages/core/src/platforms/index.ts`)
 - [ ] Unit tests for all platform clients
-**Success Criteria:** `npm run type-check` and `npm run test` pass; existing analysis works
+**Success Criteria:** `npm run type-check` and `npm run test` pass; existing analysis works; all clients return `filePaths` in `NormalizedCommit`
 **Blocks:** P3, P5, P6
 
 ### P2. Database Schema Evolution
 **Task:** Migrate to multi-platform schema while preserving existing data.
 **Deliverables:**
 - [ ] Migration: rename `github_accounts` → `platform_connections`
-- [ ] Migration: add platform columns (platform, platform_user_id, etc.)
-- [ ] Migration: backfill existing GitHub data
+- [ ] Migration: add platform columns (platform, platform_user_id, platform_username, platform_email, platform_avatar_url)
+- [ ] Migration: add token refresh columns (refresh_token_encrypted, token_expires_at)
+- [ ] Migration: add tracking columns (is_primary, disconnected_at)
+- [ ] Migration: add unique constraint `(user_id, platform)` - one connection per platform per user
+- [ ] Migration: add unique constraint `(platform, platform_user_id)` - prevent same external account linking to multiple users
+- [ ] Migration: add unique index for one primary per user
+- [ ] Migration: backfill existing GitHub data (including platform_email from users.email)
 - [ ] Migration: add platform to repos table
 - [ ] Migration: add platform to analysis_jobs table
 - [ ] TypeScript types regenerated (`npm run supabase:gen-types`)
 - [ ] Existing queries updated (`githubToken.ts` → `platformToken.ts`)
-**Success Criteria:** `npm run supabase:migration:up` succeeds; existing users have platform_connections rows; login still works
+**Success Criteria:** `npm run supabase:migration:up` succeeds; existing users have platform_connections rows with is_primary=true; login still works; duplicate external accounts rejected
 **Depends on:** None
 **Blocks:** P3, P4, P5
 
@@ -49,10 +54,12 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 **Deliverables:**
 - [ ] Platforms API routes (`/api/platforms/`)
 - [ ] Connect/disconnect routes (`/api/platforms/[platform]/`)
+- [ ] Set-primary route with validation (exactly one primary at all times)
 - [ ] PlatformConnectionsSection component
 - [ ] Integrated into RepoSettingsClient
 - [ ] Platform icons (GitHub, GitLab, Bitbucket)
-**Success Criteria:** Can see/connect/disconnect platforms; can change primary; cannot disconnect last platform
+- [ ] Primary identity enforcement: prevent disconnecting last/primary platform
+**Success Criteria:** Can see/connect/disconnect platforms; can change primary; cannot disconnect last platform; exactly one platform is primary at all times
 **Depends on:** P2, P3
 **Blocks:** P5
 
@@ -109,6 +116,7 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 - P3 requires both P1 and P2 to be complete
 - Self-hosted instances deferred to v2
 - Token refresh automation deferred to v2
+- See PRD "Risks and Tradeoffs" section for architecture decision rationale
 
 ---
 
