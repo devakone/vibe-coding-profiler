@@ -25,7 +25,7 @@ Implement three high-ROI detection capabilities that require no new data ingesti
 
 ## Research Summary
 
-See: [multi-agent-vibe-coding-patterns.md](../research/multi-agent-vibe-coding-patterns.md)
+See: [multi-agent-vibe-coding-patterns.md](../../research/multi-agent-vibe-coding-patterns.md)
 
 ### What We Have Today
 | Capability | Status | Location |
@@ -220,7 +220,7 @@ These are documented but out of scope for this PRD:
 2. **Branch topology** - parallel branches, naming conventions
 3. **Commit-to-PR mapping** - squash detection, PR hygiene signals
 
-See architecture spec: [vibe-metrics-v2.md](../architecture/vibe-metrics-v2.md)
+See architecture spec: [vibe-metrics-v2.md](../../architecture/vibe-metrics-v2.md)
 
 ---
 
@@ -251,7 +251,7 @@ Ingest enough pull request metadata to strengthen multi-agent orchestration dete
 ### Proposed Schema
 **Primary tables**
 - `pull_requests`
-  - Align with architecture sketch in [vibe-metrics-v2.md](../architecture/vibe-metrics-v2.md)
+  - Align with architecture sketch in [vibe-metrics-v2.md](../../architecture/vibe-metrics-v2.md)
   - Key columns: `repo_id`, `github_pr_number`, `title`, `body`, `state`, `merged`, `merged_at`, `created_at`, `closed_at`, size and collaboration counts, `merge_method`
 
 **Optional tables**
@@ -264,14 +264,14 @@ Ingest enough pull request metadata to strengthen multi-agent orchestration dete
 - Run ingestion as part of analysis job execution, before computing `AnalysisInsights`
 
 ### Implementation Tracker (vNext)
-See: [PR Metadata Ingestion Tracker](../implementation-trackers/multi-agent-pr-metadata-ingestion.md)
+See: [PR Metadata Ingestion Tracker](../../implementation-trackers/multi-agent-pr-metadata-ingestion.md)
 
 ---
 
 ## References
 
-- [Research: Multi-Agent Vibe Coding Patterns](../research/multi-agent-vibe-coding-patterns.md)
-- [Architecture: Vibe Metrics v2](../architecture/vibe-metrics-v2.md)
+- [Research: Multi-Agent Vibe Coding Patterns](../../research/multi-agent-vibe-coding-patterns.md)
+- [Architecture: Vibe Metrics v2](../../architecture/vibe-metrics-v2.md)
 - [Addy Osmani: The future of agentic coding (conductors to orchestrators)](https://addyosmani.com/blog/future-agentic-coding/)
 - [GitHub Copilot Coding Agent](https://docs.github.com/en/copilot/concepts/coding-agent/coding-agent)
 - [Git Worktrees for AI Agents](https://nx.dev/blog/git-worktrees-ai-agents)

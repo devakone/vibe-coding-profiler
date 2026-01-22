@@ -989,4 +989,4 @@ Short code resolves to full vibe page with optional "shared view" mode (read-onl
 
 ---
 
-*This PRD focuses on the user experience layer. See `PRD-vibed.md` for technical implementation details including database schema, API endpoints, and worker logic.*
+*This PRD focuses on the user experience layer. See [`PRD-vibed.md`](../core/PRD-vibed.md) for technical implementation details including database schema, API endpoints, and worker logic.*

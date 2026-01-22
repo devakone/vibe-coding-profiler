@@ -11,7 +11,7 @@ We built personas per repo. The PRDs say personas should aggregate per user.
 
 ### What the PRDs Said
 
-From `PRD-vibed-ux.md`:
+From [`PRD-vibed-ux.md`](../ux/PRD-vibed-ux.md):
 
 > "Vibe Coding Profile builds a profile of your AI-era coding style **across projects**. One repo gives you a Repo VCP. Three repos show patterns. Five repos reveal your Unified VCP when you're building with AI tools."
 

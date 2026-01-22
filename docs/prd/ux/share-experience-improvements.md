@@ -614,4 +614,4 @@ apps/web/src/app/page.tsx
 
 ---
 
-*This PRD focuses on the share experience layer. See `PRD.md` for core analysis and `PRD-vibed-ux.md` for overall UX direction.*
+*This PRD focuses on the share experience layer. See [`PRD.md`](../core/PRD.md) for core analysis and [`PRD-vibed-ux.md`](./PRD-vibed-ux.md) for overall UX direction.*
