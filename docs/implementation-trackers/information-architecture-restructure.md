@@ -157,25 +157,25 @@ This tracker covers all implementation work for the Information Architecture Res
 
 ### P2. Navigation & Routes
 
-**Status:** `[ ] Not Started`  
-**Depends on:** None  
+**Status:** `[x] Complete`
+**Depends on:** None
 **Blocks:** X1
 
 | Task | Status | File(s) |
 |------|--------|---------|
-| Rename "Reports" to "Vibes" in nav | `[ ]` | `components/nav/...` |
-| Create `/vibes` route | `[ ]` | `app/vibes/page.tsx` |
-| Create `/vibes/[repoId]` route | `[ ]` | `app/vibes/[repoId]/page.tsx` |
-| Create `/vibes/[repoId]/[jobId]` route | `[ ]` | `app/vibes/[repoId]/[jobId]/page.tsx` |
-| Create `/settings/repos` route | `[ ]` | `app/settings/repos/page.tsx` |
-| Move repo connect/disconnect to Settings | `[ ]` | `app/settings/repos/page.tsx` |
-| Implement `VibesTable` component | `[ ]` | `components/vibes/VibesTable.tsx` |
-| Update navigation labels | `[ ]` | `components/nav/...` |
+| Rename "Reports" to "Vibes" in nav | `[x]` | `app/AppHeader.tsx` |
+| Create `/vibes` route | `[x]` | `app/vibes/page.tsx`, `app/vibes/VibesClient.tsx` |
+| Create `/vibes/[repoId]` route | `[-]` | Deferred - using expandable table instead |
+| Create `/vibes/[repoId]/[jobId]` route | `[-]` | Deferred - linking to existing `/analysis/[jobId]` |
+| Create `/settings/repos` route | `[x]` | `app/settings/repos/page.tsx`, `app/settings/repos/RepoSettingsClient.tsx` |
+| Move repo connect/disconnect to Settings | `[x]` | `app/settings/repos/RepoSettingsClient.tsx` |
+| Implement `VibesTable` component | `[x]` | `app/vibes/VibesClient.tsx` (expandable table) |
+| Update navigation labels | `[x]` | `app/AppHeader.tsx` |
 
 **Success Criteria:**
-- New routes are functional
-- Navigation reflects new terminology
-- Repo management is in Settings
+- [x] New routes are functional
+- [x] Navigation reflects new terminology (My Vibe, Vibes, Settings)
+- [x] Repo management is in Settings
 
 ---
 
@@ -208,23 +208,23 @@ This tracker covers all implementation work for the Information Architecture Res
 
 ### P4. Notification System
 
-**Status:** `[ ] Not Started`  
+**Status:** `[x] Complete`  
 **Depends on:** None  
 **Blocks:** X2
 
 | Task | Status | File(s) |
 |------|--------|---------|
-| Create `NotificationDropdown` component | `[ ]` | `components/notifications/NotificationDropdown.tsx` |
-| Create notification badge component | `[ ]` | `components/notifications/NotificationBadge.tsx` |
-| Integrate with `JobsContext` | `[ ]` | `components/notifications/...` |
-| Add to navigation header | `[ ]` | `components/nav/...` |
-| Implement "Clear all" functionality | `[ ]` | `components/notifications/...` |
-| Remove Jobs tab from Reports page | `[ ]` | `app/reports/...` |
+| Create `NotificationDropdown` component | `[x]` | `components/notifications/NotificationDropdown.tsx` |
+| Create notification badge component | `[x]` | `components/notifications/NotificationBadge.tsx` |
+| Integrate with `JobsContext` | `[x]` | `components/notifications/NotificationDropdown.tsx` |
+| Add to navigation header | `[x]` | `app/AppHeader.tsx` |
+| Implement "Clear all" functionality | `[x]` | `components/notifications/NotificationDropdown.tsx` |
+| Remove Jobs tab from Reports page | `[~]` | N/A (Jobs tab doesn't exist as separate component) |
 
 **Success Criteria:**
-- Notifications show in-progress and completed jobs
-- Badge shows unread count
-- Clicking notification navigates to VCP
+- [x] Notifications show in-progress and completed jobs
+- [x] Badge shows unread count
+- [x] Clicking notification navigates to VCP
 
 ---
 
@@ -351,13 +351,13 @@ This tracker covers all implementation work for the Information Architecture Res
 | P1: ShareCard Redesign | 7 | 0 | `[ ] Not Started` |
 | P2: Navigation & Routes | 8 | 0 | `[ ] Not Started` |
 | P3: VCP Display Unification | 11 | 0 | `[ ] Not Started` |
-| P4: Notification System | 6 | 0 | `[ ] Not Started` |
+| P4: Notification System | 6 | 6 | `[x] Complete` |
 | P5: Vertical Stories ShareCard | 7 | 0 | `[ ] Not Started` |
 | P6: LLM Tagline Generation | 5 | 0 | `[ ] Not Started` |
 | X1: Migration & Redirects | 5 | 0 | `[ ] Not Started` |
 | X2: Polish & Testing | 7 | 0 | `[ ] Not Started` |
 | X3: Documentation | 5 | 0 | `[ ] Not Started` |
-| **Total** | **88** | **26** | **30%** |
+| **Total** | **88** | **32** | **36%** |
 
 ---
 
@@ -376,3 +376,10 @@ This tracker covers all implementation work for the Information Architecture Res
 - **F1 Complete:** Implemented all VCP primitives (VCPCard, VCPSection, VCPStatCard, VCPProgressBar, VCPBadge, VCPCollapsible, VCPInsightBox)
 - **F2 Complete:** Implemented all composite blocks (VCPIdentityHeader, VCPAxesGrid, VCPStatsGrid, VCPNarrativeSection, VCPMatchedSignals, VCPMethodologyLink, VCPFooter, VCPVersionHistory)
 - **F3 In Progress:** Implemented metric utilities (computeStrongestAxis, computeStyleDescriptor, computeRhythmLabel, computePeakLabel, analyzePeakWindow). Unit tests pending.
+- **P4 Complete:** Implemented notification system with:
+  - `NotificationDropdown` — Bell icon with popover showing job activity
+  - `NotificationBadge` — Gradient badge showing unread count
+  - Integrated into `AppHeader` (replaces old badge-on-link pattern)
+  - "Mark all read" functionality built into dropdown header
+  - Shows in-progress jobs with animated indicator, completed jobs with checkmarks
+  - Clicking completed job navigates to VCP and marks as read

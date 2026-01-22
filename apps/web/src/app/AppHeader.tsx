@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { wrappedTheme } from "@/lib/theme";
-import { useJobsOptional } from "@/contexts/JobsContext";
+import { NotificationDropdown } from "@/components/notifications";
 
 function isActiveLink(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -18,17 +18,14 @@ export default function AppHeader(props: {
   signOut: () => Promise<void>;
 }) {
   const pathname = usePathname();
-  const jobsContext = useJobsOptional();
-  const unreadCount = jobsContext?.unreadCount ?? 0;
 
   if (pathname === "/login") return null;
 
   const baseLinks = props.isAuthed
     ? [
-        { href: "/", label: "My VCP" },
-        { href: "/repos", label: "Repos" },
-        { href: "/analysis", label: "Reports" },
-        { href: "/settings/llm-keys", label: "Settings" },
+        { href: "/", label: "My Vibe" },
+        { href: "/vibes", label: "Vibes" },
+        { href: "/settings/repos", label: "Settings" },
         { href: "/methodology", label: "Methodology" },
         { href: "/security", label: "Security" },
       ]
@@ -60,7 +57,6 @@ export default function AppHeader(props: {
           <nav className="flex items-center gap-1 text-sm">
             {links.map((l) => {
               const isActive = isActiveLink(pathname, l.href);
-              const showBadge = l.href === "/analysis" && unreadCount > 0;
               return (
                 <Link
                   key={l.href}
@@ -74,14 +70,7 @@ export default function AppHeader(props: {
                   {isActive && (
                     <span className="absolute inset-x-0 -bottom-[17px] mx-auto h-0.5 w-8 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500" />
                   )}
-                  <span className="inline-flex items-center gap-1.5">
-                    {l.label}
-                    {showBadge && (
-                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-1.5 text-[10px] font-bold text-white">
-                        {unreadCount > 9 ? "9+" : unreadCount}
-                      </span>
-                    )}
-                  </span>
+                  {l.label}
                 </Link>
               );
             })}
@@ -89,14 +78,17 @@ export default function AppHeader(props: {
         </div>
         <div className="flex items-center gap-3">
           {props.isAuthed ? (
-            <form action={props.signOut}>
-              <button
-                type="submit"
-                className="rounded-full border border-zinc-300/80 bg-white/70 px-4 py-1.5 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur transition hover:border-zinc-400 hover:bg-white"
-              >
-                Sign out
-              </button>
-            </form>
+            <>
+              <NotificationDropdown />
+              <form action={props.signOut}>
+                <button
+                  type="submit"
+                  className="rounded-full border border-zinc-300/80 bg-white/70 px-4 py-1.5 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur transition hover:border-zinc-400 hover:bg-white"
+                >
+                  Sign out
+                </button>
+              </form>
+            </>
           ) : (
             <Link
               href="/login"
