@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.1.3](https://github.com/devakone/vibe-coding-profiler/compare/vide-coding-v0.1.2...vide-coding-v0.1.3) (2026-01-22)
+
+
+### Features
+
+* add implementation tracker for Information Architecture Restructure ([15f99fb](https://github.com/devakone/vibe-coding-profiler/commit/15f99fb9928399ff9dc2e88f1f2447e28dc8d1d2))
+* add new persona aura images and update theme colors ([4ca44f2](https://github.com/devakone/vibe-coding-profiler/commit/4ca44f2d7613031b3af8d319d5d423586d40bed1))
+* add Open Source Preparedness documentation ([6c1c40a](https://github.com/devakone/vibe-coding-profiler/commit/6c1c40a49b0eae29977aa1b71f1cde75b2be9231))
+* implement VCP component system with primitives, blocks, and utilities ([bc6abdd](https://github.com/devakone/vibe-coding-profiler/commit/bc6abdd8c577ecd9f4c3c2955fa421b4e182fddc))
+* introduce new PRDs for information architecture, multi-agent detection, and LLM provider abstraction ([7929886](https://github.com/devakone/vibe-coding-profiler/commit/792988698317c87beb07a30eb7fce1e5b126ffe6))
+* **notifications:** add notification dropdown to header ([aadc064](https://github.com/devakone/vibe-coding-profiler/commit/aadc064c2e26ae654e228f1e69912282863a8061))
+* update ShareCard component to incorporate persona aura backgrounds and icons ([ad2d4a0](https://github.com/devakone/vibe-coding-profiler/commit/ad2d4a0db7b50a8f1299a05734e5ad93c58a5a68))
+* **vcp:** add unified and repo VCP display components (P3) ([b6a6179](https://github.com/devakone/vibe-coding-profiler/commit/b6a617948ff68601f7b468edaa374cfd79c88004))
+* **web:** add tooltip component and integrate into VCP sections ([699433c](https://github.com/devakone/vibe-coding-profiler/commit/699433c0f1a3fcae572d58133594d1e9223f6ebb))
+* **web:** enhance sharing features with LLM-generated taglines ([ef3b589](https://github.com/devakone/vibe-coding-profiler/commit/ef3b589a6cdf71485c2ebef11f20a4692a49be13))
+* **web:** enhance user profile sharing and navigation updates ([85ed9a2](https://github.com/devakone/vibe-coding-profiler/commit/85ed9a215cc9bd7b2a4a466a586a093614a33638))
+* **web:** implement P2 navigation & routes restructure ([9ad5734](https://github.com/devakone/vibe-coding-profiler/commit/9ad5734ab6b462e576e81aba39051fb438b4484f))
+* **web:** implement redirects and update internal links for improved navigation ([a4ce715](https://github.com/devakone/vibe-coding-profiler/commit/a4ce7153c638383b2949601052877d7aef111784))
+* **web:** integrate QR code generation and vertical story download feature ([975239d](https://github.com/devakone/vibe-coding-profiler/commit/975239d3b4c683c64a4c083658289ac1840d6c0f))
+* **web:** refactor AnalysisClient to integrate new VCP components ([f2d2621](https://github.com/devakone/vibe-coding-profiler/commit/f2d26211218a4f5d5b17b038db29bfde009edb3b))
+* **web:** refactor layout to improve component structure and user experience ([eb88fec](https://github.com/devakone/vibe-coding-profiler/commit/eb88fecfa519b1e9b203c7d1b28d701f0c331a21))
+* **web:** update navigation labels and enhance analysis insights ([17af33d](https://github.com/devakone/vibe-coding-profiler/commit/17af33d3a0a7adfa16210a6c8118dd448aded274))
+
 ## [0.1.2](https://github.com/devakone/vibed-coding/compare/vide-coding-v0.1.1...vide-coding-v0.1.2) (2026-01-21)
 
 
