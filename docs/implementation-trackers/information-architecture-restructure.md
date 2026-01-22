@@ -349,7 +349,7 @@ This tracker covers all implementation work for the Information Architecture Res
 | F2: VCP Composite Blocks | 10 | 10 | `[x] Complete` |
 | F3: Shared Utilities | 5 | 4 | `[~] In Progress` |
 | P1: ShareCard Redesign | 7 | 0 | `[ ] Not Started` |
-| P2: Navigation & Routes | 8 | 0 | `[ ] Not Started` |
+| P2: Navigation & Routes | 8 | 6 | `[x] Complete` |
 | P3: VCP Display Unification | 11 | 0 | `[ ] Not Started` |
 | P4: Notification System | 6 | 6 | `[x] Complete` |
 | P5: Vertical Stories ShareCard | 7 | 0 | `[ ] Not Started` |
@@ -357,7 +357,7 @@ This tracker covers all implementation work for the Information Architecture Res
 | X1: Migration & Redirects | 5 | 0 | `[ ] Not Started` |
 | X2: Polish & Testing | 7 | 0 | `[ ] Not Started` |
 | X3: Documentation | 5 | 0 | `[ ] Not Started` |
-| **Total** | **88** | **32** | **36%** |
+| **Total** | **88** | **38** | **43%** |
 
 ---
 
@@ -382,4 +382,10 @@ This tracker covers all implementation work for the Information Architecture Res
   - Integrated into `AppHeader` (replaces old badge-on-link pattern)
   - "Mark all read" functionality built into dropdown header
   - Shows in-progress jobs with animated indicator, completed jobs with checkmarks
+- **P2 Complete:** Implemented navigation and route changes:
+  - Created `/vibes` route with `VibesClient` — expandable table showing VCPs organized by repo
+  - Created `/settings/repos` route with `RepoSettingsClient` — repo connect/disconnect moved from `/repos`
+  - Updated `AppHeader` navigation: "My VCP" → "My Vibe", "Reports" → "Vibes", removed "Repos" (now in Settings)
+  - Added settings tabs (LLM Keys / Repos) for consistent settings navigation
+  - Deferred `/vibes/[repoId]` routes — using expandable rows and existing `/analysis/[jobId]` links instead
   - Clicking completed job navigates to VCP and marks as read
