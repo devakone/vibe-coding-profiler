@@ -25,18 +25,19 @@ import {
 // =============================================================================
 
 function createMockAxes(overrides: Partial<Record<keyof VibeAxes, { score: number; level: "high" | "medium" | "low" }>> = {}): VibeAxes {
-  const defaults = {
-    automation_heaviness: { score: 50, level: "medium" as const, why: [] },
-    guardrail_strength: { score: 50, level: "medium" as const, why: [] },
-    iteration_loop_intensity: { score: 50, level: "medium" as const, why: [] },
-    planning_signal: { score: 50, level: "medium" as const, why: [] },
-    surface_area_per_change: { score: 50, level: "medium" as const, why: [] },
-    shipping_rhythm: { score: 50, level: "medium" as const, why: [] },
+  const defaults: VibeAxes = {
+    automation_heaviness: { score: 50, level: "medium", why: [] },
+    guardrail_strength: { score: 50, level: "medium", why: [] },
+    iteration_loop_intensity: { score: 50, level: "medium", why: [] },
+    planning_signal: { score: 50, level: "medium", why: [] },
+    surface_area_per_change: { score: 50, level: "medium", why: [] },
+    shipping_rhythm: { score: 50, level: "medium", why: [] },
   };
 
-  const result = { ...defaults };
+  const result: VibeAxes = { ...defaults };
   for (const [key, value] of Object.entries(overrides)) {
-    result[key as keyof VibeAxes] = { ...defaults[key as keyof VibeAxes], ...value };
+    const axisKey = key as keyof VibeAxes;
+    result[axisKey] = { ...defaults[axisKey], ...value };
   }
   return result;
 }

@@ -33,12 +33,21 @@ export const metadata: Metadata = {
     locale: "en_US",
     type: "website",
     siteName: "Vibe Coding Profiler",
+    images: [
+      {
+        url: `${appUrl}/api/og`,
+        width: 1200,
+        height: 630,
+        alt: "Vibe Coding Profiler - Discover your AI coding style",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Vibe Coding Profiler · Discover your AI coding style",
     description:
       "Analyze your commit history to discover your Vibe Coding Profile (VCP) — patterns and insights grounded in evidence. Share your unique AI-era coding persona.",
+    images: [`${appUrl}/api/og`],
   },
 };
 
