@@ -280,15 +280,17 @@ const renderStoryImage = async (story: StoryData, qrDataUrl: string) => {
         <div
           style={{
             marginTop: 40,
-            display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-            gap: 18,
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
           }}
         >
           {story.metrics.map((metric) => (
             <div
               key={metric.label}
               style={{
+                width: "48%",
+                marginBottom: 18,
                 borderRadius: 28,
                 padding: "18px 20px",
                 background: "rgba(255,255,255,0.1)",
@@ -456,6 +458,7 @@ export async function GET(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const qrDataUrl = await QRCode.toDataURL(storyData.url, { width: 260 });
+  const qrSvg = await QRCode.toString(storyData.url, { type: "svg", width: 260, margin: 0 });
+  const qrDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(qrSvg)}`;
   return renderStoryImage(storyData, qrDataUrl);
 }

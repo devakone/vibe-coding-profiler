@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import type { VibeAxes } from "@vibed/core";
 import { AXIS_METADATA, AXIS_ORDER } from "../constants";
+import { AxisInfoTooltip } from "../AxisInfoTooltip";
 
 interface UnifiedAxesSectionProps {
   /** Vibe axes data */
@@ -42,7 +43,12 @@ export function UnifiedAxesSection({
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-zinc-900">{meta.name}</p>
+                  <div className="flex items-center gap-1">
+                    <p className="text-sm font-semibold text-zinc-900">
+                      {meta.name}
+                    </p>
+                    <AxisInfoTooltip meta={meta} />
+                  </div>
                   <p className="mt-0.5 text-xs text-zinc-500">{meta.description}</p>
                 </div>
                 <span className="text-xl font-bold text-zinc-900">{score}</span>

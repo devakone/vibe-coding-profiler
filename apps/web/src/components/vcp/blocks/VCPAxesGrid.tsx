@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import type { VCPAxesGridProps, AxisKey } from "../types";
 import { VCPProgressBar } from "../primitives";
 import { AXIS_METADATA, AXIS_ORDER } from "../constants";
+import { AxisInfoTooltip } from "../AxisInfoTooltip";
 
 /**
  * VCPAxesGrid - Grid display of all six vibe axes
@@ -26,7 +27,10 @@ export function VCPAxesGrid({
         {axisEntries.map(({ key, score, level, meta }) => (
           <div key={key} className="space-y-1">
             <div className="flex items-center justify-between text-sm">
-              <span className="font-medium text-white/80">{meta.name}</span>
+              <div className="flex items-center gap-1">
+                <span className="font-medium text-white/80">{meta.name}</span>
+                <AxisInfoTooltip meta={meta} variant="dark" />
+              </div>
               <span className="text-white/60">{score}</span>
             </div>
             <VCPProgressBar value={score} size="md" />
@@ -52,9 +56,12 @@ export function VCPAxesGrid({
           className="rounded-xl bg-white/5 p-4"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-white/50">
-              {meta.name}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-white/50">
+                {meta.name}
+              </span>
+              <AxisInfoTooltip meta={meta} variant="dark" />
+            </div>
             <span className="text-lg font-bold text-white">{score}</span>
           </div>
           <VCPProgressBar value={score} size="sm" className="mt-2" />

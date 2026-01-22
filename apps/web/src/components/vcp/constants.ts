@@ -14,6 +14,7 @@ export interface AxisMetadata {
   name: string;
   shortName: string;
   description: string;
+  longDescription: string;
   lowLabel: string;
   highLabel: string;
 }
@@ -23,6 +24,8 @@ export const AXIS_METADATA: Record<AxisKey, AxisMetadata> = {
     name: "Automation",
     shortName: "Auto",
     description: "How much you leverage AI/automation for large-scale changes",
+    longDescription:
+      'How "agentic" your workflow looks, driven by large commits and chunky PRs. Higher scores indicate more automation-heavy changes.',
     lowLabel: "Manual",
     highLabel: "AI-Heavy",
   },
@@ -30,6 +33,8 @@ export const AXIS_METADATA: Record<AxisKey, AxisMetadata> = {
     name: "Guardrails",
     shortName: "Guard",
     description: "How early and consistently tests/CI/docs appear in your workflow",
+    longDescription:
+      "How much you stabilize work with tests, CI, and docs early in the lifecycle. Higher scores mean guardrails appear sooner and more consistently.",
     lowLabel: "Light",
     highLabel: "Rigorous",
   },
@@ -37,6 +42,8 @@ export const AXIS_METADATA: Record<AxisKey, AxisMetadata> = {
     name: "Iteration",
     shortName: "Iter",
     description: "How quickly you cycle through fix-forward loops after changes",
+    longDescription:
+      'How often you run rapid "generate → run → fix → run" cycles. Higher scores mean faster, denser iteration loops.',
     lowLabel: "Stable",
     highLabel: "Rapid",
   },
@@ -44,6 +51,8 @@ export const AXIS_METADATA: Record<AxisKey, AxisMetadata> = {
     name: "Planning",
     shortName: "Plan",
     description: "How much upfront structure (issues, specs, docs-first) appears",
+    longDescription:
+      "How much intent and structure appear up front: linked issues, structured commits, and docs-first patterns. Higher scores indicate more planning.",
     lowLabel: "Emergent",
     highLabel: "Structured",
   },
@@ -51,6 +60,8 @@ export const AXIS_METADATA: Record<AxisKey, AxisMetadata> = {
     name: "Surface Area",
     shortName: "Scope",
     description: "How many subsystems your typical change touches",
+    longDescription:
+      "How broad each unit of work is across subsystems. Higher scores mean typical changes span more areas of the codebase.",
     lowLabel: "Narrow",
     highLabel: "Wide",
   },
@@ -58,6 +69,8 @@ export const AXIS_METADATA: Record<AxisKey, AxisMetadata> = {
     name: "Rhythm",
     shortName: "Rhythm",
     description: "Your shipping pattern — steady vs bursty",
+    longDescription:
+      "Bursty versus steady shipping over time. Higher scores indicate bursty sessions with gaps; lower scores indicate a steadier cadence.",
     lowLabel: "Steady",
     highLabel: "Bursty",
   },

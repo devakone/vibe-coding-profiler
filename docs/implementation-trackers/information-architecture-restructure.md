@@ -309,7 +309,7 @@ This tracker covers all implementation work for the Information Architecture Res
 
 ### X2. Polish & Testing
 
-**Status:** `[ ] Not Started`  
+**Status:** `[~] In Progress`  
 **Depends on:** P1, P3, P4, P5, X1  
 **Blocks:** X3
 
@@ -365,7 +365,7 @@ This tracker covers all implementation work for the Information Architecture Res
 | P5: Vertical Stories ShareCard | 7 | 6 | `[~] In Progress` |
 | P6: LLM Tagline Generation | 5 | 5 | `[x] Complete` |
 | X1: Migration & Redirects | 5 | 4 | `[~] In Progress` |
-| X2: Polish & Testing | 7 | 0 | `[ ] Not Started` |
+| X2: Polish & Testing | 7 | 0 | `[~] In Progress` |
 | X3: Documentation | 5 | 0 | `[ ] Not Started` |
 | **Total** | **91** | **68** | **75%** |
 
