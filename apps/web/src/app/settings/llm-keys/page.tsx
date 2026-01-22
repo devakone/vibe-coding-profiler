@@ -5,7 +5,7 @@ import { wrappedTheme } from "@/lib/theme";
 import LLMKeysClient from "./LLMKeysClient";
 
 export const metadata = {
-  title: "LLM API Keys · Settings · Vibe Coding Profile",
+  title: "LLM API Keys · Settings · Vibe Coding Profiler",
   description: "Manage your LLM API keys for AI-powered narrative generation",
 };
 

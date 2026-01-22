@@ -7,7 +7,7 @@ import RepoSettingsClient from "./RepoSettingsClient";
 export const runtime = "nodejs";
 
 export const metadata = {
-  title: "Repos · Settings · Vibe Coding Profile",
+  title: "Repos · Settings · Vibe Coding Profiler",
   description: "Manage your connected GitHub repositories",
 };
 

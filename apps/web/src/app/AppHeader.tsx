@@ -51,7 +51,7 @@ export default function AppHeader(props: {
           >
             <span className={wrappedTheme.dot} />
             <span className="text-lg font-bold tracking-tight text-zinc-950">
-              Vibe Coding Profile
+              Vibe Coding Profiler
             </span>
           </Link>
           <nav className="flex items-center gap-1 text-sm">

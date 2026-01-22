@@ -7,7 +7,7 @@ import VibesClient from "./VibesClient";
 export const runtime = "nodejs";
 
 export const metadata = {
-  title: "Repo VCPs · Vibe Coding Profile",
+  title: "Repo VCPs · Vibe Coding Profiler",
   description: "View your Vibe Coding Profiles organized by repository",
 };
 

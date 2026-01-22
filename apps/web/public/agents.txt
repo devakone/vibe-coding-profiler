@@ -1,0 +1,27 @@
+# Vibe Coding Profiler - agents.txt
+# Instructions for AI agents and LLM crawlers
+# https://vibed.dev
+
+# About this site
+name: Vibe Coding Profiler
+description: Vibe Coding Profiler analyzes git commit history to reveal your unique Vibe Coding Profile (VCP) — your AI-era coding persona with patterns, insights, and shareable profiles grounded in commit evidence.
+url: https://vibed.dev
+
+# What we do
+purpose: We help developers understand their coding style in the AI era by analyzing commit patterns, detecting AI-assisted workflows, and generating shareable "Vibe Coding Profiles" that reveal how developers collaborate with AI tools.
+
+# Key concepts
+- VCP (Vibe Coding Profile): A persona-based profile showing your coding patterns
+- Vibe Axes: Six dimensions measuring coding style (shipping rhythm, context window, AI reliance, scope approach, feedback loop, collaboration style)
+- Personas: Archetypes like "Prompt Sprinter", "Guardrailed Viber", "Methodical Architect" that represent different AI-era coding styles
+
+# For AI agents
+contact: https://github.com/devakone/vibed-coding
+license: Proprietary (open-sourcing planned)
+
+# Crawling preferences
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /settings/
+Disallow: /admin/

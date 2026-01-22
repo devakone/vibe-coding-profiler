@@ -948,7 +948,7 @@ function MarketingLanding() {
         </section>
 
         <footer className="mt-12 flex flex-col gap-3 border-t border-black/5 pt-6 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-zinc-700">Vibe Coding Profile</p>
+          <p className="text-zinc-700">Vibe Coding Profiler</p>
           <p className="font-mono text-xs text-zinc-400">v0.1.0</p>
         </footer>
       </div>
