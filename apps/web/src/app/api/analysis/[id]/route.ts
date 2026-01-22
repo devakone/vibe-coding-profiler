@@ -414,6 +414,7 @@ export async function GET(
       insights,
       profileContribution,
       userAvatarUrl,
+      userId: user.id,
       vibeInsights: computedVibeInsights,
     });
   }
@@ -425,6 +426,7 @@ export async function GET(
     insights,
     profileContribution,
     userAvatarUrl,
+    userId: user.id,
     vibeInsights: null,
   });
 }

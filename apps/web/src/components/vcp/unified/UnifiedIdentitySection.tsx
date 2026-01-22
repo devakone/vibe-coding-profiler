@@ -89,7 +89,9 @@ export function UnifiedIdentitySection({
           {personaName}
         </h1>
         {personaTagline ? (
-          <p className="mt-3 text-lg text-zinc-700">"{personaTagline}"</p>
+          <p className="mt-3 text-lg text-zinc-700">
+            &ldquo;{personaTagline}&rdquo;
+          </p>
         ) : null}
         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-zinc-600">
           {hasProfile ? (

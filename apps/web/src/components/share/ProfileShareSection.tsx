@@ -62,6 +62,7 @@ interface ProfileShareSectionProps {
   }>;
   insight: string;
   axes: VibeAxes;
+  userId: string;
 }
 
 export function ProfileShareSection({
@@ -75,6 +76,7 @@ export function ProfileShareSection({
   topAxes,
   insight,
   axes,
+  userId,
 }: ProfileShareSectionProps) {
   const shareOrigin = useOrigin();
 
@@ -144,6 +146,7 @@ export function ProfileShareSection({
         shareHeadline={`Unified VCP: ${personaName}`}
         shareTemplate={shareImageTemplate}
         entityId="profile"
+        storyEndpoint={userId ? `/api/share/story/${userId}` : undefined}
       />
     </div>
   );

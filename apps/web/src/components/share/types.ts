@@ -59,6 +59,8 @@ export interface ShareActionsProps {
   entityId: string;
   /** Whether share is disabled */
   disabled?: boolean;
+  /** Optional story download endpoint */
+  storyEndpoint?: string;
 }
 
 export interface ShareImageTemplate {

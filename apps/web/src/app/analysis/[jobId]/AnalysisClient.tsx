@@ -3,15 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { computeAnalysisInsights } from "@vibed/core";
-import type {
-  AnalysisInsights,
-  AnalysisMetrics,
-  CommitEvent,
-  Level,
-  VibeAxes,
-} from "@vibed/core";
+import type { AnalysisInsights, AnalysisMetrics, CommitEvent, VibeAxes } from "@vibed/core";
 import { formatMetricLabel, formatMetricValue } from "@/lib/format-labels";
 import { computeShareCardMetrics } from "@/lib/vcp/metrics";
+import { isVibeAxes } from "@/lib/vcp/validators";
 import { ShareCard, ShareActions } from "@/components/share";
 import type { ShareImageTemplate, ShareCardMetric } from "@/components/share";
 
@@ -32,6 +27,7 @@ type ApiResponse = {
   insights: unknown | null;
   profileContribution?: unknown | null;
   userAvatarUrl?: string | null;
+  userId?: string | null;
   vibeInsights?: VibeInsightsRow | null;
 };
 
@@ -189,26 +185,6 @@ const VIBE_AXIS_KEYS: (keyof VibeAxes)[] = [
   "surface_area_per_change",
   "shipping_rhythm",
 ] as const;
-
-function isAxisValue(v: unknown): v is { score: number; level: Level; why: string[] } {
-  if (!isRecord(v)) return false;
-  const score = v.score;
-  const level = v.level;
-  const why = v.why;
-  if (typeof score !== "number") return false;
-  if (typeof level !== "string") return false;
-  if (!Array.isArray(why)) return false;
-  return why.every((item) => typeof item === "string");
-}
-
-function isVibeAxes(v: unknown): v is VibeAxes {
-  if (!isRecord(v)) return false;
-  for (const key of VIBE_AXIS_KEYS) {
-    const axisValue = (v as Record<string, unknown>)[key];
-    if (!isAxisValue(axisValue)) return false;
-  }
-  return true;
-}
 
 function isVibeInsightsRow(v: unknown): v is VibeInsightsRow {
   if (!isRecord(v)) return false;
@@ -511,6 +487,10 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
       .join(" · ");
     return `${shareTemplate.headline} — ${shareTemplate.subhead}\n${metricsLine}\n#VCP`;
   }, [shareTemplate]);
+
+  const storyEndpoint = data?.userId
+    ? `/api/share/story/${data.userId}?jobId=${jobId}`
+    : undefined;
 
   // Build share template for ShareActions component
   // Build metrics for ShareCard
@@ -842,6 +822,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                 shareHeadline={shareTemplate.headline}
                 shareTemplate={shareImageTemplate}
                 entityId={jobId}
+                storyEndpoint={storyEndpoint}
               />
             </div>
           ) : null}

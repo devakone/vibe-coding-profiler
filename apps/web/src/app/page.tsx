@@ -1136,6 +1136,7 @@ function AuthenticatedDashboard({
             topAxes={topAxes}
             insight={crossRepoInsight}
             axes={stats.userProfile.axes as unknown as VibeAxes}
+            userId={user?.id ?? ""}
           />
         ) : null}
 

@@ -245,12 +245,12 @@ This tracker covers all implementation work for the Information Architecture Res
 
 | Task | Status | File(s) |
 |------|--------|---------|
-| Create API route for story image generation | `[ ]` | `app/api/share/story/[userId]/route.tsx` |
-| Implement vertical layout with `@vercel/og` | `[ ]` | `app/api/share/story/[userId]/route.tsx` |
-| Add persona gradient themes | `[ ]` | `lib/share/story-themes.ts` |
-| Integrate QR code generation | `[ ]` | `lib/share/qr.ts` |
-| Add "Download for Stories" button to UI | `[ ]` | `components/share/ProfileShareSection.tsx` |
-| Add "Download for Stories" to Repo VCP | `[ ]` | `app/analysis/[jobId]/AnalysisClient.tsx` |
+| Create API route for story image generation | `[x]` | `app/api/share/story/[userId]/route.tsx` |
+| Implement vertical layout with `@vercel/og` | `[x]` | `app/api/share/story/[userId]/route.tsx` |
+| Add persona gradient themes | `[x]` | `apps/web/src/app/api/share/story/[userId]/route.tsx` |
+| Integrate QR code generation | `[x]` | `apps/web/src/app/api/share/story/[userId]/route.tsx` |
+| Add "Download for Stories" button to UI | `[x]` | `components/share/ProfileShareSection.tsx`, `components/share/ShareActions.tsx` |
+| Add "Download for Stories" to Repo VCP | `[x]` | `app/analysis/[jobId]/AnalysisClient.tsx`, `components/share/ShareActions.tsx` |
 | Test on various devices/platforms | `[ ]` | — |
 
 **Success Criteria:**
@@ -361,7 +361,7 @@ This tracker covers all implementation work for the Information Architecture Res
 | P2: Navigation & Routes | 8 | 8 | `[x] Complete` |
 | P3: VCP Display Unification | 14 | 12 | `[~] In Progress` |
 | P4: Notification System | 6 | 6 | `[x] Complete` |
-| P5: Vertical Stories ShareCard | 7 | 0 | `[ ] Not Started` |
+| P5: Vertical Stories ShareCard | 7 | 6 | `[~] In Progress` |
 | P6: LLM Tagline Generation | 5 | 0 | `[ ] Not Started` |
 | X1: Migration & Redirects | 5 | 0 | `[ ] Not Started` |
 | X2: Polish & Testing | 7 | 0 | `[ ] Not Started` |
