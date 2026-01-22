@@ -30,12 +30,28 @@ Database migrations run via `npm run supabase:migration:up`; avoid manual schema
    - The README/SECURITY docs are up to date if your change affects onboarding or security.
 5. After PR review, squash/fixups if needed and merge via “rebase and merge.”
 
-## 4. Communication
+## 4. Security scanning
+
+CI runs TruffleHog on every push/PR to detect leaked secrets in git history. To run locally:
+
+```bash
+# Install via Homebrew (macOS)
+brew install trufflehog
+
+# Scan the repo (from project root)
+trufflehog git file://. --no-update --json
+```
+
+The scan outputs JSON with `verified_secrets` and `unverified_secrets` counts. A clean run shows `0` for both.
+
+**Note:** The Python pip version (`pip install trufflehog`) may fail on macOS due to `.git/FETCH_HEAD` permission issues. Use the Homebrew version instead.
+
+## 5. Communication
 
 - Use Slack/email for urgent ship-blockers.
 - Report vulnerabilities via `security@bolokonon.dev` (see `SECURITY.md`).
 - Tag `@devakone` on docs or backend changes requiring clarification.
 
-## 5. Trademark reminder
+## 6. Trademark reminder
 
 The code is Apache 2.0 open-source, but **Vibe Coding Profiler**, **Vibed Coding**, **Vibe Coding Profile**, and **VCP** are trademarks. Keep the brand names within this repo; if you fork for commercial use, rename your project accordingly.

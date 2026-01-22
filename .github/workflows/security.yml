@@ -33,6 +33,6 @@ jobs:
         run: npm audit --audit-level=moderate
 
       - name: Trufflehog git history scan
-        run: npx trufflehog@latest git --repo-path . --entropy False --json --rules none
-        env:
-          TRUFFLEHOG_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
