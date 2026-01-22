@@ -26,7 +26,7 @@
   ],
   "packages": {
     ".": {
-      "release-type": "node",
+      "release-type": "simple",
       "component": "vibed-coding",
       "changelog-path": "CHANGELOG-DEVELOP.md",
       "prerelease": true,
@@ -34,7 +34,7 @@
       "prerelease-type": "alpha"
     },
     "apps/web": {
-      "release-type": "node",
+      "release-type": "simple",
       "component": "web",
       "changelog-path": "CHANGELOG-DEVELOP.md",
       "prerelease": true,
@@ -42,7 +42,7 @@
       "prerelease-type": "alpha"
     },
     "apps/worker": {
-      "release-type": "node",
+      "release-type": "simple",
       "component": "worker",
       "changelog-path": "CHANGELOG-DEVELOP.md",
       "prerelease": true,
