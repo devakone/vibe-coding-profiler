@@ -86,8 +86,17 @@ export default async function RootLayout({
           <div className={wrappedTheme.backgroundOrbs.orbC} />
           <div className={wrappedTheme.backgroundOrbs.vignette} />
         </div>
-        <AppHeader isAuthed={Boolean(user)} isAdmin={isAdmin} signOut={signOut} />
-        {user ? <JobsProvider>{children}</JobsProvider> : children}
+        {user ? (
+          <JobsProvider>
+            <AppHeader isAuthed={Boolean(user)} isAdmin={isAdmin} signOut={signOut} />
+            {children}
+          </JobsProvider>
+        ) : (
+          <>
+            <AppHeader isAuthed={Boolean(user)} isAdmin={isAdmin} signOut={signOut} />
+            {children}
+          </>
+        )}
         <Toaster />
       </body>
     </html>
