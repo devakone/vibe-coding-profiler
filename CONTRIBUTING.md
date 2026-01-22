@@ -46,6 +46,8 @@ The scan outputs JSON with `verified_secrets` and `unverified_secrets` counts. A
 
 **Note:** The Python pip version (`pip install trufflehog`) may fail on macOS due to `.git/FETCH_HEAD` permission issues. Use the Homebrew version instead.
 
+For detailed security posture documentation, see `docs/security/open-source-preparedness.md`.
+
 ## 5. Communication
 
 - Use Slack/email for urgent ship-blockers.

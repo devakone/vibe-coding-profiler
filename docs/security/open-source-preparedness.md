@@ -23,7 +23,7 @@ This doc captures where Vibed Coding stands security-wise today and tracks the r
 
 | Task | Target | Status |
 | --- | --- | --- |
-| Secret history sweep | Run `trufflehog`/`git-secrets` over the full git history; rotate anything flagged before release | 🟡 `trufflehog` attempted locally but fetch step failed on macOS (`.git/FETCH_HEAD` permission); CI job runs successfully |
+| Secret history sweep | Run `trufflehog`/`git-secrets` over the full git history; rotate anything flagged before release | ✅ Clean scan locally via Homebrew (`brew install trufflehog`); CI uses TruffleHog GitHub Action |
 | Dependency audit | Add `npm audit` (or Dependabot) stage to CI and resolve alerts before GA | 🟢 `npm audit --audit-level=moderate` added; esbuild moderate vulnerability still open (no fix yet) |
 | Core OSS docs | Create `README.md`, `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md` with install/build/attack paths and env var/key rotation notes | ✅ Done |
 | Security workflow | Run `npm audit --audit-level=moderate` + `trufflehog --entropy False` on every PR | ✅ `.github/workflows/security.yml` now executes both jobs |
@@ -48,8 +48,23 @@ This doc captures where Vibed Coding stands security-wise today and tracks the r
 - Keep API hardening (rate limits, origin checks) in place for endpoints noted above.
 - Publish `SECURITY.md` with reporting instructions, expected SLAs, and contact channels.
 - Be prepared to trim history with `git filter-repo` if a past secret resurfaces.
--
-_Local `trufflehog` runs on macOS currently fail due to `git fetch` complaining about `.git/FETCH_HEAD` permissions; the CI job uses the same command but runs in a clean container and succeeds, so rely on that for release gating. If you need to rerun locally, activate the Python venv (`python3 -m venv .venv && .venv/bin/pip install trufflehog`) and ensure `git fetch` can write to `.git/FETCH_HEAD`._
+### Local TruffleHog setup
+
+Install via Homebrew (recommended for macOS):
+
+```bash
+brew install trufflehog
+```
+
+Run a scan from the repository root:
+
+```bash
+trufflehog git file://. --no-update --json
+```
+
+A clean scan outputs JSON with `"verified_secrets":0,"unverified_secrets":0`.
+
+**Note:** The Python pip version (`pip install trufflehog`) has `.git/FETCH_HEAD` permission issues on macOS. The Homebrew version works without these issues.
 
 ---
 
@@ -58,7 +73,8 @@ _Local `trufflehog` runs on macOS currently fail due to `git fetch` complaining 
 1. **Define legal/governance docs.** Add `README.md`, `LICENSE` (MIT/Apache), `CONTRIBUTING.md`, and `CODE_OF_CONDUCT.md` that call out required env vars, LLM key handling, and release governance.
 2. **Complete security docs.** Publish `docs/security/` (this file included) plus an author-facing `SECURITY.md` with vulnerability reporting, contact info, and SLA expectations.
 3. **Revise CI.** Add a dedicated OSS workflow that chains `turbo lint`, `npm run build`, `npm run type-check`, `npm audit --audit-level=moderate`, and optional `trufflehog`/`git-secrets` checks.
-4. **Final checklist.** Before flipping public, run `npm run build`, `npm run lint`, `npm run test`, `npm audit --audit-level=moderate`, and a history audit (`trufflehog`/`git-secrets`). Verify `.env` files remain untracked and update this doc with final readiness notes.  
-   - The latest security workflow run viewable at [#21257192786 (job 61174948008)](https://github.com/devakone/vibe-coding-profiler/actions/runs/21257192786/job/61174948008?pr=16) currently shows failure because `npm audit` exits non-zero due to the existing moderate `esbuild <=0.24.2` advisory (the audit command is still valuable as it alerts you to that unresolved dependency). The `trufflehog` scan passes once FETCH_HEAD permissions are corrected, so the workflow remains reliable aside from the audit warning we are tracking.
+4. **Final checklist.** Before flipping public, run `npm run build`, `npm run lint`, `npm run test`, `npm audit --audit-level=moderate`, and a history audit (`trufflehog`). Verify `.env` files remain untracked and update this doc with final readiness notes.
+   - **TruffleHog:** CI uses the official [TruffleHog GitHub Action](https://github.com/trufflesecurity/trufflehog). Local scans run via `brew install trufflehog && trufflehog git file://. --no-update --json`.
+   - **npm audit:** The moderate `esbuild <=0.24.2` advisory remains open (vitest dependency); we monitor for upstream fixes rather than forcing breaking changes.
 
 Once the checklist is green and the documentation is complete, the repo can be published with confidence that the security posture meets open-source expectations.
