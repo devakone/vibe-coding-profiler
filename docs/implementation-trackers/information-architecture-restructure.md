@@ -111,8 +111,8 @@ This tracker covers all implementation work for the Information Architecture Res
 
 ### F3. Shared Utilities
 
-**Status:** `[x] Complete`  
-**Depends on:** None (can run parallel with F1/F2)  
+**Status:** `[x] Complete`
+**Depends on:** None (can run parallel with F1/F2)
 **Blocks:** P1, P5
 
 | Task | Status | File(s) |
@@ -121,12 +121,12 @@ This tracker covers all implementation work for the Information Architecture Res
 | Implement `computeStyleDescriptor()` | `[x]` | `lib/vcp/metrics.ts` |
 | Implement `computeRhythmLabel()` | `[x]` | `lib/vcp/metrics.ts` |
 | Implement `computePeakLabel()` | `[x]` | `lib/vcp/metrics.ts` |
-| Add unit tests for metric functions | `[ ]` | `__tests__/metrics.test.ts` |
+| Add unit tests for metric functions | `[x]` | `lib/vcp/__tests__/metrics.test.ts` |
 
 **Success Criteria:**
 - [x] All metric computation functions work correctly
 - [x] Edge cases handled (missing data, null values)
-- [ ] Tests pass (tests not yet written)
+- [x] Tests pass (40 tests passing)
 
 ---
 
@@ -357,7 +357,7 @@ This tracker covers all implementation work for the Information Architecture Res
 |-------|-------|-----------|--------|
 | F1: VCP Primitives | 12 | 12 | `[x] Complete` |
 | F2: VCP Composite Blocks | 10 | 10 | `[x] Complete` |
-| F3: Shared Utilities | 5 | 4 | `[~] In Progress` |
+| F3: Shared Utilities | 5 | 5 | `[x] Complete` |
 | P1: ShareCard Redesign | 7 | 7 | `[x] Complete` |
 | P2: Navigation & Routes | 8 | 8 | `[x] Complete` |
 | P3: VCP Display Unification | 14 | 14 | `[x] Complete` |
@@ -367,7 +367,7 @@ This tracker covers all implementation work for the Information Architecture Res
 | X1: Migration & Redirects | 5 | 4 | `[~] In Progress` |
 | X2: Polish & Testing | 7 | 0 | `[~] In Progress` |
 | X3: Documentation | 5 | 0 | `[ ] Not Started` |
-| **Total** | **91** | **68** | **75%** |
+| **Total** | **91** | **69** | **76%** |
 
 ---
 
@@ -445,3 +445,7 @@ This tracker covers all implementation work for the Information Architecture Res
 - **P3 Complete:** Unified/Repo VCP pages now use shared components:
   - `app/page.tsx`: Replaced inline Unified VCP sections with unified components
   - `AnalysisClient.tsx`: Swapped Repo VCP identity/metrics/contribution sections to repo components
+- **F3 Complete:** Added unit tests for metric functions:
+  - Set up vitest in web app (`vitest.config.ts`, test scripts in package.json)
+  - Created `lib/vcp/__tests__/metrics.test.ts` with 40 tests covering all metric functions
+  - Tests cover: computeStrongestAxis, formatStrongestAxis, computeStyleDescriptor, computeRhythmLabel, computePeakLabel, analyzePeakWindow, computeShareCardMetrics, formatConfidence, computeConsistencyLabel
