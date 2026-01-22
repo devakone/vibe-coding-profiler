@@ -22,6 +22,8 @@ export interface ShareCardPersona {
 export interface ShareCardProps {
   /** Variant determines layout differences */
   variant: "repo" | "profile";
+  /** Optional persona ID for aura background + icon */
+  personaId?: string;
   /** Persona information */
   persona: ShareCardPersona;
   /** Up to 4 metrics to display */

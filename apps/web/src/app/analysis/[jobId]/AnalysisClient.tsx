@@ -761,6 +761,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
             <div className="space-y-4">
               <ShareCard
                 variant="repo"
+                personaId={persona.id}
                 persona={{
                   label: persona.label,
                   tagline: persona.description,

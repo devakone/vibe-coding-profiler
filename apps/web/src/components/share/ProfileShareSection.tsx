@@ -120,6 +120,7 @@ export function ProfileShareSection({
     <div className="space-y-4">
       <ShareCard
         variant="profile"
+        personaId={personaId}
         persona={{
           label: personaName,
           tagline: personaTagline ?? insight,

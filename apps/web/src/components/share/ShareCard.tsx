@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { getPersonaAura } from "@/lib/persona-auras";
 import type { ShareCardProps } from "./types";
 
 /**
@@ -11,6 +12,7 @@ import type { ShareCardProps } from "./types";
  */
 export function ShareCard({
   variant,
+  personaId,
   persona,
   metrics,
   footer,
@@ -20,15 +22,29 @@ export function ShareCard({
 }: ShareCardProps) {
   const defaultHeader = variant === "profile" ? "My Unified VCP" : "My Repo VCP";
   const header = headerLabel ?? defaultHeader;
+  const aura = getPersonaAura(personaId);
 
   return (
     <div
-      className="overflow-hidden rounded-3xl border border-black/5 shadow-lg"
+      className="relative overflow-hidden rounded-3xl border border-black/5 shadow-lg"
       style={{
         background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
       }}
     >
-      <div className="p-6 sm:p-8">
+      {/* Aura background overlay */}
+      <div className="pointer-events-none absolute inset-0">
+        <Image
+          src={aura.background}
+          alt=""
+          fill
+          priority={variant === "profile"}
+          className="object-cover opacity-25 mix-blend-overlay"
+        />
+        {/* Readability overlay */}
+        <div className="absolute inset-0 bg-black/15" />
+      </div>
+
+      <div className="relative p-6 sm:p-8">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -47,7 +63,7 @@ export function ShareCard({
               </p>
             ) : null}
           </div>
-          <div className="hidden shrink-0 sm:block">
+          <div className="hidden shrink-0 items-center gap-2 sm:flex">
             {avatarUrl ? (
               <Image
                 src={avatarUrl}
@@ -56,11 +72,17 @@ export function ShareCard({
                 height={48}
                 className="rounded-full border-2 border-white/30 object-cover"
               />
-            ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur">
-                <span className="text-lg font-bold text-white">V</span>
-              </div>
-            )}
+            ) : null}
+            <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white/10 backdrop-blur">
+              <Image
+                src={aura.icon}
+                alt={aura.alt}
+                width={48}
+                height={48}
+                className="h-12 w-12 object-cover"
+              />
+              <div className="absolute inset-0 rounded-full ring-2 ring-white/20" />
+            </div>
           </div>
         </div>
 

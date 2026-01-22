@@ -25,6 +25,18 @@ export interface PersonaAura {
   description: string;
 }
 
+const PERSONA_ALIASES: Record<string, string> = {
+  // Core persona IDs (kebab-case) -> app persona IDs (snake_case)
+  "debugger-risk-taker": "rapid_risk_taker",
+  "vibe-prototyper": "prompt_sprinter",
+  "test-validator": "guardrailed_viber",
+  "spec-architect": "spec_first_director",
+  "agent-orchestrator": "vertical_slice_shipper",
+  "infra-architect": "infra_weaver",
+  "specialist-consultant": "spec_first_director",
+  "reflective-balancer": "reflective_balancer",
+};
+
 /**
  * Maps persona IDs to their aura assets
  */
@@ -136,6 +148,18 @@ export const PERSONA_AURAS: Record<string, PersonaAura> = {
     alt: "Balance and equilibrium pattern",
     description: "Balances competing priorities",
   },
+  "infra-architect": {
+    background: "/aura-backgrounds/bg-orchestrator-factory.webp",
+    icon: "/aura-icons/icon-infra-weaver.webp",
+    alt: "Factory infrastructure weaving pattern",
+    description: "Infrastructure governance and system design",
+  },
+  "specialist-consultant": {
+    background: "/aura-backgrounds/bg-methodical-architect-v2.webp",
+    icon: "/aura-icons/icon-spec-first-director.webp",
+    alt: "Specification-driven direction and planning",
+    description: "Assigns roles and review steps with precision",
+  },
 };
 
 // Default aura for unknown personas - use the balanced one as neutral
@@ -151,5 +175,9 @@ export const DEFAULT_AURA: PersonaAura = {
  */
 export function getPersonaAura(personaId: string | undefined): PersonaAura {
   if (!personaId) return DEFAULT_AURA;
-  return PERSONA_AURAS[personaId] ?? DEFAULT_AURA;
+  const normalized = personaId.trim().toLowerCase();
+  const underscored = normalized.replace(/-/g, "_");
+  const alias = PERSONA_ALIASES[normalized] ?? PERSONA_ALIASES[underscored];
+  const key = alias ?? underscored ?? normalized;
+  return PERSONA_AURAS[key] ?? PERSONA_AURAS[normalized] ?? DEFAULT_AURA;
 }
