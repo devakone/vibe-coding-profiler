@@ -157,7 +157,7 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
               <p className="text-sm text-zinc-600">
                 No completed reports yet. Run your first vibe check.
               </p>
-              <Link className={`${wrappedTheme.primaryButtonSm} mx-auto`} href="/repos">
+              <Link className={`${wrappedTheme.primaryButtonSm} mx-auto`} href="/settings/repos">
                 Pick a repo
               </Link>
             </div>
@@ -181,7 +181,7 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
                             {r.repoName ?? "Repository"}
                           </p>
                           {isUnread && (
-                            <span className="inline-flex h-2 w-2 rounded-full bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500" />
+                            <span className="inline-flex h-2 w-2 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500" />
                           )}
                         </div>
                         <p className="mt-1 text-xs text-zinc-600">
@@ -243,7 +243,7 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
               <p className="text-sm text-zinc-600">
                 No analysis jobs yet.
               </p>
-              <Link className={`${wrappedTheme.primaryButtonSm} mx-auto`} href="/repos">
+              <Link className={`${wrappedTheme.primaryButtonSm} mx-auto`} href="/settings/repos">
                 Start an analysis
               </Link>
             </div>

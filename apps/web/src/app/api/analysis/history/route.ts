@@ -19,7 +19,7 @@ export async function GET() {
       "job_id, persona_id, persona_label, persona_confidence, generated_at, share_template, analysis_jobs(status, created_at, repo_id)"
     )
     .eq("analysis_jobs.user_id", user.id)
-    .order("analysis_jobs.created_at", { ascending: false });
+    .order("created_at", { ascending: false, referencedTable: "analysis_jobs" });
 
   if (error) {
     console.error("Failed to fetch insight history:", error);

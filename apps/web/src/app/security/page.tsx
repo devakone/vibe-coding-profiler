@@ -85,7 +85,7 @@ export default function SecurityPage() {
             </p>
           </section>
 
-          <section className="rounded-3xl border border-black/5 bg-gradient-to-br from-fuchsia-200/70 via-indigo-200/60 to-cyan-200/70 p-8 shadow-[0_25px_80px_rgba(2,6,23,0.06)]">
+          <section className="rounded-3xl border border-black/5 bg-gradient-to-br from-violet-100/80 via-indigo-100/70 to-violet-50/80 p-8 shadow-[0_25px_80px_rgba(30,27,75,0.06)]">
             <h2 className="text-xl font-semibold text-zinc-950">Recommendations</h2>
             <p className="mt-3 text-sm text-zinc-700">
               Vibe Coding Profile is designed for personal insight. Keep the blast radius small.

@@ -114,14 +114,15 @@ export function createShareSvg(
   const metricsChars = format === "og" ? 72 : format === "square" ? 60 : 46;
 
   const headlineWrapped = wrapTextLines(template.headline, headlineChars, 2);
-  const subheadWrapped = wrapTextLines(template.subhead, subheadChars, 2);
+  const taglineText = template.tagline ?? template.subhead;
+  const taglineWrapped = wrapTextLines(taglineText, subheadChars, 2);
   const metricsWrapped = wrapTextLines(metricsText, metricsChars, format === "story" ? 2 : 1);
 
   const headlineLines = headlineWrapped.lines.map((l, idx) =>
     escapeXml(idx === headlineWrapped.lines.length - 1 && headlineWrapped.truncated ? withEllipsis(l) : l)
   );
-  const subheadLines = subheadWrapped.lines.map((l, idx) =>
-    escapeXml(idx === subheadWrapped.lines.length - 1 && subheadWrapped.truncated ? withEllipsis(l) : l)
+  const taglineLines = taglineWrapped.lines.map((l, idx) =>
+    escapeXml(idx === taglineWrapped.lines.length - 1 && taglineWrapped.truncated ? withEllipsis(l) : l)
   );
   const metricsLines = metricsWrapped.lines.map((l, idx) =>
     escapeXml(idx === metricsWrapped.lines.length - 1 && metricsWrapped.truncated ? withEllipsis(l) : l)
@@ -131,8 +132,8 @@ export function createShareSvg(
     format === "story" ? Math.round(cfg.height * 0.34) : cfg.pad + Math.round(cfg.headlineSize * 0.9);
 
   const headlineY = startY;
-  const subheadY = headlineY + Math.round(cfg.headlineSize * 0.95) + 18;
-  const metricsY = subheadY + Math.round(cfg.subheadSize * 0.95) + 18;
+  const taglineY = headlineY + Math.round(cfg.headlineSize * 0.95) + 18;
+  const metricsY = taglineY + Math.round(cfg.subheadSize * 0.95) + 18;
   const metaY =
     format === "story" ? Math.round(cfg.height * 0.72) : metricsY + Math.round(cfg.metricsSize * 0.95) + 28;
   const hashY = metaY + Math.round(cfg.metaSize * 1.6);
@@ -144,7 +145,7 @@ export function createShareSvg(
   const headlineTspans = headlineLines
     .map((line, idx) => `<tspan x="${x}" dy="${idx === 0 ? 0 : Math.round(cfg.headlineSize * 1.1)}">${line}</tspan>`)
     .join("");
-  const subheadTspans = subheadLines
+  const taglineTspans = taglineLines
     .map((line, idx) => `<tspan x="${x}" dy="${idx === 0 ? 0 : Math.round(cfg.subheadSize * 1.25)}">${line}</tspan>`)
     .join("");
   const metricsTspans = metricsLines
@@ -163,8 +164,8 @@ export function createShareSvg(
   <text x="${x}" y="${headlineY}" font-size="${cfg.headlineSize}" font-weight="700" fill="#FFFFFF" font-family="Space Grotesk, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
     ${headlineTspans}
   </text>
-  <text x="${x}" y="${subheadY}" font-size="${cfg.subheadSize}" fill="rgba(255,255,255,0.85)" font-family="Space Grotesk, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
-    ${subheadTspans}
+  <text x="${x}" y="${taglineY}" font-size="${cfg.subheadSize}" fill="rgba(255,255,255,0.85)" font-family="Space Grotesk, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+    ${taglineTspans}
   </text>
   <text x="${x}" y="${metricsY}" font-size="${cfg.metricsSize}" fill="rgba(255,255,255,0.85)" font-family="Space Grotesk, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
     ${metricsTspans}

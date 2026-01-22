@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@vibed/db";
 import { wrappedTheme } from "@/lib/theme";
-import { formatMatchedRule, AXIS_LEGEND } from "@/lib/format-labels";
 import { ProfileShareSection } from "@/components/share";
 import { ProfileVersionSelector } from "@/components/ProfileVersionSelector";
 import { createClient } from "@supabase/supabase-js";
@@ -14,6 +13,14 @@ import {
   type VibeAxes,
   type VibeCommitEvent,
 } from "@vibed/core";
+import {
+  UnifiedIdentitySection,
+  UnifiedInsightSection,
+  UnifiedAxesSection,
+  EvolutionSection,
+  RepoBreakdownSection,
+  UnifiedMethodologySection,
+} from "@/components/vcp/unified";
 
 const heroFeatures = [
   "A Vibe Coding Profile (VCP) built from AI-assisted engineering signals in your commit history",
@@ -796,7 +803,7 @@ export default async function Home({
       }
     : null;
 
-  return <AuthenticatedDashboard stats={stats} debugInfo={debugInfo} />;
+  return <AuthenticatedDashboard stats={stats} debugInfo={debugInfo} userId={user.id} />;
 }
 
 function MarketingLanding() {
@@ -893,7 +900,7 @@ function MarketingLanding() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-black/5 bg-gradient-to-br from-fuchsia-200/70 via-indigo-200/60 to-cyan-200/70 p-8 shadow-[0_25px_80px_rgba(2,6,23,0.06)]">
+          <section className="rounded-3xl border border-black/5 bg-gradient-to-br from-violet-100/80 via-indigo-100/70 to-violet-50/80 p-8 shadow-[0_25px_80px_rgba(30,27,75,0.06)]">
             <h2 className="text-2xl font-semibold text-zinc-950">How it works</h2>
             <div className="mt-6 grid gap-4">
               {timeline.map((step) => (
@@ -932,7 +939,7 @@ function MarketingLanding() {
                 key={card.title}
                 className="rounded-2xl border border-black/5 bg-white p-6 shadow-sm"
               >
-                <div className="h-1.5 w-12 rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600" />
+                <div className="h-1.5 w-12 rounded-full bg-gradient-to-r from-violet-600 to-indigo-500" />
                 <p className="mt-4 text-sm font-semibold text-zinc-950">{card.title}</p>
                 <p className="mt-2 text-sm text-zinc-800">{card.description}</p>
               </div>
@@ -952,9 +959,11 @@ function MarketingLanding() {
 function AuthenticatedDashboard({
   stats,
   debugInfo,
+  userId,
 }: {
   stats: AuthStats;
   debugInfo: Record<string, unknown> | null;
+  userId: string;
 }) {
   const isAxisValue = (v: unknown): v is { score: number; level: string; why: string[] } => {
     if (typeof v !== "object" || v === null) return false;
@@ -1061,8 +1070,6 @@ function AuthenticatedDashboard({
     },
   } as const;
 
-  const axisKeys = Object.keys(axisMeta) as Array<keyof typeof axisMeta>;
-
   function generateCrossRepoInsight(): string {
     if (!stats.userProfile) return "Add more repos to unlock cross-repo insights.";
     const repos = stats.userProfile.repoPersonas ?? [];
@@ -1135,6 +1142,8 @@ function AuthenticatedDashboard({
             clarity={clarity}
             topAxes={topAxes}
             insight={crossRepoInsight}
+            axes={stats.userProfile.axes as unknown as VibeAxes}
+            userId={userId}
           />
         ) : null}
 
@@ -1146,307 +1155,57 @@ function AuthenticatedDashboard({
         {/* Unified Profile Card */}
         <div className="overflow-hidden rounded-[2.5rem] border border-black/5 bg-white shadow-[0_30px_120px_rgba(2,6,23,0.08)]">
           {/* Section 1: Identity */}
-          <div className="relative bg-gradient-to-br from-fuchsia-500/10 via-indigo-500/5 to-cyan-500/10 p-8 sm:p-10">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(236,72,153,0.08),transparent_50%)]" />
-            <div className="relative">
-              <div className="flex items-start justify-between gap-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500">
-                  Your Unified VCP
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {stats.completedJobs > 0 ? (
-                    <>
-                      <Link
-                        href="/repos"
-                        className="rounded-full border border-black/10 bg-white/80 px-4 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm transition hover:bg-white"
-                      >
-                        Add repo
-                      </Link>
-                    <Link
-                      href="/analysis"
-                      className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800"
-                    >
-                      View Repo VCPs
-                    </Link>
-                    </>
-                  ) : (
-                    <Link
-                      href="/repos"
-                      className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800"
-                    >
-                      Pick a repo
-                    </Link>
-                  )}
-                </div>
-              </div>
-              <h1 className="mt-4 text-4xl font-bold tracking-tight text-zinc-950 sm:text-5xl">
-                {stats.userProfile?.personaName ?? stats.latestPersona?.label ?? "Still forming"}
-              </h1>
-              {stats.userProfile?.personaTagline ? (
-                <p className="mt-3 text-lg text-zinc-700">
-                  “{stats.userProfile.personaTagline}”
-                </p>
-              ) : null}
-              <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-zinc-600">
-                {stats.userProfile ? (
-                  <>
-                    <span className="rounded-full bg-white/80 px-3 py-1 font-medium text-zinc-800 shadow-sm">
-                      {stats.userProfile.personaConfidence} confidence
-                    </span>
-                    <span>{stats.userProfile.totalRepos} repos</span>
-                    <span>·</span>
-                    <span>{stats.userProfile.totalCommits.toLocaleString()} commits</span>
-                    <span>·</span>
-                    <span>{clarity}% clarity</span>
-                  </>
-                ) : stats.analyzedRepos > 0 ? (
-                  <>
-                    <span>{stats.analyzedRepos} repos</span>
-                    <span>·</span>
-                    <span>{stats.analyzedCommits.toLocaleString()} commits</span>
-                    <span>·</span>
-                    <span>Profile forming</span>
-                  </>
-                ) : stats.latestPersona ? (
-                  <>
-                    <span className="rounded-full bg-white/80 px-3 py-1 font-medium text-zinc-800 shadow-sm">
-                      {stats.latestPersona.confidence}
-                    </span>
-                    {stats.latestPersona.repoName ? (
-                      <span>Based on {stats.latestPersona.repoName}</span>
-                    ) : null}
-                  </>
-                ) : (
-                  <span>Run a vibe check to get your first read</span>
-                )}
-              </div>
-            </div>
-          </div>
+          <UnifiedIdentitySection
+            personaName={stats.userProfile?.personaName ?? stats.latestPersona?.label ?? "Still forming"}
+            personaTagline={stats.userProfile?.personaTagline}
+            confidence={stats.userProfile?.personaConfidence}
+            totalRepos={stats.userProfile?.totalRepos}
+            totalCommits={stats.userProfile?.totalCommits}
+            clarity={clarity}
+            completedJobs={stats.completedJobs}
+            analyzedRepos={stats.analyzedRepos}
+            analyzedCommits={stats.analyzedCommits}
+            latestPersona={stats.latestPersona}
+          />
 
-          {/* Section 2: Insight (the juicy synthesis) */}
+          {/* Section 2: Insight */}
           {stats.userProfile ? (
-            <div className="border-t border-black/5 bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-8 py-6 sm:px-10">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-white/70">
-                  Insight
-                </p>
-                {hasLLMNarrative && stats.userProfile.llmModel ? (
-                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white/80">
-                    AI-generated
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-2 text-base font-medium leading-relaxed text-white sm:text-lg">
-                {crossRepoInsight}
-              </p>
-              {narrativeParagraphs.length > 0 ? (
-                <div className="mt-4 space-y-3">
-                  {narrativeParagraphs.map((paragraph, idx) => (
-                    <p key={idx} className="text-sm leading-relaxed text-white/90">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              ) : null}
-              {narrativeHighlights.length > 0 ? (
-                <ul className="mt-4 space-y-1">
-                  {narrativeHighlights.map((highlight, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm text-white/85">
-                      <span className="mt-1 text-white/60">•</span>
-                      <span>{highlight}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
+            <UnifiedInsightSection
+              headline={crossRepoInsight}
+              paragraphs={narrativeParagraphs}
+              highlights={narrativeHighlights}
+              isLLMGenerated={hasLLMNarrative}
+              llmModel={stats.userProfile.llmModel}
+            />
           ) : null}
 
-          {/* Section 3: Your Axes (the 6 signals) */}
+          {/* Section 3: Your Axes */}
+          {stats.userProfile && isVibeAxes(stats.userProfile.axes) ? (
+            <UnifiedAxesSection axes={stats.userProfile.axes} />
+          ) : null}
+
+          {/* Section 4: Evolution */}
+          <EvolutionSection
+            repoVcpCount={stats.completedJobs}
+            vibeShifts={shiftValue}
+            dominantVibe={dominantPersona ? dominantPersona.split(" ")[0] : null}
+            shiftHelper={recentLabels.length >= 2 ? shiftHelper : undefined}
+          />
+
+          {/* Section 5: Repo Breakdown */}
           {stats.userProfile ? (
-            <div className="border-t border-black/5 p-8 sm:p-10">
-              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500">
-                Your Axes
-              </p>
-              <p className="mt-1 text-sm text-zinc-600">
-                The 6 signals that define your AI-assisted engineering (vibe coding) style
-              </p>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {axisKeys.map((key) => {
-                  const axis = stats.userProfile?.axes[key];
-                  const meta = axisMeta[key];
-                  const score = axis?.score ?? 50;
-
-                  return (
-                    <div
-                      key={key}
-                      className="rounded-2xl border border-black/5 bg-zinc-50/50 p-4"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-zinc-900">{meta.name}</p>
-                          <p className="mt-0.5 text-xs text-zinc-500">{meta.description}</p>
-                        </div>
-                        <span className="text-xl font-bold text-zinc-900">{score}</span>
-                      </div>
-                      <div className="mt-3 h-1.5 w-full rounded-full bg-zinc-200">
-                        <div
-                          className="h-1.5 rounded-full bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500"
-                          style={{ width: `${score}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <RepoBreakdownSection
+              repoPersonas={stats.userProfile.repoPersonas}
+              totalCommits={stats.userProfile.totalCommits}
+            />
           ) : null}
 
-          {/* Section 4: Evolution (shifts, trends) */}
-          <div className="border-t border-black/5 p-8 sm:p-10">
-            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500">
-              Evolution
-            </p>
-            <p className="mt-1 text-sm text-zinc-600">
-              How your vibe has developed over time
-            </p>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-black/5 bg-zinc-50/50 p-4 text-center">
-                <p className="text-3xl font-bold text-zinc-900">{stats.completedJobs}</p>
-                <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
-                  Repo VCPs
-                </p>
-              </div>
-              <div className="rounded-2xl border border-black/5 bg-zinc-50/50 p-4 text-center">
-                <p className="text-3xl font-bold text-zinc-900">{shiftValue}</p>
-                <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
-                  Vibe shifts
-                </p>
-              </div>
-              <div className="rounded-2xl border border-black/5 bg-zinc-50/50 p-4 text-center">
-                <p className="text-3xl font-bold text-zinc-900">
-                  {dominantPersona ? dominantPersona.split(" ")[0] : "—"}
-                </p>
-                <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
-                  Dominant vibe
-                </p>
-              </div>
-            </div>
-
-            {recentLabels.length >= 2 ? (
-              <p className="mt-4 text-xs text-zinc-500">
-                {shiftHelper}
-              </p>
-            ) : null}
-          </div>
-
-          {/* Section 5: Your Repos (breakdown) */}
-          {stats.userProfile && stats.userProfile.repoPersonas.length > 0 ? (
-            <div className="border-t border-black/5 p-8 sm:p-10">
-              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500">
-                Repo Breakdown
-              </p>
-              <p className="mt-1 text-sm text-zinc-600">
-                Each repo contributes to your profile, weighted by commits
-              </p>
-
-              <div className="mt-6 space-y-3">
-                {stats.userProfile.repoPersonas.map((repo, i) => {
-                  const percentage = Math.round(
-                    (repo.commitCount / (stats.userProfile?.totalCommits ?? 1)) * 100
-                  );
-                  return (
-                    <div
-                      key={`${repo.repoName}-${i}`}
-                      className="flex items-center gap-4"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <p className="truncate text-sm font-medium text-zinc-900">
-                            {repo.repoName}
-                          </p>
-                          <span className="ml-2 text-xs text-zinc-500">{percentage}%</span>
-                        </div>
-                        <div className="mt-1.5 h-1.5 w-full rounded-full bg-zinc-100">
-                          <div
-                            className="h-1.5 rounded-full bg-gradient-to-r from-fuchsia-400 via-indigo-400 to-cyan-400"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                        <p className="mt-1 text-xs text-zinc-500">
-                          {repo.personaName} · {repo.commitCount.toLocaleString()} commits
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {/* Section 6: How we got this (collapsible details) */}
-          {personaExplanation && stats.userProfile ? (
-            <div className="border-t border-black/5 p-8 sm:p-10">
-              <details>
-                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.4em] text-zinc-500 hover:text-zinc-700">
-                  How we got this
-                </summary>
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500">
-                      Matched signals
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {personaExplanation.matched_rules.length > 0 ? (
-                        personaExplanation.matched_rules.map((rule) => (
-                          <span
-                            key={rule}
-                            className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700"
-                          >
-                            {formatMatchedRule(rule)}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-sm text-zinc-600">
-                          Selected by nearest-fit across all signals
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
-                    {Object.entries(AXIS_LEGEND).map(([k, v]) => (
-                      <span key={k}>
-                        {k} = {v}
-                      </span>
-                    ))}
-                  </div>
-
-                  {personaExplanation.caveats.length > 0 ? (
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500">
-                        Caveats
-                      </p>
-                      <ul className="mt-2 space-y-1">
-                        {personaExplanation.caveats.map((caveat) => (
-                          <li key={caveat} className="text-sm text-zinc-600">
-                            • {caveat}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-
-                  <Link
-                    href="/methodology"
-                    className="inline-block text-xs font-semibold uppercase tracking-[0.3em] text-zinc-600 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-900"
-                  >
-                    View full methodology
-                  </Link>
-                </div>
-              </details>
-            </div>
+          {/* Section 6: Methodology */}
+          {personaExplanation && stats.userProfile && isVibeAxes(stats.userProfile.axes) ? (
+            <UnifiedMethodologySection
+              matchedRules={personaExplanation.matched_rules}
+              caveats={personaExplanation.caveats}
+            />
           ) : null}
 
           {/* Actions footer */}
@@ -1464,7 +1223,7 @@ function AuthenticatedDashboard({
               <div className="flex flex-wrap gap-3">
                 {stats.completedJobs === 0 ? (
                   <>
-                    <Link href="/repos" className={wrappedTheme.primaryButton}>
+                    <Link href="/settings/repos" className={wrappedTheme.primaryButton}>
                       Pick a repo
                     </Link>
                     <Link href="/security" className={wrappedTheme.secondaryButton}>
@@ -1473,10 +1232,10 @@ function AuthenticatedDashboard({
                   </>
                 ) : (
                   <>
-                    <Link href="/repos" className={wrappedTheme.secondaryButton}>
+                    <Link href="/settings/repos" className={wrappedTheme.secondaryButton}>
                       Add repo
                     </Link>
-                    <Link href="/analysis" className={wrappedTheme.primaryButton}>
+                    <Link href="/vibes" className={wrappedTheme.primaryButton}>
                       View Repo VCPs
                     </Link>
                   </>

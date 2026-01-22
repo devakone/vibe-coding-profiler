@@ -392,7 +392,7 @@ export default function ReposClient(props: {
     <div className="mt-6 flex flex-col gap-6">
       {/* LLM Opt-in Card */}
       {llmOptIn !== null && (
-        <div className="rounded-2xl border border-black/5 bg-gradient-to-br from-fuchsia-50/80 via-indigo-50/50 to-cyan-50/80 p-5 shadow-sm">
+        <div className="rounded-2xl border border-black/5 bg-gradient-to-br from-violet-50/80 via-indigo-50/50 to-violet-50/80 p-5 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <h3 className="text-base font-semibold text-zinc-900">

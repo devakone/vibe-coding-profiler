@@ -204,7 +204,7 @@ export default function LLMKeysClient() {
   return (
     <div className="space-y-6">
       {/* LLM Opt-in Toggle */}
-      <div className="rounded-2xl border border-black/5 bg-gradient-to-br from-fuchsia-50/50 via-indigo-50/30 to-cyan-50/50 p-5">
+      <div className="rounded-2xl border border-black/5 bg-gradient-to-br from-violet-50/50 via-indigo-50/30 to-violet-50/50 p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <h3 className="text-base font-semibold text-zinc-900">

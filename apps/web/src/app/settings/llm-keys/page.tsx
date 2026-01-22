@@ -24,12 +24,11 @@ export default async function LLMKeysPage() {
       <div className="mx-auto max-w-2xl space-y-8">
         {/* Header */}
         <div>
-          <Link
-            href="/repos"
-            className="text-sm text-zinc-600 hover:text-zinc-900"
-          >
-            ← Back to Repos
-          </Link>
+          <div className="flex items-center gap-2 text-sm text-zinc-600">
+            <span className="text-zinc-900">Settings</span>
+            <span>/</span>
+            <span>LLM Keys</span>
+          </div>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
             LLM API Keys
           </h1>
@@ -37,6 +36,19 @@ export default async function LLMKeysPage() {
             Add your own API key to unlock unlimited AI-generated narratives.
             Your key is encrypted and never shared.
           </p>
+        </div>
+
+        {/* Settings Tabs */}
+        <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
+          <span className="flex-1 rounded-lg bg-white px-4 py-2 text-center text-sm font-medium text-zinc-900 shadow-sm">
+            LLM Keys
+          </span>
+          <Link
+            href="/settings/repos"
+            className="flex-1 rounded-lg px-4 py-2 text-center text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
+          >
+            Repos
+          </Link>
         </div>
 
         {/* Main content */}

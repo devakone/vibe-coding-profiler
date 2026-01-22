@@ -243,6 +243,7 @@ function computeEpisodeSummary(events: CommitEvent[]): Array<{
 interface NarrativeResult {
   narrative: AnalysisReport["narrative"];
   model: string;
+  tagline: string | null;
 }
 
 /**
@@ -292,8 +293,9 @@ async function generateNarrativeWithLLM(params: {
     "Never infer intent, skill, or code quality. Avoid speculation and motivational language.",
     "Every claim must cite at least one specific metric name and value (e.g. burstiness_score=0.42) or a specific commit subject line provided.",
     "Each section must include evidence: 2-6 commit SHAs that support the section.",
+    "Provide a concise tagline (<=60 characters) that describes the developer's vibe. This tagline will be displayed on share cards and should remain observational.",
     "Output must be STRICT JSON with this schema:",
-    '{"summary":"...","sections":[{"title":"...","content":"...","evidence":["sha", "..."]}],"highlights":[{"metric":"...","value":"...","interpretation":"..."}]}',
+    '{"summary":"...","tagline":"...","sections":[{"title":"...","content":"...","evidence":["sha", "..."]}],"highlights":[{"metric":"...","value":"...","interpretation":"..."}]}',
   ].join("\n");
 
   const userPrompt = [
@@ -375,6 +377,7 @@ async function generateNarrativeWithLLM(params: {
 
       const obj = parsed as {
         summary?: unknown;
+        tagline?: unknown;
         sections?: unknown;
         highlights?: unknown;
       };
@@ -407,9 +410,14 @@ async function generateNarrativeWithLLM(params: {
       }
       if (!highlightsValid) continue;
 
+      // Enforce 60-char limit as specified in the prompt
+      const rawTagline = typeof obj.tagline === "string" ? obj.tagline.trim() : null;
+      const tagline = rawTagline ? rawTagline.slice(0, 60) : null;
+
       return {
         narrative: { summary: obj.summary, sections, highlights },
         model,
+        tagline,
       };
     } catch (error) {
       console.warn(`LLM model ${model} failed, trying next:`, error);
@@ -567,6 +575,12 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
     );
     if (reportError) throw new Error(`Failed to upsert report: ${reportError.message}`);
 
+    // Authoritative tagline: LLM-generated if available, else persona description
+    const personaTaglineFallback = insights.persona.description ?? "";
+    const llmTagline = llmResult?.tagline?.trim();
+    const finalTagline = llmTagline?.length ? llmTagline : personaTaglineFallback;
+    insights.share_template.tagline = finalTagline;
+
     const { error: insightsError } = await supabase.from("analysis_insights").upsert(
       {
         job_id: jobId,
@@ -577,6 +591,7 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
         persona_confidence: insights.persona.confidence,
         tech_signals: insights.tech_signals as unknown as Json,
         share_template: insights.share_template as unknown as Json,
+        tagline: finalTagline,
         persona_delta: insights.persona_delta as unknown as Json,
         sources: insights.sources,
       },

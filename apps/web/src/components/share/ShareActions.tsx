@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Copy, Check, Link2, Share2, Download } from "lucide-react";
-import { SHARE_FORMATS, downloadSharePng, downloadShareSvg } from "./share-image";
+import { SHARE_FORMATS, downloadSharePng, downloadShareSvg, downloadBlob } from "./share-image";
 import type { ShareActionsProps, ShareFormat } from "./types";
 
 // Brand icons (Lucide doesn't include these)
@@ -47,6 +47,7 @@ export function ShareActions({
   shareTemplate,
   entityId,
   disabled = false,
+  storyEndpoint,
 }: ShareActionsProps) {
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -54,6 +55,7 @@ export function ShareActions({
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [supportsNativeShare, setSupportsNativeShare] = useState(false);
+  const [storyDownloading, setStoryDownloading] = useState(false);
 
   useEffect(() => {
     setSupportsNativeShare(typeof navigator !== "undefined" && "share" in navigator);
@@ -155,6 +157,22 @@ export function ShareActions({
     downloadShareSvg(shareTemplate, shareFormat, entityId);
   };
 
+  const handleDownloadStory = async () => {
+    if (!storyEndpoint) return;
+    setDownloadError(null);
+    setStoryDownloading(true);
+    try {
+      const res = await fetch(storyEndpoint, { cache: "no-store" });
+      if (!res.ok) throw new Error("story_failed");
+      const blob = await res.blob();
+      downloadBlob(blob, `${entityId}-story.png`);
+    } catch (e) {
+      setDownloadError(e instanceof Error ? e.message : "story_download_failed");
+    } finally {
+      setStoryDownloading(false);
+    }
+  };
+
   const isDisabled = disabled || !shareUrl;
 
   return (
@@ -193,6 +211,18 @@ export function ShareActions({
               <Download size={14} />
               SVG
             </button>
+            {storyEndpoint ? (
+              <button
+                type="button"
+                className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={handleDownloadStory}
+                disabled={storyDownloading}
+                title="Download Story"
+              >
+                <Download size={14} />
+                Story
+              </button>
+            ) : null}
           </div>
         ) : null}
 

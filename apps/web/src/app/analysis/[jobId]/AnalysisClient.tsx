@@ -5,8 +5,16 @@ import { useEffect, useMemo, useState } from "react";
 import { computeAnalysisInsights } from "@vibed/core";
 import type { AnalysisInsights, AnalysisMetrics, CommitEvent } from "@vibed/core";
 import { formatMetricLabel, formatMetricValue } from "@/lib/format-labels";
+import { computeShareCardMetrics } from "@/lib/vcp/metrics";
+import { isVibeAxes } from "@/lib/vcp/validators";
 import { ShareCard, ShareActions } from "@/components/share";
 import type { ShareImageTemplate, ShareCardMetric } from "@/components/share";
+import {
+  RepoIdentitySection,
+  RepoAxesSection,
+  RepoMetricsGrid,
+  ProfileContributionCard,
+} from "@/components/vcp/repo";
 
 type Job = {
   id: string;
@@ -25,6 +33,8 @@ type ApiResponse = {
   insights: unknown | null;
   profileContribution?: unknown | null;
   userAvatarUrl?: string | null;
+  userId?: string | null;
+  vibeInsights?: VibeInsightsRow | null;
 };
 
 type StoryMeta = {
@@ -84,6 +94,15 @@ type InsightsRow = {
   insights_json?: unknown;
   generator_version?: string;
   generated_at?: string;
+};
+
+type VibeInsightsRow = {
+  axes_json: unknown;
+  persona_id: string;
+  persona_name: string;
+  persona_tagline: string | null;
+  persona_confidence: string;
+  persona_score: number | null;
 };
 
 type InsightHistoryEntry = {
@@ -161,6 +180,18 @@ function isNarrativeJson(v: unknown): v is NarrativeJson {
     }
   }
 
+  return true;
+}
+
+function isVibeInsightsRow(v: unknown): v is VibeInsightsRow {
+  if (!isRecord(v)) return false;
+  if (!isVibeAxes(v.axes_json)) return false;
+  if (typeof v.persona_id !== "string") return false;
+  if (typeof v.persona_name !== "string") return false;
+  if (typeof v.persona_confidence !== "string") return false;
+  const tagline = v.persona_tagline;
+  if (tagline !== null && typeof tagline !== "string") return false;
+  if (typeof v.persona_score !== "number" && v.persona_score !== null) return false;
   return true;
 }
 
@@ -349,10 +380,6 @@ function fmtDate(iso: string | null): string {
 }
 
 
-function weekdayName(dow: number): string {
-  return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dow] ?? "—";
-}
-
 export default function AnalysisClient({ jobId }: { jobId: string }) {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -409,6 +436,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
   const parsedReport = data && isReportRow(data.report) ? data.report : null;
   const parsedMetrics = data && isMetricsRow(data.metrics) ? data.metrics : null;
   const parsedInsightsRow = data && isInsightsRow(data.insights) ? data.insights : null;
+  const parsedVibeInsights = data && isVibeInsightsRow(data.vibeInsights) ? data.vibeInsights : null;
   const profileContribution =
     data && isProfileContribution(data.profileContribution) ? data.profileContribution : null;
 
@@ -424,19 +452,14 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
   const persona = wrapped.persona;
   const shareTemplate = wrapped.share_template;
-  const profileContributionLabel = (() => {
-    if (!profileContribution) return null;
-    if (profileContribution.includedInProfile === true) return "Included in your Unified VCP";
-    if (profileContribution.includedInProfile === false) return "Not yet included in your Unified VCP";
-    return "Unified VCP impact";
-  })();
 
   const shareText = useMemo(() => {
     if (!shareTemplate) return "";
     const metricsLine = shareTemplate.metrics
       .map((metric) => `${metric.label}: ${metric.value}`)
       .join(" · ");
-    return `${shareTemplate.headline}\n${shareTemplate.subhead}\n${metricsLine}\n#VCP`;
+    const taglineLine = shareTemplate.tagline ?? shareTemplate.subhead;
+    return `${shareTemplate.headline}\n${taglineLine}\n${metricsLine}\n#VCP`;
   }, [shareTemplate]);
 
   const shareUrl = useMemo(() => {
@@ -450,52 +473,60 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
       .slice(0, 3)
       .map((metric) => `${metric.label}: ${metric.value}`)
       .join(" · ");
-    return `${shareTemplate.headline} — ${shareTemplate.subhead}\n${metricsLine}\n#VCP`;
+    const taglineLine = shareTemplate.tagline ?? shareTemplate.subhead;
+    return `${shareTemplate.headline} — ${taglineLine}\n${metricsLine}\n#VCP`;
   }, [shareTemplate]);
 
+  const storyEndpoint = data?.userId
+    ? `/api/share/story/${data.userId}?jobId=${jobId}`
+    : undefined;
+
   // Build share template for ShareActions component
+  // Build metrics for ShareCard
+  const shareCardMetrics: ShareCardMetric[] = useMemo(() => {
+    if (parsedVibeInsights && isVibeAxes(parsedVibeInsights.axes_json)) {
+      const axes = parsedVibeInsights.axes_json;
+      const peakWindow = isAnalysisInsights(insightsJson)
+        ? insightsJson.timing.peak_window
+        : null;
+      const computed = computeShareCardMetrics(axes, peakWindow ?? null);
+      return [
+        { label: "Strongest", value: computed.strongest },
+        { label: "Style", value: computed.style },
+        { label: "Rhythm", value: computed.rhythm },
+        { label: "Peak", value: computed.peak },
+      ];
+    }
+
+    const chunkinessLabel = wrapped.chunkiness.label
+      ? `${wrapped.chunkiness.label.charAt(0).toUpperCase()}${wrapped.chunkiness.label.slice(1)}`
+      : "Balanced";
+    const peakWindowLabel = wrapped.timing.peak_window
+      ? formatMetricLabel(wrapped.timing.peak_window)
+      : "Varied";
+    return [
+      { label: "Strongest", value: persona?.label ?? "Vibe coder" },
+      { label: "Style", value: chunkinessLabel },
+      { label: "Rhythm", value: peakWindowLabel },
+      { label: "Peak", value: peakWindowLabel },
+    ];
+  }, [persona, parsedVibeInsights, wrapped, insightsJson]);
+
+  const repoAxes =
+    parsedVibeInsights && isVibeAxes(parsedVibeInsights.axes_json)
+      ? parsedVibeInsights.axes_json
+      : null;
+
   const shareImageTemplate: ShareImageTemplate | null = shareTemplate
     ? {
         colors: shareTemplate.colors,
         headline: shareTemplate.headline,
         subhead: shareTemplate.subhead,
-        metrics: shareTemplate.metrics,
+        tagline: shareTemplate.tagline ?? shareTemplate.subhead,
+        metrics: shareCardMetrics,
         persona_archetype: shareTemplate.persona_archetype,
       }
     : null;
-
-  // Build metrics for ShareCard
-  const shareCardMetrics: ShareCardMetric[] = useMemo(() => {
-    const metrics: ShareCardMetric[] = [];
-    metrics.push({
-      label: "Longest Streak",
-      value: `${wrapped.streak.longest_days} day${wrapped.streak.longest_days === 1 ? "" : "s"}`,
-    });
-    if (wrapped.timing.peak_window) {
-      metrics.push({
-        label: "Peak Window",
-        value: formatMetricLabel(wrapped.timing.peak_window),
-      });
-    }
-    metrics.push({
-      label: "Commit Style",
-      value: wrapped.chunkiness.label ?? "—",
-    });
-    if (wrapped.commits.features_per_fix !== null) {
-      metrics.push({
-        label: "Feature / Fix",
-        value: `${formatMetricValue(wrapped.commits.features_per_fix, 1)} : 1`,
-      });
-    } else if (wrapped.commits.fixes_per_feature !== null) {
-      metrics.push({
-        label: "Feature / Fix",
-        value: `1 : ${formatMetricValue(wrapped.commits.fixes_per_feature, 1)}`,
-      });
-    } else {
-      metrics.push({ label: "Feature / Fix", value: "Balanced" });
-    }
-    return metrics;
-  }, [wrapped]);
 
   const triggerProfileRebuild = async () => {
     setRebuildingProfile(true);
@@ -701,7 +732,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
               </button>
               <button
                 type="button"
-                className="flex-1 rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95"
+                className="flex-1 rounded-full bg-gradient-to-r from-violet-600 to-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95"
                 onClick={handleConfirmRegenerateWithWarning}
               >
                 Continue anyway
@@ -761,6 +792,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
             <div className="space-y-4">
               <ShareCard
                 variant="repo"
+                personaId={persona.id}
                 persona={{
                   label: persona.label,
                   tagline: persona.description,
@@ -769,11 +801,14 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                 }}
                 metrics={shareCardMetrics}
                 footer={{
-                  left: shareOrigin ? new URL(shareOrigin).hostname : "vibed.dev",
+                  left: process.env.NEXT_PUBLIC_APP_URL
+                    ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname
+                    : "vibed.dev",
                   right: `${wrapped.totals.commits} commits${metricsJson?.active_days ? ` · ${metricsJson.active_days} active days` : ""}`,
                 }}
                 colors={shareTemplate.colors}
                 avatarUrl={data?.userAvatarUrl}
+                tagline={shareTemplate.tagline ?? persona.description}
               />
               <ShareActions
                 shareUrl={shareUrl}
@@ -782,6 +817,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                 shareHeadline={shareTemplate.headline}
                 shareTemplate={shareImageTemplate}
                 entityId={jobId}
+                storyEndpoint={storyEndpoint}
               />
             </div>
           ) : null}
@@ -826,7 +862,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Link
               href="/"
-              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
             >
               My Unified VCP
             </Link>
@@ -844,129 +880,28 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
           {/* Detailed Analysis Card */}
           <div className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-white shadow-sm">
-            <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-500/10 via-transparent to-cyan-500/10" />
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/8 via-transparent to-indigo-500/8" />
             <div className="relative p-8">
-              <div className="max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Your vibe</p>
-                <h2 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-950">
-                  {persona.label}
-                </h2>
-                <p className="mt-3 text-base text-zinc-600">{persona.description}</p>
-                {narrative?.summary ? (
-                  <p className="mt-3 text-sm font-medium text-zinc-800">{narrative.summary}</p>
-                ) : null}
-              </div>
+              <RepoIdentitySection
+                persona={persona}
+                narrative={narrative ? { summary: narrative.summary } : null}
+                matchedCriteria={matchedCriteria}
+              />
 
-              <div className="mt-5 rounded-2xl border border-black/5 bg-white/60 p-4 backdrop-blur">
-                <details>
-                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
-                    How we got this
-                  </summary>
-                  <div className="mt-3 space-y-3 text-sm text-zinc-700">
-                    <p>
-                      This report is inferred from Git/PR metadata (commit timing, commit size,
-                      file paths, and message patterns). We do not use your prompts, IDE workflow,
-                      PR comments, or code content—so this is an informed guess based on what lands
-                      in Git.
-                    </p>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
-                        Matched criteria
-                      </p>
-                      {matchedCriteria.length > 0 ? (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {matchedCriteria.map((c) => (
-                            <span
-                              key={c}
-                              className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs text-zinc-700"
-                            >
-                              {formatMetricLabel(c)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-sm text-zinc-600">
-                          This report didn’t include explicit matched criteria.
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <Link
-                        href="/methodology"
-                        className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-700 underline decoration-zinc-400 underline-offset-4"
-                      >
-                        Methodology
-                      </Link>
-                    </div>
-                  </div>
-                </details>
-              </div>
+              {repoAxes ? (
+                <div className="mt-6">
+                  <RepoAxesSection axes={repoAxes} />
+                </div>
+              ) : null}
 
-              <div className="mt-6 grid gap-3 rounded-2xl border border-black/5 bg-white/60 p-4 backdrop-blur sm:grid-cols-2 lg:grid-cols-5">
-                <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Streak</p>
-                  <p className="mt-1 text-2xl font-semibold text-zinc-900">
-                    {wrapped.streak.longest_days} day{wrapped.streak.longest_days === 1 ? "" : "s"}
-                  </p>
-                  {wrapped.streak.start_day && wrapped.streak.end_day ? (
-                    <p className="mt-1 text-xs text-zinc-500">{wrapped.streak.start_day} → {wrapped.streak.end_day}</p>
-                  ) : null}
-                </div>
-                <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Peak day</p>
-                  <p className="mt-1 text-2xl font-semibold text-zinc-900">
-                    {wrapped.timing.peak_weekday !== null ? weekdayName(wrapped.timing.peak_weekday) : "—"}
-                  </p>
-                  {wrapped.timing.peak_window ? (
-                    <p className="mt-1 text-xs text-zinc-500">{formatMetricLabel(wrapped.timing.peak_window)} (UTC)</p>
-                  ) : null}
-                </div>
-                <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Focus</p>
-                  <p className="mt-1 text-2xl font-semibold capitalize text-zinc-900">
-                    {wrapped.commits.top_category ?? "—"}
-                  </p>
-                  {wrapped.commits.top_category ? (
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {wrapped.commits.category_counts[wrapped.commits.top_category] ?? 0} of {wrapped.totals.commits} commits
-                    </p>
-                  ) : null}
-                </div>
-                <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Build vs Fix</p>
-                  <p className="mt-1 text-2xl font-semibold text-zinc-900">
-                    {wrapped.commits.features_per_fix !== null
-                      ? `${wrapped.commits.features_per_fix.toFixed(1)} : 1`
-                      : wrapped.commits.fixes_per_feature !== null
-                        ? `1 : ${wrapped.commits.fixes_per_feature.toFixed(1)}`
-                        : "—"}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {wrapped.commits.features_per_fix !== null
-                      ? "features per fix"
-                      : wrapped.commits.fixes_per_feature !== null
-                        ? "fixes per feature"
-                        : "balanced"}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Scope</p>
-                  <p className="mt-1 text-2xl font-semibold text-zinc-900">
-                    {wrapped.chunkiness.avg_files_changed !== null
-                      ? `${wrapped.chunkiness.avg_files_changed.toFixed(1)}`
-                      : "—"}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {wrapped.chunkiness.label === "chunker"
-                      ? "files/commit (wide)"
-                      : wrapped.chunkiness.label === "mixer"
-                        ? "files/commit (balanced)"
-                        : wrapped.chunkiness.label === "slicer"
-                          ? "files/commit (focused)"
-                          : "files/commit"}
-                  </p>
-                </div>
-              </div>
+              <RepoMetricsGrid
+                className="mt-6"
+                streak={wrapped.streak}
+                timing={wrapped.timing}
+                commits={wrapped.commits}
+                chunkiness={wrapped.chunkiness}
+                totals={wrapped.totals}
+              />
 
               {/* Artifact Traceability Section */}
               {wrapped.artifact_traceability ? (
@@ -1129,55 +1064,15 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
               </div>
 
               {profileContribution ? (
-                <div className="mt-6 rounded-2xl border border-black/5 bg-white/60 p-4 backdrop-blur">
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
-                    {profileContributionLabel}
-                  </p>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">This repo</p>
-                      <p className="mt-1 text-sm font-semibold text-zinc-900">
-                        {profileContribution.repoName ?? "—"}
-                      </p>
-                      <p className="mt-1 text-xs text-zinc-600">
-                        {typeof profileContribution.jobCommitCount === "number"
-                          ? `${profileContribution.jobCommitCount} commits`
-                          : "Commit count unavailable"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Your Unified VCP</p>
-                      <p className="mt-1 text-sm font-semibold text-zinc-900">
-                        {typeof profileContribution.profileTotalRepos === "number"
-                          ? `${profileContribution.profileTotalRepos} repos`
-                          : "—"}
-                      </p>
-                      <p className="mt-1 text-xs text-zinc-600">
-                        {typeof profileContribution.profileTotalCommits === "number"
-                          ? `${profileContribution.profileTotalCommits} commits`
-                          : "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Current persona</p>
-                      <p className="mt-1 text-sm font-semibold text-zinc-900">
-                        {profileContribution.profilePersonaName ?? "—"}
-                      </p>
-                      {profileContribution.profileUpdatedAt ? (
-                        <p className="mt-1 text-xs text-zinc-600">
-                          Updated {fmtDate(profileContribution.profileUpdatedAt)}
-                        </p>
-                      ) : (
-                        <p className="mt-1 text-xs text-zinc-600">—</p>
-                      )}
-                    </div>
-                  </div>
-                  {profileContribution.includedInProfile === false ? (
-                    <p className="mt-3 text-xs text-zinc-500">
-                      The profile aggregate can lag behind analysis completion by a moment.
-                    </p>
-                  ) : null}
-                </div>
+                <ProfileContributionCard
+                  contribution={profileContribution}
+                  isRebuilding={rebuildingProfile}
+                  rebuildStatus={profileRebuildStatus}
+                  onRebuild={
+                    profileContribution.includedInProfile === false ? triggerProfileRebuild : undefined
+                  }
+                  className="mt-6"
+                />
               ) : null}
             </div>
           </div>

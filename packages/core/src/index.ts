@@ -166,6 +166,7 @@ export interface AnalysisInsightShareTemplate {
     label: string;
     archetypes: string[];
   };
+  tagline?: string | null;
 }
 
 export interface AnalysisInsightPersonaDelta {
@@ -532,6 +533,13 @@ function detectPersona(args: PersonaDetectionArgs): PersonaDetectionResult {
   return { persona, delta };
 }
 
+/**
+ * Builds the share template for social sharing cards.
+ *
+ * NOTE: The `tagline` field is set to `null` here. Both the Inngest worker and
+ * standalone worker mutate `insights.share_template.tagline` after computing
+ * insights, using the LLM-generated tagline (with persona fallback).
+ */
 function buildShareTemplate(
   persona: AnalysisInsightPersona,
   streak: ReturnType<typeof longestStreakUtc>,
@@ -579,6 +587,7 @@ function buildShareTemplate(
       label: persona.label,
       archetypes: persona.archetypes,
     },
+    tagline: null,
   };
 }
 

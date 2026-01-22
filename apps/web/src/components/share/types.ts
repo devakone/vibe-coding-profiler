@@ -5,6 +5,7 @@
 export interface ShareCardMetric {
   label: string;
   value: string;
+  detail?: string;
 }
 
 export interface ShareCardColors {
@@ -22,6 +23,8 @@ export interface ShareCardPersona {
 export interface ShareCardProps {
   /** Variant determines layout differences */
   variant: "repo" | "profile";
+  /** Optional persona ID for aura background + icon */
+  personaId?: string;
   /** Persona information */
   persona: ShareCardPersona;
   /** Up to 4 metrics to display */
@@ -37,6 +40,8 @@ export interface ShareCardProps {
   avatarUrl?: string | null;
   /** Optional header label override */
   headerLabel?: string;
+  /** Optional tagline row (placed between header and metrics) */
+  tagline?: string | null;
 }
 
 export interface ShareActionsProps {
@@ -54,12 +59,15 @@ export interface ShareActionsProps {
   entityId: string;
   /** Whether share is disabled */
   disabled?: boolean;
+  /** Optional story download endpoint */
+  storyEndpoint?: string;
 }
 
 export interface ShareImageTemplate {
   colors: ShareCardColors;
   headline: string;
   subhead: string;
+  tagline?: string | null;
   metrics: ShareCardMetric[];
   persona_archetype: {
     label: string;

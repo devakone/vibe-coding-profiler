@@ -48,6 +48,7 @@ export type Database = {
           share_template: Json
           sources: Json
           tech_signals: Json
+          tagline: string | null
         }
         Insert: {
           generated_at?: string
@@ -62,6 +63,7 @@ export type Database = {
           share_template?: Json
           sources?: Json
           tech_signals?: Json
+          tagline?: string | null
         }
         Update: {
           generated_at?: string
@@ -76,6 +78,7 @@ export type Database = {
           share_template?: Json
           sources?: Json
           tech_signals?: Json
+          tagline?: string | null
         }
         Relationships: [
           {
@@ -777,4 +780,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
