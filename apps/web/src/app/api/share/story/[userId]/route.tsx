@@ -560,7 +560,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.vibed.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.vibe-coding-profiler.com";
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },

@@ -87,7 +87,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ jobId: string }> }
 ) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.vibed.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.vibe-coding-profiler.com";
   const supabase = await createSupabaseServerClient();
   const { jobId } = await params;
 
@@ -354,7 +354,7 @@ export async function GET(
                 opacity: 0.7,
               }}
             >
-              vibed.app
+              vibe-coding-profiler.com
             </p>
           </div>
         </div>

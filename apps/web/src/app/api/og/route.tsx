@@ -137,7 +137,7 @@ export async function GET() {
               opacity: 0.7,
             }}
           >
-            vibed.app
+            vibe-coding-profiler.com
           </p>
         </div>
       </div>
