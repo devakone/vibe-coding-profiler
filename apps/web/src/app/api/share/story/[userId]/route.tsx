@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { computeShareCardMetrics } from "@/lib/vcp/metrics";
 import { isVibeAxes } from "@/lib/vcp/validators";
 import { AXIS_METADATA } from "@/components/vcp/constants";
+import { getPersonaAura } from "@/lib/persona-auras";
 import type { ShareCardColors, ShareCardMetric } from "@/components/share/types";
 import type { InsightCard, VibeAxes } from "@vibed/core";
 import { NextRequest, NextResponse } from "next/server";
@@ -16,19 +17,38 @@ type SupabaseClientInstance = any;
 const STORY_WIDTH = 1080;
 const STORY_HEIGHT = 1920;
 
+/**
+ * Unified violet-indigo color palette for story themes
+ * Matches the PERSONA_COLORS in ProfileShareSection.tsx
+ */
 const STORY_THEMES: Record<string, ShareCardColors> = {
-  prompt_sprinter: { primary: "#7c3aed", accent: "#a855f7" },
-  guardrailed_viber: { primary: "#4338ca", accent: "#6366f1" },
-  spec_first_director: { primary: "#312e81", accent: "#7c3aed" },
-  vertical_slice_shipper: { primary: "#0f172a", accent: "#6366f1" },
-  fix_loop_hacker: { primary: "#4c1d95", accent: "#c084fc" },
-  rapid_risk_taker: { primary: "#a855f7", accent: "#ec4899" },
-  balanced_builder: { primary: "#14b8a6", accent: "#0ea5e9" },
-  toolsmith_viber: { primary: "#0f172a", accent: "#22d3ee" },
-  infra_weaver: { primary: "#075985", accent: "#0ea5e9" },
+  // Dynamic/fast personas - brighter violet
+  prompt_sprinter: { primary: "#7c3aed", accent: "#6366f1" }, // violet-600 → indigo-500
+  rapid_risk_taker: { primary: "#8b5cf6", accent: "#6366f1" }, // violet-500 → indigo-500
+  fix_loop_hacker: { primary: "#7c3aed", accent: "#818cf8" }, // violet-600 → indigo-400
+  
+  // Balanced/thoughtful personas - deeper tones
+  guardrailed_viber: { primary: "#6366f1", accent: "#7c3aed" }, // indigo-500 → violet-600
+  spec_first_director: { primary: "#4f46e5", accent: "#7c3aed" }, // indigo-600 → violet-600
+  balanced_builder: { primary: "#6366f1", accent: "#8b5cf6" }, // indigo-500 → violet-500
+  reflective_balancer: { primary: "#6366f1", accent: "#8b5cf6" }, // indigo-500 → violet-500
+  methodical_architect: { primary: "#4f46e5", accent: "#7c3aed" }, // indigo-600 → violet-600
+  
+  // Technical/structured personas - cooler indigo
+  vertical_slice_shipper: { primary: "#6366f1", accent: "#818cf8" }, // indigo-500 → indigo-400
+  toolsmith_viber: { primary: "#4f46e5", accent: "#6366f1" }, // indigo-600 → indigo-500
+  infra_weaver: { primary: "#4338ca", accent: "#6366f1" }, // indigo-700 → indigo-500
+  
+  // Legacy persona IDs
+  "vibe-prototyper": { primary: "#7c3aed", accent: "#6366f1" },
+  "test-validator": { primary: "#6366f1", accent: "#7c3aed" },
+  "spec-architect": { primary: "#4f46e5", accent: "#7c3aed" },
+  "agent-orchestrator": { primary: "#6366f1", accent: "#818cf8" },
+  "reflective-balancer": { primary: "#6366f1", accent: "#8b5cf6" },
 };
 
-const DEFAULT_THEME: ShareCardColors = { primary: "#4c1d95", accent: "#6366f1" };
+// Default uses the primary brand gradient (violet → indigo)
+const DEFAULT_THEME: ShareCardColors = { primary: "#7c3aed", accent: "#6366f1" };
 
 interface StoryData {
   headline: string;
@@ -43,6 +63,10 @@ interface StoryData {
   stats: string[];
   colors: ShareCardColors;
   url: string;
+  /** Full URL to aura background image */
+  auraBackgroundUrl: string;
+  /** Full URL to aura icon image */
+  auraIconUrl: string;
 }
 
 const parseCardsHighlight = (value: unknown): string | undefined => {
@@ -103,10 +127,12 @@ async function buildProfileStory(
   const profileRow = (profile ?? null) as UserProfileRow | null;
   if (!profileRow) return null;
 
+  const personaId = profileRow.persona_id ?? "balanced_builder";
   const axes = isVibeAxes(profileRow.axes_json) ? profileRow.axes_json : null;
   const metrics = axes ? buildMetricsFromAxes(axes) : [];
   const highlight = parseCardsHighlight(profileRow.cards_json);
-  const colors = STORY_THEMES[profileRow.persona_id ?? ""] ?? DEFAULT_THEME;
+  const colors = STORY_THEMES[personaId] ?? DEFAULT_THEME;
+  const aura = getPersonaAura(personaId);
   const subhead =
     profileRow.persona_tagline?.trim().length
       ? profileRow.persona_tagline
@@ -122,7 +148,7 @@ async function buildProfileStory(
     subhead,
     personaName: profileRow.persona_name ?? "Vibe Coder",
     personaTagline: subhead,
-    personaId: profileRow.persona_id ?? "balanced_builder",
+    personaId,
     personaConfidence: profileRow.persona_confidence ?? "medium",
     metrics: metrics.length ? metrics : stats.slice(0, 4).map((value, idx) => ({ label: ["Commits", "Repos", "Profile", "Vibes"][idx] ?? `Stat ${idx + 1}`, value })),
     highlight,
@@ -130,6 +156,8 @@ async function buildProfileStory(
     stats,
     colors,
     url: `${appUrl}/profile`,
+    auraBackgroundUrl: `${appUrl}${aura.verticalBackground}`,
+    auraIconUrl: `${appUrl}${aura.icon}`,
   };
 }
 
@@ -195,12 +223,9 @@ async function buildJobStory(
     shareTemplate?.tagline ??
     shareTemplate?.headline ??
     `${insightsResult?.data?.persona_confidence ?? "medium"} confidence`;
-  const colors = shareTemplate?.colors
-    ? {
-        primary: shareTemplate.colors.primary ?? DEFAULT_THEME.primary,
-        accent: shareTemplate.colors.accent ?? DEFAULT_THEME.accent,
-      }
-    : STORY_THEMES[personaId] ?? DEFAULT_THEME;
+  // Prefer unified STORY_THEMES over stored shareTemplate colors for consistency
+  const colors = STORY_THEMES[personaId] ?? DEFAULT_THEME;
+  const aura = getPersonaAura(personaId);
 
   const metrics =
     axes && !Number.isNaN(axes.shipping_rhythm.score)
@@ -227,6 +252,8 @@ async function buildJobStory(
     stats,
     colors,
     url: `${appUrl}/analysis/${jobId}`,
+    auraBackgroundUrl: `${appUrl}${aura.verticalBackground}`,
+    auraIconUrl: `${appUrl}${aura.icon}`,
   };
 }
 
@@ -235,9 +262,9 @@ const renderStoryImage = async (story: StoryData, qrDataUrl: string) => {
     (
       <div
         style={{
+          position: "relative",
           width: STORY_WIDTH,
           height: STORY_HEIGHT,
-          padding: 80,
           borderRadius: 64,
           background: `linear-gradient(180deg, ${story.colors.primary}, ${story.colors.accent})`,
           display: "flex",
@@ -245,186 +272,281 @@ const renderStoryImage = async (story: StoryData, qrDataUrl: string) => {
           color: "#fff",
           fontFamily: "Space Grotesk, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
           boxSizing: "border-box",
+          overflow: "hidden",
         }}
       >
-        <p
+        {/* Aura background overlay */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={story.auraBackgroundUrl}
+          alt=""
           style={{
-            textTransform: "uppercase",
-            fontSize: 16,
-            letterSpacing: "0.4em",
-            opacity: 0.8,
-            margin: 0,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: STORY_WIDTH,
+            height: STORY_HEIGHT,
+            objectFit: "cover",
+            opacity: 0.25,
           }}
-        >
-          Vibed Story
-        </p>
-        <h1
-          style={{
-            marginTop: 12,
-            marginBottom: 6,
-            fontSize: 60,
-            lineHeight: 1,
-          }}
-        >
-          {story.personaName}
-        </h1>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 24,
-            opacity: 0.95,
-          }}
-        >
-          {story.subhead}
-        </p>
+        />
+        {/* Readability overlay */}
         <div
           style={{
-            marginTop: 40,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: STORY_WIDTH,
+            height: STORY_HEIGHT,
+            background: "rgba(0,0,0,0.15)",
+          }}
+        />
+
+        {/* Content container */}
+        <div
+          style={{
             display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "space-between",
+            flexDirection: "column",
+            flex: 1,
+            padding: 80,
+            position: "relative",
           }}
         >
-          {story.metrics.map((metric) => (
+          {/* Header with title and aura icon */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+              <p
+                style={{
+                  textTransform: "uppercase",
+                  fontSize: 16,
+                  letterSpacing: "0.4em",
+                  opacity: 0.8,
+                  margin: 0,
+                }}
+              >
+                My VCP
+              </p>
+              <h1
+                style={{
+                  marginTop: 12,
+                  marginBottom: 6,
+                  fontSize: 60,
+                  lineHeight: 1,
+                }}
+              >
+                {story.personaName}
+              </h1>
+            </div>
+            {/* Aura icon */}
             <div
-              key={metric.label}
               style={{
-                width: "48%",
-                marginBottom: 18,
-                borderRadius: 28,
-                padding: "18px 20px",
-                background: "rgba(255,255,255,0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 100,
+                height: 100,
+                borderRadius: 50,
+                background: "rgba(255,255,255,0.15)",
+                overflow: "hidden",
+                flexShrink: 0,
+                marginLeft: 20,
               }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={story.auraIconUrl}
+                alt=""
+                style={{
+                  width: 100,
+                  height: 100,
+                  objectFit: "cover",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Subhead */}
+          <p
+            style={{
+              margin: 0,
+              marginTop: 8,
+              fontSize: 24,
+              opacity: 0.95,
+            }}
+          >
+            {story.subhead}
+          </p>
+
+          {/* Metrics grid */}
+          <div
+            style={{
+              marginTop: 40,
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
+            }}
+          >
+            {story.metrics.map((metric) => (
+              <div
+                key={metric.label}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "48%",
+                  marginBottom: 18,
+                  borderRadius: 28,
+                  padding: "18px 20px",
+                  background: "rgba(255,255,255,0.1)",
+                }}
+              >
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    color: "rgba(255,255,255,0.75)",
+                  }}
+                >
+                  {metric.label}
+                </p>
+                <p
+                  style={{
+                    margin: "8px 0 0",
+                    fontSize: 32,
+                    fontWeight: 700,
+                  }}
+                >
+                  {metric.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Highlight (optional) */}
+          {story.highlight ? (
+            <div
+              style={{
+                display: "flex",
+                marginTop: 32,
+                padding: "20px 24px",
+                borderRadius: 32,
+                background: "rgba(0,0,0,0.2)",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 20,
+                  lineHeight: 1.4,
+                }}
+              >
+                {story.highlight}
+              </p>
+            </div>
+          ) : null}
+
+          {/* Top axes badges (optional) */}
+          {story.topAxes.length > 0 && (
+            <div style={{ marginTop: 32, display: "flex", flexWrap: "wrap", gap: 12 }}>
+              {story.topAxes.map((label) => (
+                <span
+                  key={label}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 999,
+                    background: "rgba(255,255,255,0.18)",
+                    fontSize: 14,
+                  }}
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Footer with stats and QR code */}
+          <div
+            style={{
+              marginTop: "auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 20,
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {story.stats.map((line) => (
+                <p
+                  key={line}
+                  style={{
+                    margin: "0 0 4px",
+                    fontSize: 18,
+                    fontWeight: 500,
+                  }}
+                >
+                  {line}
+                </p>
+              ))}
               <p
                 style={{
                   margin: 0,
                   fontSize: 14,
                   letterSpacing: "0.2em",
                   textTransform: "uppercase",
-                  color: "rgba(255,255,255,0.75)",
+                  opacity: 0.85,
                 }}
               >
-                {metric.label}
-              </p>
-              <p
-                style={{
-                  margin: "8px 0 0",
-                  fontSize: 32,
-                  fontWeight: 700,
-                }}
-              >
-                {metric.value}
+                {story.personaConfidence && story.personaConfidence}
               </p>
             </div>
-          ))}
-        </div>
-        {story.highlight ? (
-          <div
-            style={{
-              marginTop: 32,
-              padding: "20px 24px",
-              borderRadius: 32,
-              background: "rgba(0,0,0,0.2)",
-            }}
-          >
-            <p
+            <div
               style={{
-                margin: 0,
-                fontSize: 20,
-                lineHeight: 1.4,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 150,
+                height: 150,
+                borderRadius: 32,
+                padding: 12,
+                background: "rgba(255,255,255,0.15)",
               }}
             >
-              {story.highlight}
-            </p>
-          </div>
-        ) : null}
-        {story.topAxes.length > 0 && (
-          <div style={{ marginTop: 32, display: "flex", flexWrap: "wrap", gap: 12 }}>
-            {story.topAxes.map((label) => (
-              <span
-                key={label}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={qrDataUrl}
+                width={126}
+                height={126}
+                alt="Scan for your Vibed profile"
                 style={{
-                  padding: "8px 16px",
-                  borderRadius: 999,
-                  background: "rgba(255,255,255,0.18)",
-                  fontSize: 14,
+                  borderRadius: 24,
+                  width: 126,
+                  height: 126,
+                  objectFit: "cover",
                 }}
-              >
-                {label}
-              </span>
-            ))}
+              />
+            </div>
           </div>
-        )}
-        <div
-          style={{
-            marginTop: "auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 20,
-          }}
-        >
-          <div>
-            {story.stats.map((line) => (
-              <p
-                key={line}
-                style={{
-                  margin: "0 0 4px",
-                  fontSize: 18,
-                  fontWeight: 500,
-                }}
-              >
-                {line}
-              </p>
-            ))}
-            <p
-              style={{
-                margin: 0,
-                fontSize: 14,
-                letterSpacing: "0.2em",
-                textTransform: "uppercase",
-                opacity: 0.85,
-              }}
-            >
-              {story.personaConfidence && story.personaConfidence}
-            </p>
-          </div>
-          <div
+
+          {/* Hashtag footer */}
+          <p
             style={{
-              width: 150,
-              height: 150,
-              borderRadius: 32,
-              padding: 12,
-              background: "rgba(255,255,255,0.15)",
+              marginTop: 24,
+              fontSize: 16,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              opacity: 0.6,
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={qrDataUrl}
-              width={126}
-              height={126}
-              alt="Scan for your Vibed profile"
-              style={{
-                borderRadius: 24,
-                width: 126,
-                height: 126,
-                objectFit: "cover",
-              }}
-            />
-          </div>
+            #VCP
+          </p>
         </div>
-        <p
-          style={{
-            marginTop: 24,
-            fontSize: 16,
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            opacity: 0.6,
-          }}
-        >
-          #VCP
-        </p>
       </div>
     ),
     {
