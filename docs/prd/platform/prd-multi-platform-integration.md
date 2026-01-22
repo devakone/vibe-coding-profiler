@@ -57,6 +57,17 @@ Minimal interfaces with focused responsibilities instead of large monolithic pla
 
 ---
 
+## Risks and Tradeoffs
+
+| Decision | Benefit | Tradeoff |
+|---|---|---|
+| Reuse `github_accounts` as `platform_connections` | Smaller migration surface, fewer new tables | Requires careful backfill and unique constraints to prevent duplicate external accounts |
+| Unified OAuth routes (`/api/auth/[provider]`) | Fewer files and consistent flow | More conditional logic per provider, harder to isolate provider-specific quirks |
+| Unified repo sync endpoint | Single sync surface for UI and worker | Needs robust platform dispatching and better error attribution per provider |
+| Derive display identity from platform connection | No duplicated profile fields | Requires joins for common UI paths, may add query complexity |
+| Minimal platform interfaces | Easier to implement incrementally | Some provider-specific features may not fit without adding new interfaces |
+| Bitbucket diffstat for file paths | Preserves metrics parity | Additional API calls per commit and potential rate-limit pressure |
+
 ## Data Model Changes
 
 ### Migration 1: Rename and Extend `github_accounts`
@@ -74,6 +85,7 @@ ALTER TABLE platform_connections
 ALTER TABLE platform_connections
   ADD COLUMN platform_user_id TEXT,
   ADD COLUMN platform_username TEXT,
+  ADD COLUMN platform_email TEXT,
   ADD COLUMN platform_avatar_url TEXT;
 
 -- Add token refresh support (GitLab/Bitbucket use refresh tokens)
@@ -93,6 +105,10 @@ ALTER TABLE platform_connections
 ALTER TABLE platform_connections
   ADD CONSTRAINT platform_connections_user_platform_unique
   UNIQUE (user_id, platform);
+
+ALTER TABLE platform_connections
+  ADD CONSTRAINT platform_connections_platform_user_unique
+  UNIQUE (platform, platform_user_id);
 
 -- Only one primary platform per user
 CREATE UNIQUE INDEX platform_connections_one_primary_idx
@@ -125,6 +141,7 @@ UPDATE platform_connections pc
 SET
   platform_user_id = u.github_id,
   platform_username = u.github_username,
+  platform_email = u.email,
   platform_avatar_url = u.avatar_url,
   is_primary = true
 FROM users u
@@ -220,6 +237,7 @@ The analysis pipeline requires `CommitEvent` fields. Each platform maps differen
 | `additions` | `stats.additions` | `stats.additions` | diffstat sum |
 | `deletions` | `stats.deletions` | `stats.deletions` | diffstat sum |
 | `files_changed` | `files.length` | diff entry count | diffstat entry count |
+| `file_paths` | `files[].filename` | diff `new_path`/`old_path` | diffstat `new.path`/`old.path` |
 
 ---
 
@@ -240,6 +258,10 @@ POST /api/platforms/[platform]/connect  # Connect platform (when logged in)
 POST /api/platforms/[platform]/disconnect
 POST /api/platforms/[platform]/set-primary
 ```
+
+**Primary identity rules**
+- Exactly one connected platform is primary at any time.
+- Users can switch primary platforms, but cannot disconnect their last primary connection.
 
 ### Unified Repo Sync
 
