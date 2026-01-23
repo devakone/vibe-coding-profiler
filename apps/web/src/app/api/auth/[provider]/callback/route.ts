@@ -23,6 +23,39 @@ async function fetchGithubTokenScopes(token: string): Promise<string[]> {
     .filter(Boolean);
 }
 
+async function fetchGitlabTokenScopes(token: string): Promise<string[]> {
+  // GitLab OAuth tokens have scopes defined at app creation, but we can verify
+  // the token is valid by hitting the user endpoint
+  const res = await fetch("https://gitlab.com/api/v4/user", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!res.ok) return [];
+
+  // GitLab doesn't expose scopes in response headers for OAuth tokens
+  // Return the default scopes we requested during OAuth
+  return ["read_user", "read_api", "read_repository"];
+}
+
+async function fetchBitbucketTokenScopes(token: string): Promise<string[]> {
+  // Bitbucket OAuth scopes are defined at app creation time
+  // Verify the token is valid by hitting the user endpoint
+  const res = await fetch("https://api.bitbucket.org/2.0/user", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!res.ok) return [];
+
+  // Return the scopes we requested during OAuth
+  return ["account", "repository", "pullrequest"];
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ provider: string }> }
@@ -85,8 +118,11 @@ export async function GET(
     let scopes: string[] = [];
     if (provider === "github") {
       scopes = await fetchGithubTokenScopes(providerToken).catch(() => []);
+    } else if (provider === "gitlab") {
+      scopes = await fetchGitlabTokenScopes(providerToken).catch(() => []);
+    } else if (provider === "bitbucket") {
+      scopes = await fetchBitbucketTokenScopes(providerToken).catch(() => []);
     }
-    // TODO: Implement scopes fetching for GitLab/Bitbucket if needed
 
     // Check if we need to set is_primary
     // If the user has no other connections, this one is primary.

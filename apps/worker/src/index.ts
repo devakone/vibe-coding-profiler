@@ -468,26 +468,35 @@ async function processJob(jobId: string, config: WorkerConfig): Promise<void> {
 
     const { data: repo, error: repoError } = await supabase
       .from("repos")
-      .select("id, owner, name, full_name")
+      .select("id, owner, name, full_name, platform")
       .eq("id", job.repo_id)
       .single();
 
     if (repoError || !repo) throw new Error("Job repo not found");
 
+    // Default to github for legacy repos without platform field
+    const platform = repo.platform ?? "github";
+
+    // This fallback worker only supports GitHub - use Inngest for GitLab/Bitbucket
+    if (platform !== "github") {
+      throw new Error(`Platform "${platform}" not supported by fallback worker. Use Inngest-based processing for GitLab/Bitbucket repos.`);
+    }
+
     if (!config.githubTokenEncryptionKey) {
       throw new Error("Missing GITHUB_TOKEN_ENCRYPTION_KEY");
     }
 
-    const { data: ghAccount, error: ghError } = await supabase
-      .from("github_accounts")
+    const { data: platformConnection, error: connectionError } = await supabase
+      .from("platform_connections")
       .select("encrypted_token")
       .eq("user_id", job.user_id)
+      .eq("platform", platform)
       .single();
 
-    if (ghError || !ghAccount) throw new Error("GitHub account not connected");
+    if (connectionError || !platformConnection) throw new Error(`${platform} account not connected`);
 
     const githubToken = decryptString(
-      ghAccount.encrypted_token,
+      platformConnection.encrypted_token,
       config.githubTokenEncryptionKey
     );
 
