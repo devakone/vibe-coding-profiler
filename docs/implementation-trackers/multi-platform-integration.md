@@ -20,18 +20,18 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 ### P2. Database Schema Evolution
 **Task:** Migrate to multi-platform schema while preserving existing data.
 **Deliverables:**
-- [ ] Migration: rename `github_accounts` → `platform_connections`
-- [ ] Migration: add platform columns (platform, platform_user_id, platform_username, platform_email, platform_avatar_url)
-- [ ] Migration: add token refresh columns (refresh_token_encrypted, token_expires_at)
-- [ ] Migration: add tracking columns (is_primary, disconnected_at)
-- [ ] Migration: add unique constraint `(user_id, platform)` - one connection per platform per user
-- [ ] Migration: add unique constraint `(platform, platform_user_id)` - prevent same external account linking to multiple users
-- [ ] Migration: add unique index for one primary per user
-- [ ] Migration: backfill existing GitHub data (including platform_email from users.email)
-- [ ] Migration: add platform to repos table
-- [ ] Migration: add platform to analysis_jobs table
-- [ ] TypeScript types regenerated (`npm run supabase:gen-types`)
-- [ ] Existing queries updated (`githubToken.ts` → `platformToken.ts`)
+- [x] Migration: rename `github_accounts` → `platform_connections`
+- [x] Migration: add platform columns (platform, platform_user_id, platform_username, platform_email, platform_avatar_url)
+- [x] Migration: add token refresh columns (refresh_token_encrypted, token_expires_at)
+- [x] Migration: add tracking columns (is_primary, disconnected_at)
+- [x] Migration: add unique constraint `(user_id, platform)` - one connection per platform per user
+- [x] Migration: add unique constraint `(platform, platform_user_id)` - prevent same external account linking to multiple users
+- [x] Migration: add unique index for one primary per user
+- [x] Migration: backfill existing GitHub data (including platform_email from users.email)
+- [x] Migration: add platform to repos table
+- [x] Migration: add platform to analysis_jobs table
+- [x] TypeScript types regenerated (`npm run supabase:gen-types`)
+- [x] Existing queries updated (`githubToken.ts` → `platformToken.ts`)
 **Success Criteria:** `npm run supabase:migration:up` succeeds; existing users have platform_connections rows with is_primary=true; login still works; duplicate external accounts rejected
 **Depends on:** None
 **Blocks:** P3, P4, P5

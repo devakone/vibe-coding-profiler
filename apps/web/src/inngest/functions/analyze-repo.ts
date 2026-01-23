@@ -726,9 +726,10 @@ export const analyzeRepo = inngest.createFunction(
       }
 
       const { data: ghAccount, error: ghError } = await supabase
-        .from("github_accounts")
+        .from("platform_connections")
         .select("encrypted_token")
         .eq("user_id", userId)
+        .eq("platform", "github")
         .single();
 
       if (ghError || !ghAccount) {

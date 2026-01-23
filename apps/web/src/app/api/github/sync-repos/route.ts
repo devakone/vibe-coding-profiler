@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchGithubRepos } from "@/lib/github";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { getGithubAccessToken } from "@/lib/githubToken";
+import { getPlatformAccessToken } from "@/lib/platformToken";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     }
 
     const service = createSupabaseServiceClient();
-    const token = await getGithubAccessToken(supabase, user.id);
+    const token = await getPlatformAccessToken(supabase, user.id, 'github');
     const repos = await fetchGithubRepos(token);
 
     const tokenScopes = await fetchGithubTokenScopes(token).catch(() => []);
@@ -144,9 +144,10 @@ export async function POST(request: Request) {
     const enableDebug = requestUrl.searchParams.get("debug") === "1";
 
     const { data: accountData } = await supabase
-      .from("github_accounts")
+      .from("platform_connections")
       .select("scopes")
       .eq("user_id", user.id)
+      .eq("platform", "github")
       .single();
 
     const accountRow = accountData as unknown as { scopes: string[] } | null;
@@ -186,7 +187,7 @@ export async function POST(request: Request) {
   } catch (e) {
     const message = e instanceof Error ? e.message : "sync_failed";
 
-    if (message === "GitHub account not connected") {
+    if (message === "github account not connected") {
       return NextResponse.json({ error: "github_not_connected" }, { status: 400 });
     }
 

@@ -62,14 +62,15 @@ export async function POST(request: Request) {
     .from("repos")
     .upsert(
       {
-        github_id: body.github_id,
+        platform_repo_id: String(body.github_id),
+        platform: "github",
         owner: body.owner,
         name: body.name,
         full_name: body.full_name,
         is_private: body.is_private,
         default_branch: body.default_branch,
       },
-      { onConflict: "github_id" }
+      { onConflict: "platform, platform_repo_id" }
     )
     .select("id")
     .single();
