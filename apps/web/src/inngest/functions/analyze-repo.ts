@@ -6,23 +6,30 @@ import {
   computeAnalysisInsights,
   computeAnalysisMetrics,
   computeVibeFromCommits,
+  createCommitFetcher,
   detectVibePersona,
   decryptString,
   filterAutomationCommits,
   classifyCommit,
   createLLMClient,
   getModelCandidates,
+  isTokenExpiredError,
+  normalizedCommitToVibeEvent,
+  RateLimitExceededError,
+  withRetry,
   type AnalysisReport,
   type CommitEvent,
   type JobStatus,
   type LLMConfig,
   type LLMKeySource,
   type LLMProvider,
+  type PlatformType,
   type RepoInsightSummary,
   type VibeAxes,
   type VibeCommitEvent,
   type VibePersona,
 } from "@vibed/core";
+import { getPlatformAccessToken } from "@/lib/platformToken";
 import { resolveLLMConfig, resolveProfileLLMConfig, recordLLMUsage } from "@/lib/llm-config";
 import {
   generateProfileNarrativeWithLLM,
@@ -350,33 +357,7 @@ export async function generateNarrativeWithLLM(params: {
   };
 }
 
-/**
- * GitHub API types
- */
-interface GithubCommitListItem {
-  sha: string;
-  parents: Array<{ sha: string }>;
-  commit: {
-    message: string;
-    author: { email: string | null; date: string };
-    committer: { email: string | null; date: string };
-  };
-}
-
-interface GithubCommitDetail extends GithubCommitListItem {
-  files?: Array<{ filename: string; status: string; additions: number; deletions: number }>;
-  stats?: { additions: number; deletions: number; total: number };
-}
-
-interface GithubRepoResponse {
-  created_at: string;
-  pushed_at: string | null;
-}
-
-interface GithubCompareResponse {
-  commits: GithubCommitDetail[];
-  files?: Array<{ filename: string }>;
-}
+// GitHub API types for pull request sync (GitHub-only)
 
 interface GithubPullListItem {
   number: number;
@@ -403,58 +384,28 @@ interface GithubPullDetail extends GithubPullListItem {
   review_comments: number;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+interface GithubCommitDetail {
+  sha: string;
+  parents: Array<{ sha: string }>;
+  commit: {
+    message: string;
+    author: { email: string | null; date: string };
+    committer: { email: string | null; date: string };
+  };
+  files?: Array<{ filename: string }>;
+  stats?: { additions: number; deletions: number; total: number };
 }
 
-function sampleEvenly<T>(items: T[], count: number): T[] {
-  if (count <= 0) return [];
-  if (items.length <= count) return items;
-  const out: T[] = [];
-  for (let i = 0; i < count; i += 1) {
-    const idx = Math.min(items.length - 1, Math.floor(((i + 0.5) * items.length) / count));
-    out.push(items[idx]);
-  }
-  return out;
-}
-
-/**
- * Fetch helper with rate limit handling
- */
 async function githubFetch<T>(url: string, token: string): Promise<T> {
-  const maxAttempts = 5;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const res = await fetch(url, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${token}`,
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    });
-
-    if (res.status === 403 || res.status === 429) {
-      const remaining = res.headers.get("X-RateLimit-Remaining");
-      const resetHeader = res.headers.get("X-RateLimit-Reset");
-      const resetSeconds = resetHeader ? Number.parseInt(resetHeader, 10) : Number.NaN;
-      const resetMs = Number.isFinite(resetSeconds) ? resetSeconds * 1000 : Date.now() + 60000;
-      const waitMs = Math.max(0, resetMs - Date.now());
-
-      if (remaining === "0" && attempt < maxAttempts && waitMs > 0) {
-        await sleep(Math.min(waitMs, 5 * 60 * 1000));
-        continue;
-      }
-    }
-
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`GitHub API error (${res.status}): ${body}`);
-    }
-
-    return (await res.json()) as T;
-  }
-
-  throw new Error("GitHub API error: exhausted retries");
+  const res = await fetch(url, {
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+  if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+  return (await res.json()) as T;
 }
 
 function extractLinkedIssueNumbers(text: string | null): number[] {
@@ -476,9 +427,7 @@ function hasChecklist(text: string | null): boolean {
 function hasTemplateMarkers(text: string | null): boolean {
   if (!text) return false;
   if (/(^|\n)\s*<!--/m.test(text)) return true;
-  return /(^|\n)\s*#{2,3}\s+(description|changes|testing|checklist|context|motivation)\b/im.test(
-    text
-  );
+  return /(^|\n)\s*#{2,3}\s+(description|changes|testing|checklist|context|motivation)\b/im.test(text);
 }
 
 async function fetchPullRequests(params: {
@@ -491,7 +440,6 @@ async function fetchPullRequests(params: {
   const items: GithubPullListItem[] = [];
   const updatedAfterMs = params.updatedAfter ? new Date(params.updatedAfter).getTime() : null;
   let page = 1;
-
   while (items.length < params.maxPullRequests) {
     const url = new URL(`https://api.github.com/repos/${params.owner}/${params.repo}/pulls`);
     url.searchParams.set("state", "all");
@@ -499,158 +447,33 @@ async function fetchPullRequests(params: {
     url.searchParams.set("direction", "desc");
     url.searchParams.set("per_page", "100");
     url.searchParams.set("page", String(page));
-
     const batch = await githubFetch<GithubPullListItem[]>(url.toString(), params.token);
     if (batch.length === 0) break;
-
     for (const pr of batch) {
       const prUpdatedMs = new Date(pr.updated_at).getTime();
-      if (updatedAfterMs !== null && Number.isFinite(prUpdatedMs) && prUpdatedMs <= updatedAfterMs) {
-        return items.slice(0, params.maxPullRequests);
-      }
+      if (updatedAfterMs !== null && Number.isFinite(prUpdatedMs) && prUpdatedMs <= updatedAfterMs) return items.slice(0, params.maxPullRequests);
       items.push(pr);
       if (items.length >= params.maxPullRequests) break;
     }
-
     if (batch.length < 100) break;
     page += 1;
     if (page > 10) break;
   }
-
   return items.slice(0, params.maxPullRequests);
 }
 
-async function fetchPullRequestDetail(params: {
-  owner: string;
-  repo: string;
-  token: string;
-  number: number;
-}): Promise<GithubPullDetail> {
-  const url = `https://api.github.com/repos/${params.owner}/${params.repo}/pulls/${params.number}`;
-  return githubFetch<GithubPullDetail>(url, params.token);
+async function fetchPullRequestDetail(params: { owner: string; repo: string; token: string; number: number }): Promise<GithubPullDetail> {
+  return githubFetch<GithubPullDetail>(
+    `https://api.github.com/repos/${params.owner}/${params.repo}/pulls/${params.number}`,
+    params.token
+  );
 }
 
-/**
- * Fetch commit list (paginated, most recent)
- */
-async function fetchCommitListRecent(params: {
-  owner: string;
-  repo: string;
-  token: string;
-  maxCommits: number;
-}): Promise<GithubCommitListItem[]> {
-  const items: GithubCommitListItem[] = [];
-  let page = 1;
-
-  while (items.length < params.maxCommits) {
-    const url = new URL(
-      `https://api.github.com/repos/${params.owner}/${params.repo}/commits`
-    );
-    url.searchParams.set("per_page", "100");
-    url.searchParams.set("page", String(page));
-
-    const batch = await githubFetch<GithubCommitListItem[]>(url.toString(), params.token);
-    items.push(...batch);
-
-    if (batch.length < 100) break;
-    page += 1;
-    if (page > 10) break; // Safety limit
-  }
-
-  return items.slice(0, params.maxCommits);
-}
-
-async function fetchCommitList(params: {
-  owner: string;
-  repo: string;
-  token: string;
-  maxCommits: number;
-}): Promise<GithubCommitListItem[]> {
-  const repoUrl = `https://api.github.com/repos/${params.owner}/${params.repo}`;
-  const repoMeta = await githubFetch<GithubRepoResponse>(repoUrl, params.token);
-
-  const startMs = new Date(repoMeta.created_at).getTime();
-  const endMs = new Date(repoMeta.pushed_at ?? new Date().toISOString()).getTime();
-
-  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
-    return fetchCommitListRecent(params);
-  }
-
-  const target = Math.max(1, params.maxCommits);
-  const bucketCount = Math.min(24, Math.max(6, Math.ceil(target / 25)));
-  const perBucketTarget = Math.max(1, Math.ceil(target / bucketCount));
-  const bucketMs = Math.max(1, Math.floor((endMs - startMs) / bucketCount));
-  const pageLimitPerBucket = 2;
-
-  const bySha = new Map<string, GithubCommitListItem>();
-
-  for (let i = 0; i < bucketCount; i += 1) {
-    const since = new Date(startMs + bucketMs * i);
-    const until = new Date(i === bucketCount - 1 ? endMs : startMs + bucketMs * (i + 1));
-
-    const bucketItems: GithubCommitListItem[] = [];
-    for (let page = 1; page <= pageLimitPerBucket; page += 1) {
-      const url = new URL(`https://api.github.com/repos/${params.owner}/${params.repo}/commits`);
-      url.searchParams.set("per_page", "100");
-      url.searchParams.set("page", String(page));
-      url.searchParams.set("since", since.toISOString());
-      url.searchParams.set("until", until.toISOString());
-
-      const batch = await githubFetch<GithubCommitListItem[]>(url.toString(), params.token);
-      bucketItems.push(...batch);
-      if (batch.length < 100) break;
-    }
-
-    const sampled = sampleEvenly(bucketItems, perBucketTarget);
-    for (const item of sampled) {
-      bySha.set(item.sha, item);
-    }
-  }
-
-  const descByCommitterDate = (a: GithubCommitListItem, b: GithubCommitListItem): number =>
-    new Date(b.commit.committer.date).getTime() - new Date(a.commit.committer.date).getTime();
-
-  let combined = Array.from(bySha.values()).sort(descByCommitterDate);
-
-  if (combined.length < target) {
-    const fallback = await fetchCommitListRecent(params);
-    for (const item of fallback) {
-      if (!bySha.has(item.sha)) bySha.set(item.sha, item);
-      if (bySha.size >= target) break;
-    }
-    combined = Array.from(bySha.values()).sort(descByCommitterDate);
-  }
-
-  return combined.slice(0, target);
-}
-
-/**
- * Fetch commits with files using compare endpoint (more efficient)
- * Returns up to 250 commits with file lists in ONE API call
- */
-async function fetchCommitsWithCompare(params: {
-  owner: string;
-  repo: string;
-  token: string;
-  baseSha: string;
-  headSha: string;
-}): Promise<GithubCommitDetail[]> {
-  const url = `https://api.github.com/repos/${params.owner}/${params.repo}/compare/${params.baseSha}...${params.headSha}`;
-  const response = await githubFetch<GithubCompareResponse>(url, params.token);
-  return response.commits;
-}
-
-/**
- * Fetch individual commit detail (fallback for when compare doesn't work)
- */
-async function fetchCommitDetail(params: {
-  owner: string;
-  repo: string;
-  sha: string;
-  token: string;
-}): Promise<GithubCommitDetail> {
-  const url = `https://api.github.com/repos/${params.owner}/${params.repo}/commits/${params.sha}`;
-  return githubFetch<GithubCommitDetail>(url, params.token);
+async function fetchCommitDetail(params: { owner: string; repo: string; sha: string; token: string }): Promise<GithubCommitDetail> {
+  return githubFetch<GithubCommitDetail>(
+    `https://api.github.com/repos/${params.owner}/${params.repo}/commits/${params.sha}`,
+    params.token
+  );
 }
 
 /**
@@ -677,12 +500,25 @@ export const analyzeRepo = inngest.createFunction(
       const eventData = event.data as { event: { data: { jobId: string } } };
       const jobId = eventData?.event?.data?.jobId;
 
+      // Detect specific error types for better user-facing messages
+      let errorMessage = error.message;
+      let errorCode: string | undefined;
+
+      if (isTokenExpiredError(error)) {
+        errorMessage = "Platform access token expired. Please reconnect your account.";
+        errorCode = "TOKEN_EXPIRED";
+      } else if (error instanceof RateLimitExceededError) {
+        errorMessage = "Rate limit exceeded. Please try again later.";
+        errorCode = "RATE_LIMITED";
+      }
+
       if (jobId) {
         await supabase
           .from("analysis_jobs")
           .update({
             status: "error" as JobStatus,
-            error_message: error.message,
+            error_message: errorMessage,
+            error_code: errorCode,
             completed_at: new Date().toISOString(),
           })
           .eq("id", jobId);
@@ -698,8 +534,15 @@ export const analyzeRepo = inngest.createFunction(
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // Type for job context returned by step
+    type JobContext = {
+      repo: { id: string; owner: string; name: string; full_name: string; last_pr_sync_at: string | null; platform: string };
+      platformToken: string;
+      platform: PlatformType;
+    };
+
     // Step 1: Load job and repo details
-    const { repo, githubToken } = await step.run("load-job-context", async () => {
+    const { repo, platformToken, platform } = await step.run("load-job-context", async (): Promise<JobContext> => {
       const { data: job, error: jobError } = await supabase
         .from("analysis_jobs")
         .select("id, user_id, repo_id")
@@ -710,33 +553,38 @@ export const analyzeRepo = inngest.createFunction(
         throw new Error(`Job not found: ${jobId}`);
       }
 
-      const { data: repo, error: repoError } = await supabase
+      const { data: repoData, error: repoError } = await supabase
         .from("repos")
-        .select("id, owner, name, full_name, last_pr_sync_at")
+        .select("id, owner, name, full_name, last_pr_sync_at, platform")
         .eq("id", repoId)
         .single();
 
-      if (repoError || !repo) {
+      if (repoError || !repoData) {
         throw new Error("Repo not found");
       }
 
-      const encryptionKey = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
-      if (!encryptionKey) {
-        throw new Error("Missing GITHUB_TOKEN_ENCRYPTION_KEY");
+      // Default to github if platform is missing (legacy data)
+      const platform = (repoData.platform as PlatformType) || "github";
+
+      let platformToken: string;
+      try {
+        platformToken = await getPlatformAccessToken(supabase, userId, platform);
+      } catch (error) {
+         // Fallback for legacy jobs or timing issues
+         console.warn(`Failed to get platform token for ${platform}, trying github legacy method...`);
+         const encryptionKey = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
+         if (!encryptionKey) throw new Error("Missing GITHUB_TOKEN_ENCRYPTION_KEY");
+
+         const { data: ghAccount } = await supabase
+          .from("platform_connections")
+          .select("encrypted_token")
+          .eq("user_id", userId)
+          .eq("platform", "github")
+          .single();
+
+         if (!ghAccount) throw error; // Re-throw original error if fallback fails
+         platformToken = decryptString(ghAccount.encrypted_token, encryptionKey);
       }
-
-      const { data: ghAccount, error: ghError } = await supabase
-        .from("platform_connections")
-        .select("encrypted_token")
-        .eq("user_id", userId)
-        .eq("platform", "github")
-        .single();
-
-      if (ghError || !ghAccount) {
-        throw new Error("GitHub account not connected");
-      }
-
-      const githubToken = decryptString(ghAccount.encrypted_token, encryptionKey);
 
       // Mark job as running
       await supabase
@@ -744,15 +592,28 @@ export const analyzeRepo = inngest.createFunction(
         .update({ status: "running" as JobStatus })
         .eq("id", jobId);
 
-      return { job, repo, githubToken };
-    });
+      return { repo: repoData, platformToken, platform };
+    }) as JobContext;
 
     const pullRequestSignals = await step.run("sync-pull-requests", async () => {
+      // Only GitHub supports PR sync currently
+      if (platform !== "github") {
+        return {
+          total: 0,
+          merged: 0,
+          merge_methods: { merge: 0, squash: 0, rebase: 0, unknown: 0 },
+          checklist_rate: null,
+          template_rate: null,
+          linked_issue_rate: null,
+          evidence_shas: [] as string[],
+        };
+      }
+
       try {
         const prs = await fetchPullRequests({
           owner: repo.owner,
           repo: repo.name,
-          token: githubToken,
+          token: platformToken,
           maxPullRequests: 200,
           updatedAfter: (repo as { last_pr_sync_at?: string | null }).last_pr_sync_at ?? null,
         });
@@ -783,7 +644,7 @@ export const analyzeRepo = inngest.createFunction(
               fetchPullRequestDetail({
                 owner: repo.owner,
                 repo: repo.name,
-                token: githubToken,
+                token: platformToken,
                 number: pr.number,
               })
             )
@@ -808,7 +669,7 @@ export const analyzeRepo = inngest.createFunction(
                   owner: repo.owner,
                   repo: repo.name,
                   sha,
-                  token: githubToken,
+                  token: platformToken,
                 });
                 return { sha, detail };
               } catch {
@@ -921,83 +782,40 @@ export const analyzeRepo = inngest.createFunction(
       }
     });
 
-    // Step 2: Fetch commit list
-    const commitList = await step.run("fetch-commit-list", async () => {
-      return fetchCommitList({
-        owner: repo.owner,
-        repo: repo.name,
-        token: githubToken,
-        maxCommits: 300,
-      });
-    });
+    // Step 2: Fetch commits using platform-agnostic client with retry
+    const events = await step.run("fetch-commits", async () => {
+      return withRetry(
+        async () => {
+          const fetcher = createCommitFetcher(platform, platformToken);
 
-    if (commitList.length === 0) {
-      throw new Error("No commits found in repository");
-    }
+          // All platform clients implement fetchCommitsSampled
+          if (!fetcher.fetchCommitsSampled) {
+            throw new Error(`Platform ${platform} does not support sampled commit fetching`);
+          }
 
-    // Step 3: Fetch commit details with file paths
-    // Try compare endpoint first (efficient), fall back to individual fetches
-    const events = await step.run("fetch-commit-details", async () => {
-      const firstSha = commitList[commitList.length - 1].sha;
-      const lastSha = commitList[0].sha;
-
-      let detailedCommits: GithubCommitDetail[] = [];
-
-      const newestMs = new Date(commitList[0].commit.committer.date).getTime();
-      const oldestMs = new Date(commitList[commitList.length - 1].commit.committer.date).getTime();
-      const rangeDays = Number.isFinite(newestMs - oldestMs)
-        ? (newestMs - oldestMs) / (1000 * 60 * 60 * 24)
-        : Number.POSITIVE_INFINITY;
-      const canUseCompare = commitList.length <= 250 && rangeDays <= 90;
-
-      if (canUseCompare) {
-        try {
-          detailedCommits = await fetchCommitsWithCompare({
+          const commits = await fetcher.fetchCommitsSampled({
+            repoFullName: repo.full_name,
             owner: repo.owner,
             repo: repo.name,
-            token: githubToken,
-            baseSha: `${firstSha}^`,
-            headSha: lastSha,
+            accessToken: platformToken,
+            maxCommits: 300,
           });
-        } catch {
-          detailedCommits = [];
+
+          if (commits.length === 0) {
+            throw new Error("No commits found in repository");
+          }
+
+          // Transform NormalizedCommit to VibeCommitEvent
+          return commits.map(normalizedCommitToVibeEvent);
+        },
+        {
+          maxRetries: 3,
+          initialDelayMs: 2000,
+          onRetry: (err, attempt, delayMs) => {
+            console.warn(`Commit fetch retry ${attempt} after ${delayMs}ms: ${err.message}`);
+          },
         }
-      }
-
-      if (detailedCommits.length === 0) {
-        const batchSize = 10;
-        for (let i = 0; i < commitList.length; i += batchSize) {
-          const batch = commitList.slice(i, i + batchSize);
-          const details = await Promise.all(
-            batch.map((item) =>
-              fetchCommitDetail({
-                owner: repo.owner,
-                repo: repo.name,
-                sha: item.sha,
-                token: githubToken,
-              })
-            )
-          );
-          detailedCommits.push(...details);
-        }
-      }
-
-      // Map to CommitEvent with file_paths
-      const events: VibeCommitEvent[] = detailedCommits.map((c) => ({
-        sha: c.sha,
-        message: c.commit.message,
-        author_date: c.commit.author.date,
-        committer_date: c.commit.committer.date,
-        author_email: c.commit.author.email ?? "",
-        files_changed: Array.isArray(c.files) ? c.files.length : 0,
-        additions: c.stats?.additions ?? 0,
-        deletions: c.stats?.deletions ?? 0,
-        parents: c.parents?.map((p) => p.sha) ?? [],
-        // NEW: Extract file paths for subsystem detection
-        file_paths: Array.isArray(c.files) ? c.files.map((f) => f.filename) : [],
-      }));
-
-      return events;
+      );
     });
 
     // Step 4: Compute metrics and insights

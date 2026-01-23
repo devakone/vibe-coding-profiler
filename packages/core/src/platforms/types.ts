@@ -10,6 +10,15 @@ export interface FetchCommitsOptions {
   pageSize?: number;
 }
 
+export interface FetchCommitsSampledOptions {
+  repoFullName: string;
+  owner: string;
+  repo: string;
+  accessToken: string;
+  /** Target number of commits to sample (default: 300) */
+  maxCommits: number;
+}
+
 export interface NormalizedCommit {
   sha: string;
   message: string;
@@ -43,4 +52,9 @@ export interface RepoLister {
 
 export interface CommitFetcher {
   fetchCommits(options: FetchCommitsOptions): AsyncGenerator<NormalizedCommit>;
+  /**
+   * Fetch commits with intelligent sampling across the repository's history.
+   * Uses time-bucketed sampling for comprehensive coverage.
+   */
+  fetchCommitsSampled?(options: FetchCommitsSampledOptions): Promise<NormalizedCommit[]>;
 }

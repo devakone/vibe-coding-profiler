@@ -1,8 +1,9 @@
 import { decryptString } from "@vibed/core";
-import type { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getPlatformAccessToken(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  supabase: SupabaseClient<any, any, any>,
   userId: string,
   platform: 'github' | 'gitlab' | 'bitbucket' = 'github'
 ): Promise<string> {
