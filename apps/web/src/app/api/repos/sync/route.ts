@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getPlatformAccessToken } from "@/lib/platformToken";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { createRepoLister } from "@vibed/core/platforms/factory";
-import { PlatformType } from "@vibed/core/platforms/types";
+import { createRepoLister } from "@vibed/core";
+import { PlatformType } from "@vibed/core";
 
 export const runtime = "nodejs";
 
