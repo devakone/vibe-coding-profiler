@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { BitbucketClient } from "../platforms/bitbucket";
 import { GitHubClient } from "../platforms/github";
 import { GitLabClient } from "../platforms/gitlab";
+import type { NormalizedCommit } from "../platforms/types";
 
 describe("Platform client normalization", () => {
   it("GitHub client yields normalized commits + repos", async () => {
@@ -127,5 +128,122 @@ describe("Platform client normalization", () => {
     const client = new BitbucketClient("token", fetcher as typeof fetch);
     const repo = await client.listRepos().next();
     expect(repo.value?.platform).toBe("bitbucket");
+  });
+
+  it("GitLab client normalizes commit details", async () => {
+    const fetcher = vi.fn(async (url: string) => {
+      if (url.includes("/repository/commits/") && url.includes("/diff")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => [
+            { new_path: "src/app.ts" },
+            { new_path: "src/utils.ts" },
+          ],
+          text: async () => "[]",
+        };
+      }
+
+      if (url.includes("/repository/commits")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => [
+            {
+              id: "gl-1",
+              short_id: "gl-1",
+              title: "title",
+              message: "feat: add",
+              author_name: "GL Author",
+              author_email: "gl@author.com",
+              authored_date: "2025-01-02T00:00:00Z",
+              committed_date: "2025-01-02T01:00:00Z",
+              parent_ids: ["gl-base"],
+              stats: { total: 2, additions: 5, deletions: 3 },
+            },
+          ],
+          text: async () => "[]",
+        };
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => [],
+        text: async () => "[]",
+      };
+    });
+
+    const client = new GitLabClient("token", fetcher as typeof fetch);
+    const commits: NormalizedCommit[] = [];
+    for await (const commit of client.fetchCommits({
+      repoFullName: "user/app",
+      owner: "user",
+      repo: "app",
+      accessToken: "token",
+    })) {
+      commits.push(commit);
+    }
+
+    expect(commits).toHaveLength(1);
+    expect(commits[0].platform).toBe("gitlab");
+    expect(commits[0].filePaths).toContain("src/app.ts");
+    expect(commits[0].additions).toBe(5);
+    expect(commits[0].platformUrl).toContain("user/app");
+  });
+
+  it("Bitbucket client normalizes commit details", async () => {
+    const fetcher = vi.fn(async (url: string) => {
+      if (url.includes("/diffstat")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ values: [{ new: { path: "src/main.ts" } }] }),
+          text: async () => "[]",
+        };
+      }
+
+      if (url.includes("/commits")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            values: [
+              {
+                hash: "bb-1",
+                message: "fix: bug",
+                date: "2025-01-03T00:00:00Z",
+                author: { raw: "Dev <dev@bb.com>", user: { display_name: "BB Dev" } },
+                parents: [{ hash: "bb-base" }],
+              },
+            ],
+          }),
+          text: async () => "[]",
+        };
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ next: undefined, values: [] }),
+        text: async () => "[]",
+      };
+    });
+
+    const client = new BitbucketClient("token", fetcher as typeof fetch);
+    const commits: NormalizedCommit[] = [];
+    for await (const commit of client.fetchCommits({
+      repoFullName: "user/project",
+      owner: "user",
+      repo: "project",
+      accessToken: "token",
+    })) {
+      commits.push(commit);
+    }
+
+    expect(commits).toHaveLength(1);
+    expect(commits[0].platform).toBe("bitbucket");
+    expect(commits[0].authorName).toBe("BB Dev");
+    expect(commits[0].filePaths).toContain("src/main.ts");
   });
 });
