@@ -98,6 +98,12 @@ export type VibeTypeName =
   | "refactor-driven"
   | "unique";
 
+// =============================================================================
+// Platforms
+// =============================================================================
+
+export * from "./platforms";
+
 export interface VibeType {
   id: VibeTypeName;
   name: string;
