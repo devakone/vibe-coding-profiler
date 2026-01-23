@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { withRetry, isRetryableError } from "../platforms/retry";
-import { RateLimitExceededError, TokenExpiredError } from "../platforms/errors";
+import { withRetry } from "../platforms/retry";
+import { isRetryableError, RateLimitExceededError, TokenExpiredError } from "../platforms/errors";
 
 describe("withRetry", () => {
   it("returns result on first successful call", async () => {
@@ -15,8 +15,8 @@ describe("withRetry", () => {
   it("retries on failure and succeeds", async () => {
     const operation = vi
       .fn()
-      .mockRejectedValueOnce(new Error("fail 1"))
-      .mockRejectedValueOnce(new Error("fail 2"))
+      .mockRejectedValueOnce(new Error("network fail 1"))
+      .mockRejectedValueOnce(new Error("network fail 2"))
       .mockResolvedValue("success after retries");
 
     const result = await withRetry(operation, {
@@ -29,11 +29,11 @@ describe("withRetry", () => {
   });
 
   it("throws after max retries exhausted", async () => {
-    const operation = vi.fn().mockRejectedValue(new Error("always fails"));
+    const operation = vi.fn().mockRejectedValue(new Error("network always fails"));
 
     await expect(
       withRetry(operation, { maxRetries: 2, initialDelayMs: 10 })
-    ).rejects.toThrow("always fails");
+    ).rejects.toThrow("network always fails");
 
     expect(operation).toHaveBeenCalledTimes(3); // initial + 2 retries
   });
@@ -42,8 +42,8 @@ describe("withRetry", () => {
     const onRetry = vi.fn();
     const operation = vi
       .fn()
-      .mockRejectedValueOnce(new Error("first error"))
-      .mockRejectedValueOnce(new Error("second error"))
+      .mockRejectedValueOnce(new Error("network first error"))
+      .mockRejectedValueOnce(new Error("network second error"))
       .mockResolvedValue("done");
 
     await withRetry(operation, {
@@ -62,9 +62,9 @@ describe("withRetry", () => {
     const onRetry = vi.fn((_err, _attempt, delay) => delays.push(delay));
     const operation = vi
       .fn()
-      .mockRejectedValueOnce(new Error("1"))
-      .mockRejectedValueOnce(new Error("2"))
-      .mockRejectedValueOnce(new Error("3"))
+      .mockRejectedValueOnce(new Error("network 1"))
+      .mockRejectedValueOnce(new Error("network 2"))
+      .mockRejectedValueOnce(new Error("network 3"))
       .mockResolvedValue("done");
 
     await withRetry(operation, {
@@ -87,10 +87,10 @@ describe("withRetry", () => {
     const onRetry = vi.fn((_err, _attempt, delay) => delays.push(delay));
     const operation = vi
       .fn()
-      .mockRejectedValueOnce(new Error("1"))
-      .mockRejectedValueOnce(new Error("2"))
-      .mockRejectedValueOnce(new Error("3"))
-      .mockRejectedValueOnce(new Error("4"))
+      .mockRejectedValueOnce(new Error("network 1"))
+      .mockRejectedValueOnce(new Error("network 2"))
+      .mockRejectedValueOnce(new Error("network 3"))
+      .mockRejectedValueOnce(new Error("network 4"))
       .mockResolvedValue("done");
 
     await withRetry(operation, {

@@ -1,17 +1,16 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { wrappedTheme } from "@/lib/theme";
-import LLMKeysClient from "./LLMKeysClient";
-
+import { PlatformConnections } from "@/components/settings/PlatformConnections";
 import { SettingsTabs } from "@/components/settings/SettingsTabs";
+import Link from "next/link";
 
 export const metadata = {
-  title: "LLM API Keys · Settings · Vibe Coding Profiler",
-  description: "Manage your LLM API keys for AI-powered narrative generation",
+  title: "Platforms · Settings · Vibe Coding Profiler",
+  description: "Manage your connected code hosting platforms",
 };
 
-export default async function LLMKeysPage() {
+export default async function PlatformsPage() {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -27,33 +26,26 @@ export default async function LLMKeysPage() {
         {/* Header */}
         <div>
           <div className="flex items-center gap-2 text-sm text-zinc-600">
-            <span className="text-zinc-900">Settings</span>
+             <Link href="/settings/llm-keys" className="hover:text-zinc-900">
+              Settings
+            </Link>
             <span>/</span>
-            <span>LLM Keys</span>
+            <span className="text-zinc-900">Platforms</span>
           </div>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-            LLM API Keys
+            Connected Platforms
           </h1>
           <p className="mt-2 text-zinc-600">
-            Add your own API key to unlock unlimited AI-generated narratives.
-            Your key is encrypted and never shared.
+            Manage your connections to GitHub, GitLab, and Bitbucket.
           </p>
         </div>
 
         {/* Settings Tabs */}
-        <SettingsTabs activeTab="llm-keys" />
+        <SettingsTabs activeTab="platforms" />
 
-        {/* Main content */}
+        {/* Main Content */}
         <div className={`${wrappedTheme.card} p-6`}>
-          <LLMKeysClient />
-        </div>
-
-        {/* Security info */}
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
-          <strong className="text-zinc-700">Security:</strong> Your API keys are
-          encrypted using AES-256-GCM before storage. Keys are decrypted
-          server-side only when needed for API calls and are never exposed to
-          the browser.
+          <PlatformConnections />
         </div>
       </div>
     </div>

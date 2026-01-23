@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { wrappedTheme } from "@/lib/theme";
+import { SettingsTabs } from "@/components/settings/SettingsTabs";
 import ReposClient from "@/app/repos/ReposClient";
 
 export const runtime = "nodejs";
@@ -72,17 +73,7 @@ export default async function RepoSettingsPage() {
         </div>
 
         {/* Settings Tabs */}
-        <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
-          <Link
-            href="/settings/llm-keys"
-            className="flex-1 rounded-lg px-4 py-2 text-center text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
-          >
-            LLM Keys
-          </Link>
-          <span className="flex-1 rounded-lg bg-white px-4 py-2 text-center text-sm font-medium text-zinc-900 shadow-sm">
-            Repos
-          </span>
-        </div>
+        <SettingsTabs activeTab="repos" />
 
         {/* Main Content */}
           <ReposClient
