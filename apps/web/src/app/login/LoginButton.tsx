@@ -2,15 +2,21 @@
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useState } from "react";
+import { OAUTH_CONFIG, OAuthProvider } from "@/lib/platforms/oauth";
 
-export default function LoginButton() {
+interface LoginButtonProps {
+  provider?: OAuthProvider;
+}
+
+export default function LoginButton({ provider = "github" }: LoginButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const config = OAUTH_CONFIG[provider];
 
   function computeRedirectTo(): string {
     const baseUrl = window.location.origin.replace(/\/$/, "");
     const url = new URL(baseUrl);
-    return `${url.origin}/auth/callback`;
+    return `${url.origin}/api/auth/${provider}/callback`;
   }
 
   async function signIn() {
@@ -21,8 +27,15 @@ export default function LoginButton() {
     const redirectTo = computeRedirectTo();
 
     const { error: signInError } = await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: { redirectTo, scopes: "read:org repo" },
+      provider: provider,
+      options: { 
+        redirectTo, 
+        scopes: config.scopes,
+        queryParams: {
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
     });
 
     if (signInError) {
@@ -68,7 +81,7 @@ export default function LoginButton() {
         onClick={signIn}
         disabled={isLoading}
       >
-        {isLoading ? "Signing in..." : "Sign in with GitHub"}
+        {isLoading ? "Signing in..." : `Sign in with ${config.label}`}
       </button>
       {error ? <p className="whitespace-pre-wrap text-sm text-red-600">{error}</p> : null}
     </div>

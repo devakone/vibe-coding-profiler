@@ -39,12 +39,12 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 ### P3. Unified OAuth Routes
 **Task:** Single OAuth implementation supporting all providers.
 **Deliverables:**
-- [ ] OAuth config created (`apps/web/src/lib/platforms/oauth.ts`)
-- [ ] Unified OAuth initiate route (`/api/auth/[provider]/route.ts`)
-- [ ] Unified OAuth callback route (`/api/auth/[provider]/callback/route.ts`)
-- [ ] GitLab/Bitbucket env vars added to `.env.example`
-- [ ] LoginButton component parameterized by provider
-- [ ] Login page shows all three providers
+- [x] OAuth config created (`apps/web/src/lib/platforms/oauth.ts`)
+- [x] Unified OAuth initiate route (`/api/auth/[provider]/route.ts`)
+- [x] Unified OAuth callback route (`/api/auth/[provider]/callback/route.ts`)
+- [x] GitLab/Bitbucket env vars added to `.env.example`
+- [x] LoginButton component parameterized by provider
+- [x] Login page shows all three providers
 **Success Criteria:** Can log in with GitHub, GitLab, and Bitbucket; new users get platform_connections row
 **Depends on:** P1, P2
 **Blocks:** P4
