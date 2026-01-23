@@ -52,13 +52,13 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 ### P4. Settings UI - Platform Management
 **Task:** Users can connect/disconnect platforms and set primary.
 **Deliverables:**
-- [ ] Platforms API routes (`/api/platforms/`)
-- [ ] Connect/disconnect routes (`/api/platforms/[platform]/`)
-- [ ] Set-primary route with validation (exactly one primary at all times)
-- [ ] PlatformConnectionsSection component
-- [ ] Integrated into RepoSettingsClient
-- [ ] Platform icons (GitHub, GitLab, Bitbucket)
-- [ ] Primary identity enforcement: prevent disconnecting last/primary platform
+- [x] Platforms API routes (`/api/platforms/`)
+- [x] Connect/disconnect routes (`/api/platforms/[platform]/`)
+- [x] Set-primary route with validation (exactly one primary at all times)
+- [x] PlatformConnectionsSection component
+- [x] Integrated into RepoSettingsClient
+- [x] Platform icons (GitHub, GitLab, Bitbucket)
+- [x] Primary identity enforcement: prevent disconnecting last/primary platform
 **Success Criteria:** Can see/connect/disconnect platforms; can change primary; cannot disconnect last platform; exactly one platform is primary at all times
 **Depends on:** P2, P3
 **Blocks:** P5
@@ -102,9 +102,9 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 | Phase | Status | Notes |
 |-------|--------|-------|
 | P1. Platform Client Abstraction | 🟡 In Progress | GitHub client complete; GitLab/Bitbucket stubs |
-| P2. Database Schema Evolution | ⬜ Not Started | Rename/extend existing tables |
-| P3. Unified OAuth Routes | ⬜ Not Started | Single dynamic route |
-| P4. Settings UI - Platform Management | ⬜ Not Started | Extend /settings/repos |
+| P2. Database Schema Evolution | ✅ Complete | Migrations applied; types generated |
+| P3. Unified OAuth Routes | ✅ Complete | Unified auth flow working |
+| P4. Settings UI - Platform Management | ✅ Complete | UI integrated into RepoSettingsClient |
 | P5. Multi-Platform Repo Sync | ⬜ Not Started | Platform filter in UI |
 | P6. Analysis Integration | ⬜ Not Started | Worker multi-platform support |
 | P7. Polish & Edge Cases | ⬜ Not Started | Error handling, UX polish |

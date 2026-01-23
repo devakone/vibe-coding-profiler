@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "@/components/ui/use-toast";
+import { PlatformConnections } from "@/components/settings/PlatformConnections";
 
 type GithubRepo = {
   id: number;
@@ -287,6 +288,11 @@ export default function RepoSettingsClient(props: {
             </div>
           </div>
         )}
+      </section>
+
+      {/* Platform Connections Section */}
+      <section className="space-y-4">
+        <PlatformConnections />
       </section>
 
       {/* Connected Repos Section */}
