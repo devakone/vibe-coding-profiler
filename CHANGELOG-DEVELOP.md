@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.1.0-alpha.5](https://github.com/devakone/vibe-coding-profiler/compare/vibed-coding-v0.1.0-alpha.4...vibed-coding-v0.1.0-alpha.5) (2026-01-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* The `github_accounts` table has been renamed to `platform_connections`. All queries referencing `github_accounts` must be updated to use `platform_connections` with the additional `platform` column filter.
+
+### Features
+
+* add foundational documentation and security measures ([d10c5c4](https://github.com/devakone/vibe-coding-profiler/commit/d10c5c4ca46a36bf006deee23776ae9b5a8ad7c6))
+* add GitHub Actions workflow for security checks ([686ea44](https://github.com/devakone/vibe-coding-profiler/commit/686ea445bb53cce8e95f1e2c8ee3edeb08b2d6b0))
+* add multi-platform support for repositories and connections ([266a717](https://github.com/devakone/vibe-coding-profiler/commit/266a71713c6ab96865d170fd70bbdc9dee87ef27))
+* **core:** add platform client abstraction for multi-platform support ([1b8c152](https://github.com/devakone/vibe-coding-profiler/commit/1b8c15274ab5316dd1fce21a64b6472984124519))
+* **db:** add platform support and LLM usage tracking ([a82acb7](https://github.com/devakone/vibe-coding-profiler/commit/a82acb7ed4e4abb925d8d8fa7de8b065669c7cdb))
+* multi-platform repository integration ([ff0a993](https://github.com/devakone/vibe-coding-profiler/commit/ff0a99388238d02e246553559e96bb655324a939))
+* **oauth:** add GitLab and Bitbucket OAuth support ([75a5009](https://github.com/devakone/vibe-coding-profiler/commit/75a500931dafcd5780acf9b4376a471d4e5d7c2e))
+* **platforms:** add API endpoints and UI for managing platform connections ([b8a2948](https://github.com/devakone/vibe-coding-profiler/commit/b8a294825156a7954f815408cf297ce530f54007))
+* **platforms:** implement Bitbucket and GitLab API clients ([0692731](https://github.com/devakone/vibe-coding-profiler/commit/06927315459b77397b11acffc4d6d2f3f1a6a7a5))
+* **settings:** add platforms page and extract settings tabs component ([29f9082](https://github.com/devakone/vibe-coding-profiler/commit/29f9082110f790e84d6995c7d1781f5fc63797cb))
+* unify repo management for multiple platforms ([d22dd27](https://github.com/devakone/vibe-coding-profiler/commit/d22dd279be5011deb00aaf6126dbe8ea01f9c14c))
+* **worker:** support multiple git platforms in fallback worker ([7fc5b95](https://github.com/devakone/vibe-coding-profiler/commit/7fc5b951a2f337e33376ee8ae5b1b4cf0585b7e5))
+
 ## [0.1.0-alpha.4](https://github.com/devakone/vibe-coding-profiler/compare/vibed-coding-v0.1.0-alpha.3...vibed-coding-v0.1.0-alpha.4) (2026-01-22)
 
 
