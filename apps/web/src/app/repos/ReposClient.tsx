@@ -22,6 +22,10 @@ type ReposClientProps = {
   userId: string;
   initialConnected: ConnectedRepo[];
   latestJobByRepoId: Record<string, string>;
+  /** Which platforms the user has connected (for disabling tabs) */
+  connectedPlatforms?: PlatformType[];
+  /** "settings" hides vibe actions; "vibes" shows them */
+  mode?: "settings" | "vibes";
 };
 
 const PLATFORMS: PlatformType[] = ["github", "gitlab", "bitbucket"];
@@ -31,7 +35,12 @@ const PLATFORM_LABELS: Record<PlatformType, string> = {
   bitbucket: "Bitbucket",
 };
 
-export default function ReposClient({ initialConnected, latestJobByRepoId }: ReposClientProps) {
+export default function ReposClient({ 
+  initialConnected, 
+  latestJobByRepoId,
+  connectedPlatforms = ["github", "gitlab", "bitbucket"],
+  mode = "vibes",
+}: ReposClientProps) {
   const router = useRouter();
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformType>("github");
   const [repos, setRepos] = useState<PlatformRepo[]>([]);
@@ -200,33 +209,55 @@ export default function ReposClient({ initialConnected, latestJobByRepoId }: Rep
     latestJobId: latestJobByRepoId[repo.repo_id] ?? null,
   }));
 
+  // Filter connected repos by selected platform
+  const filteredConnectedRepos = connectedRepos.filter(
+    (repo) => repo.platform === selectedPlatform
+  );
+
+  const isPlatformConnected = (platform: PlatformType) => connectedPlatforms.includes(platform);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
-        {PLATFORMS.map((platform) => (
-          <button
-            key={platform}
-            type="button"
-            className={cn(
-              "rounded-full border px-4 py-1 text-sm font-semibold transition",
-              selectedPlatform === platform
-                ? "border-indigo-500 bg-indigo-500/10 text-indigo-700"
-                : "border-zinc-200 text-zinc-600 hover:border-zinc-400"
-            )}
-            onClick={() => setSelectedPlatform(platform)}
-            disabled={isLoading && selectedPlatform === platform}
-          >
-            <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
-              <PlatformIcon platform={platform} className="h-3 w-3" />
-            </span>
-            {PLATFORM_LABELS[platform]}
-          </button>
-        ))}
+        {PLATFORMS.map((platform) => {
+          const isConnected = isPlatformConnected(platform);
+          const isDisabled = !isConnected || (isLoading && selectedPlatform === platform);
+          
+          return (
+            <div key={platform} className="relative group">
+              <button
+                type="button"
+                className={cn(
+                  "rounded-full border px-4 py-1 text-sm font-semibold transition",
+                  selectedPlatform === platform && isConnected
+                    ? "border-indigo-500 bg-indigo-500/10 text-indigo-700"
+                    : isConnected
+                      ? "border-zinc-200 text-zinc-600 hover:border-zinc-400"
+                      : "border-zinc-200 text-zinc-400 cursor-not-allowed opacity-60"
+                )}
+                onClick={() => isConnected && setSelectedPlatform(platform)}
+                disabled={isDisabled}
+              >
+                <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
+                  <PlatformIcon platform={platform} className="h-3 w-3" />
+                </span>
+                {PLATFORM_LABELS[platform]}
+              </button>
+              {/* Tooltip for disabled platforms */}
+              {!isConnected && (
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-1.5 bg-zinc-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                  Connect {PLATFORM_LABELS[platform]} from Settings → Platforms
+                  <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-zinc-900" />
+                </div>
+              )}
+            </div>
+          );
+        })}
         <button
           type="button"
           className="ml-auto flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-1 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 disabled:opacity-60"
           onClick={() => void loadRepos(selectedPlatform, true)}
-          disabled={isLoading}
+          disabled={isLoading || !isPlatformConnected(selectedPlatform)}
         >
           <RefreshCw className="h-4 w-4" />
           Force refresh
@@ -237,38 +268,46 @@ export default function ReposClient({ initialConnected, latestJobByRepoId }: Rep
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-zinc-950">Connected repos</h2>
           <p className="text-xs text-zinc-500">
-            {connectedRepos.length} repo(s) · {connectedRepos.map((repo) => repo.platform).filter(Boolean).join(", ")}
+            {filteredConnectedRepos.length} {PLATFORM_LABELS[selectedPlatform]} repo(s)
           </p>
         </div>
-        {connectedRepos.length === 0 ? (
-          <p className="text-sm text-zinc-600">No repos connected yet.</p>
+        {filteredConnectedRepos.length === 0 ? (
+          <p className="text-sm text-zinc-600">
+            {isPlatformConnected(selectedPlatform) 
+              ? `No ${PLATFORM_LABELS[selectedPlatform]} repos connected yet.`
+              : `Connect ${PLATFORM_LABELS[selectedPlatform]} from Settings → Platforms to see repositories.`
+            }
+          </p>
         ) : (
           <div className="divide-y divide-black/5 rounded-2xl border border-black/5 bg-white/80">
-            {connectedRepos.map((repo) => (
+            {filteredConnectedRepos.map((repo) => (
               <div key={repo.repo_id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <PlatformIcon platform={repo.platform} className="h-4 w-4 text-zinc-500" />
                   <span className="text-sm font-semibold text-zinc-900">{repo.full_name}</span>
                   {repo.latestJobId && <span className="text-[11px] text-zinc-500">Analyzed</span>}
                 </div>
-                <div className="flex items-center gap-2">
-                  {repo.latestJobId ? (
+                {/* Only show action buttons in vibes mode */}
+                {mode === "vibes" && (
+                  <div className="flex items-center gap-2">
+                    {repo.latestJobId ? (
+                      <button
+                        type="button"
+                        className={cn(wrappedTheme.secondaryButton, "px-3 py-1 text-sm font-semibold")}
+                        onClick={() => router.push(`/analysis/${repo.latestJobId}`)}
+                      >
+                        View vibe
+                      </button>
+                    ) : null}
                     <button
                       type="button"
-                      className={cn(wrappedTheme.secondaryButton, "px-3 py-1 text-sm font-semibold")}
-                      onClick={() => router.push(`/analysis/${repo.latestJobId}`)}
+                      className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm hover:bg-white"
+                      onClick={() => startAnalysis(repo.repo_id, repo.full_name)}
                     >
-                      View vibe
+                      {repo.latestJobId ? "Re-run" : "Start vibe"}
                     </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm hover:bg-white"
-                    onClick={() => startAnalysis(repo.repo_id, repo.full_name)}
-                  >
-                    {repo.latestJobId ? "Re-run" : "Start vibe"}
-                  </button>
-                </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { wrappedTheme } from "@/lib/theme";
 import { SettingsTabs } from "@/components/settings/SettingsTabs";
 import ReposClient from "@/app/repos/ReposClient";
+import type { PlatformType } from "@vibed/core";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,7 @@ export default async function RepoSettingsPage() {
 
   if (!user) redirect("/login");
 
+  // Fetch connected repos
   const { data } = await supabase
     .from("user_repos")
     .select("repo_id, repos(id, full_name, platform)")
@@ -36,9 +38,10 @@ export default async function RepoSettingsPage() {
     .map((r) => ({
       repo_id: r.repo_id,
       full_name: r.repos!.full_name,
-      platform: (r.repos!.platform as "github" | "gitlab" | "bitbucket") ?? "github",
+      platform: (r.repos!.platform as PlatformType) ?? "github",
     }));
 
+  // Fetch analyzed jobs
   const { data: analyzedJobs } = await supabase
     .from("analysis_jobs")
     .select("id, repo_id")
@@ -51,6 +54,17 @@ export default async function RepoSettingsPage() {
     if (!row.repo_id) continue;
     if (!latestJobByRepoId[row.repo_id]) latestJobByRepoId[row.repo_id] = row.id;
   }
+
+  // Fetch connected platforms
+  const { data: platformConnections } = await supabase
+    .from("platform_connections")
+    .select("platform")
+    .eq("user_id", user.id)
+    .is("disconnected_at", null);
+
+  const connectedPlatforms = ((platformConnections ?? []) as Array<{ platform: string }>)
+    .map((p) => p.platform as PlatformType)
+    .filter(Boolean);
 
   return (
     <div className={`${wrappedTheme.container} ${wrappedTheme.pageY}`}>
@@ -68,7 +82,7 @@ export default async function RepoSettingsPage() {
             Connected Repos
           </h1>
           <p className="mt-2 text-zinc-600">
-            Manage the GitHub repositories connected to your Vibe Coding Profile.
+            Manage the repositories connected to your Vibe Coding Profile.
           </p>
         </div>
 
@@ -80,8 +94,11 @@ export default async function RepoSettingsPage() {
             userId={user.id}
             initialConnected={initialConnected}
             latestJobByRepoId={latestJobByRepoId}
+            connectedPlatforms={connectedPlatforms}
+            mode="settings"
           />
       </div>
     </div>
   );
 }
+
