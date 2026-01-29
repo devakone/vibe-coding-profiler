@@ -57,12 +57,12 @@ export class GitLabClient implements CommitFetcher, RepoLister {
   constructor(
     private readonly accessToken: string,
     private readonly fetcher: typeof fetch = fetch
-  ) {}
+  ) { }
 
   private async gitlabFetch<T>(url: string): Promise<T> {
     const res = await this.fetcher(url, {
       headers: {
-        "PRIVATE-TOKEN": this.accessToken,
+        Authorization: `Bearer ${this.accessToken}`,
         Accept: "application/json",
       },
     });

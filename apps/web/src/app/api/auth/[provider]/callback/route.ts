@@ -138,6 +138,23 @@ export async function GET(
     
     const isFirstConnection = count === 0;
 
+    // Check if this external account is already linked to a different user
+    const { data: existingConnection } = await service
+      .from("platform_connections")
+      .select("user_id")
+      .eq("platform", provider)
+      .eq("platform_user_id", platformUserId)
+      .single();
+
+    if (existingConnection && existingConnection.user_id !== userId) {
+      // This external account is linked to another user
+      console.warn(`${provider} account ${platformUserId} already linked to user ${existingConnection.user_id}, current user: ${userId}`);
+      url.pathname = "/login";
+      url.searchParams.set("error", "account_already_linked");
+      url.searchParams.set("provider", provider);
+      return NextResponse.redirect(url);
+    }
+
     // Prepare upsert data
     const upsertData = {
       user_id: userId,
@@ -153,10 +170,10 @@ export async function GET(
       ...(isFirstConnection ? { is_primary: true } : {}),
     };
 
-    // Upsert platform connection
+    // Upsert platform connection using user_id + platform to handle reconnections properly
     await service.from("platform_connections").upsert(
       upsertData,
-      { onConflict: "platform, platform_user_id" }
+      { onConflict: "user_id, platform" }
     );
   }
 

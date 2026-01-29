@@ -8,12 +8,12 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 ### P1. Platform Client Abstraction
 **Task:** Create platform abstraction layer in `@vibed/core` without breaking existing functionality.
 **Deliverables:**
-- [ ] Platform types created (`packages/core/src/platforms/types.ts`)
-- [ ] GitHub client extracted from existing code
-- [ ] GitLab client implemented (including file_paths via diff endpoint)
-- [ ] Bitbucket client implemented (including file_paths via diffstat endpoint)
-- [ ] Factory and exports created (`packages/core/src/platforms/index.ts`)
-- [ ] Unit tests for all platform clients
+- [x] Platform types created (`packages/core/src/platforms/types.ts`)
+- [x] GitHub client extracted from existing code
+- [x] GitLab client implemented (including file_paths via diff endpoint)
+- [x] Bitbucket client implemented (including file_paths via diffstat endpoint; note: no date filtering support, uses recent commits)
+- [x] Factory and exports created (`packages/core/src/platforms/index.ts`)
+- [x] Unit tests for all platform clients (`packages/core/src/__tests__/platform-clients.test.ts`)
 **Success Criteria:** `npm run type-check` and `npm run test` pass; existing analysis works; all clients return `filePaths` in `NormalizedCommit`
 **Blocks:** P3, P5, P6
 
