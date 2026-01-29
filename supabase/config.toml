@@ -305,6 +305,18 @@ client_id = "env(GITHUB_CLIENT_ID)"
 secret = "env(GITHUB_CLIENT_SECRET)"
 redirect_uri = "http://localhost:54421/auth/v1/callback"
 
+[auth.external.gitlab]
+enabled = true
+client_id = "env(GITLAB_CLIENT_ID)"
+secret = "env(GITLAB_CLIENT_SECRET)"
+redirect_uri = "http://localhost:54421/auth/v1/callback"
+
+[auth.external.bitbucket]
+enabled = true
+client_id = "env(BITBUCKET_CLIENT_ID)"
+secret = "env(BITBUCKET_CLIENT_SECRET)"
+redirect_uri = "http://localhost:54421/auth/v1/callback"
+
 [auth.external.apple]
 enabled = false
 client_id = ""
