@@ -62,7 +62,7 @@ export async function GET(
     // Fetch Profile
     const { data: profile, error } = await supabase
       .from("user_profiles")
-      .select("*")
+      .select("persona_id, persona_name, persona_tagline, persona_confidence, total_repos, total_commits, axes_json, narrative_json")
       .eq("user_id", userId)
       .single();
 
@@ -85,11 +85,83 @@ export async function GET(
     const aura = getPersonaAura(profile.persona_id);
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:8108";
+    const displayUrl = new URL(baseUrl).host;
+
     const bgUrl = new URL(format === "story" ? aura.verticalBackground : aura.background, baseUrl).toString();
     const iconUrl = new URL(aura.icon, baseUrl).toString();
     
-    const width = format === "story" ? 1080 : format === "square" ? 1080 : 1200;
-    const height = format === "story" ? 1920 : format === "square" ? 1080 : 630;
+    // Dimensions (2x for Retina quality)
+    const scale = 2;
+    const width = (format === "story" ? 1080 : format === "square" ? 1080 : 1200) * scale;
+    const height = (format === "story" ? 1920 : format === "square" ? 1080 : 630) * scale;
+
+    // -------------------------------------------------------------------------
+    // Metric Computation
+    // -------------------------------------------------------------------------
+    const axes = profile.axes_json as any;
+    const narrative = profile.narrative_json as any;
+    
+    let metrics = {
+      strongest: "N/A",
+      style: "Balanced",
+      rhythm: "Mixed",
+      peak: "Varied"
+    };
+
+    if (axes) {
+      // 1. Strongest
+      let maxScore = -1;
+      let maxName = "";
+      const AXIS_NAMES: Record<string, string> = {
+        automation_heaviness: "Automation",
+        guardrail_strength: "Guardrails",
+        iteration_loop_intensity: "Loops",
+        planning_signal: "Planning",
+        surface_area_per_change: "Scope",
+        shipping_rhythm: "Rhythm",
+      };
+      for (const [key, val] of Object.entries(axes)) {
+        const axis = val as { score: number };
+        if (axis.score > maxScore && AXIS_NAMES[key]) {
+          maxScore = axis.score;
+          maxName = AXIS_NAMES[key];
+        }
+      }
+      const strongest = maxName ? `${maxName} ${maxScore}` : "N/A";
+
+      // 2. Style
+      let style = "Mixed"; // Default
+      const A = (axes.automation_heaviness?.score || 0);
+      const B = (axes.guardrail_strength?.score || 0);
+      const C = (axes.iteration_loop_intensity?.score || 0);
+      const D = (axes.planning_signal?.score || 0);
+      const E = (axes.surface_area_per_change?.score || 0);
+      const F = (axes.shipping_rhythm?.score || 0);
+
+      if (A >= 70 && C >= 65) style = "Fast Builder";
+      else if (B >= 70 && A >= 50) style = "Safe Shipper";
+      else if (F >= 70 && C >= 60) style = "Rapid Cycler";
+      else if (B >= 65 && C < 40) style = "Steady Hand";
+      else if (A >= 60 && B < 40) style = "Bold Mover";
+      else if (D >= 70) style = "Deep Planner";
+      else if (E >= 70) style = "Wide Scoper";
+      else style = "Balanced";
+
+      // 3. Rhythm
+      let rhythm = "Mixed";
+      const rScore = axes.shipping_rhythm?.score || 0;
+      if (rScore >= 65) rhythm = "Bursty";
+      else if (rScore < 35) rhythm = "Steady";
+
+      metrics = { ...metrics, strongest, style, rhythm };
+    }
+
+    // Insight Text
+    let insightText = "Your aggregated profile balances these styles across your repositories.";
+    if (narrative) {
+       if (narrative.insight) insightText = narrative.insight;
+       else if (narrative.summary) insightText = narrative.summary;
+    }
 
     // Resolve fonts
     const [fontDataNormal, fontDataBold] = await Promise.all([fontNormalPromise, fontBoldPromise]);
@@ -97,6 +169,9 @@ export async function GET(
     const fonts: any[] = [];
     if (fontDataNormal) fonts.push({ name: "Space Grotesk", data: fontDataNormal, style: "normal", weight: 400 });
     if (fontDataBold) fonts.push({ name: "Space Grotesk", data: fontDataBold, style: "normal", weight: 700 });
+
+    const paddingX = 60 * scale;
+    const paddingY = 60 * scale;
 
     return new ImageResponse(
       (
@@ -112,6 +187,7 @@ export async function GET(
             backgroundSize: "cover",
             backgroundPosition: "center",
             fontFamily: '"Space Grotesk", sans-serif',
+            fontSize: 24 * scale,
           }}
         >
           {/* Overlay */}
@@ -132,40 +208,46 @@ export async function GET(
               justifyContent: "space-between",
               width: "100%",
               height: "100%",
-              padding: format === "story" ? "120px 80px" : "80px",
+              padding: `${paddingY}px ${paddingX}px`, 
             }}
           >
-            {/* Header */}
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            {/* Header Area */}
+            <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
               <div
                 style={{
-                  fontSize: format === "story" ? 32 : 24,
+                  display: "flex",
+                  fontSize: 18 * scale,
                   fontWeight: 700,
                   letterSpacing: "0.2em",
                   textTransform: "uppercase",
-                  color: "rgba(255,255,255,0.6)",
-                  marginBottom: 20,
+                  color: "rgba(255,255,255,0.7)",
+                  marginBottom: 12 * scale, 
                 }}
               >
                 My Unified VCP
               </div>
               <div
                 style={{
-                  fontSize: format === "story" ? 80 : 64,
+                  display: "flex",
+                  fontSize: 64 * scale,
                   fontWeight: 700,
                   color: "white",
-                  lineHeight: 1.1,
-                  marginBottom: 20,
+                  marginBottom: 8 * scale, 
+                  lineHeight: 1,
+                  textShadow: "0 2px 10px rgba(0,0,0,0.2)",
+                  maxWidth: "90%",
                 }}
               >
                 {personaName}
               </div>
               <div
                 style={{
-                  fontSize: format === "story" ? 40 : 32,
+                  display: "flex",
+                  fontSize: 28 * scale,
                   color: "rgba(255,255,255,0.9)",
-                  lineHeight: 1.4,
-                  marginBottom: 30,
+                  marginBottom: 12 * scale, 
+                  fontWeight: 400,
+                  maxWidth: "90%",
                 }}
               >
                 {personaTagline}
@@ -173,7 +255,8 @@ export async function GET(
               {personaConfidence && (
                 <div
                   style={{
-                    fontSize: format === "story" ? 32 : 24,
+                    display: "flex",
+                    fontSize: 20 * scale,
                     fontWeight: 500,
                     color: "rgba(255,255,255,0.7)",
                   }}
@@ -183,80 +266,124 @@ export async function GET(
               )}
             </div>
 
-            {/* Icon */}
+            {/* Icon (Top Right) */}
             <img
               src={iconUrl}
-              width={160}
-              height={160}
+              width={140 * scale}
+              height={140 * scale}
               style={{
                 position: "absolute",
-                top: format === "story" ? 120 : 80,
-                right: format === "story" ? 80 : 80,
-                borderRadius: 80,
-                border: "4px solid rgba(255,255,255,0.3)",
+                top: paddingY,
+                right: paddingX,
+                borderRadius: 70 * scale,
+                border: `${4 * scale}px solid rgba(255,255,255,0.2)`,
+                boxShadow: `0 ${8 * scale}px ${30 * scale}px rgba(0,0,0,0.3)`,
                 objectFit: "cover",
               }}
             />
 
-            {/* Metrics */}
+            {/* Insight Box */}
             <div
               style={{
                 display: "flex",
-                flexDirection: "row", // Explicit flex-direction
-                gap: 40,
-                marginTop: "auto",
+                flexDirection: "row",
+                width: "100%", 
+                marginTop: "auto", // Push to bottom for Story, or natural flow
+                marginBottom: 20 * scale,
+                padding: 24 * scale, 
+                backgroundColor: "rgba(255,255,255,0.1)",
+                border: `${1 * scale}px solid rgba(255,255,255,0.2)`,
+                borderRadius: 24 * scale,
+                alignItems: "center",
               }}
             >
-              <div style={{ display: "flex", flexDirection: "column" }}>
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 22 * scale,
+                  color: "rgba(255,255,255,0.9)",
+                  lineHeight: 1.3, 
+                  fontWeight: 400,
+                  maxHeight: 100 * scale, 
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {insightText}
+              </div>
+            </div>
+
+            {/* Grid Area */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 20 * scale,
+                width: "100%",
+                marginBottom: 20 * scale,
+              }}
+            >
+              {[
+                { label: "Strongest", value: metrics.strongest },
+                { label: "Style", value: metrics.style },
+                { label: "Rhythm", value: metrics.rhythm },
+                { label: "Peak", value: metrics.peak },
+              ].map((item, i) => (
                 <div
+                  key={i}
                   style={{
-                    fontSize: 20,
-                    fontWeight: 600,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.6)",
+                    display: "flex",
+                    flexDirection: "column",
+                    width: "48%", // Responsive 2-column grid
+                    flexGrow: 1,
+                    height: 120 * scale, 
+                    padding: 20 * scale, 
+                    backgroundColor: "rgba(255,255,255,0.1)",
+                    border: `${1 * scale}px solid rgba(255,255,255,0.2)`,
+                    borderRadius: 20 * scale,
+                    justifyContent: "center",
                   }}
                 >
-                  Repositories
+                  <div
+                    style={{
+                      display: "flex",
+                      fontSize: 14 * scale,
+                      fontWeight: 700,
+                      letterSpacing: "0.15em",
+                      textTransform: "uppercase",
+                      color: "rgba(255,255,255,0.6)",
+                      marginBottom: 6 * scale,
+                    }}
+                  >
+                    {item.label}
+                  </div>
+                  <div style={{ display: "flex", fontSize: 32 * scale, fontWeight: 700, color: "white" }}>
+                    {item.value}
+                  </div>
                 </div>
-                <div style={{ fontSize: 56, fontWeight: 700, color: "white" }}>
-                  {totalRepos}
-                </div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <div
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 600,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.6)",
-                  }}
-                >
-                  Commits
-                </div>
-                <div style={{ fontSize: 56, fontWeight: 700, color: "white" }}>
-                  {totalCommits.toLocaleString()}
-                </div>
-              </div>
+              ))}
             </div>
 
             {/* Footer */}
             <div
               style={{
                 display: "flex",
-                flexDirection: "row", // Explicit flex-direction
+                flexDirection: "row",
                 justifyContent: "space-between",
-                borderTop: "2px solid rgba(255,255,255,0.2)",
-                paddingTop: 40,
-                marginTop: 60,
+                width: "100%",
+                maxWidth: "100%",
+                borderTop: `${1 * scale}px solid rgba(255,255,255,0.15)`,
+                paddingTop: 16 * scale,
+                marginTop: 0,
+                marginBottom: 0, 
               }}
             >
-              <div style={{ fontSize: 24, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>
-                vibed.dev
+              <div style={{ display: "flex", fontSize: 20 * scale, fontWeight: 500, color: "rgba(255,255,255,0.6)" }}>
+                {displayUrl}
               </div>
-              <div style={{ fontSize: 24, color: "rgba(255,255,255,0.5)" }}>
-                #VCP
+              <div style={{ display: "flex", fontSize: 20 * scale, color: "rgba(255,255,255,0.6)" }}>
+                {totalRepos} repos • {totalCommits.toLocaleString()} commits
               </div>
             </div>
           </div>

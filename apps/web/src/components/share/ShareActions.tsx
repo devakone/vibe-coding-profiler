@@ -127,16 +127,52 @@ export function ShareActions({
   };
 
   const handleNativeShare = async () => {
-    if (!shareUrl || !shareHeadline) return;
     if (!("share" in navigator)) return;
+    
+    // 1. Set loading state
+    setDownloadError(null);
+    setDownloading(true); // Reuse downloading state or add a new one, actually better to reuse to block UI
+
     try {
-      await navigator.share({
-        title: shareHeadline,
-        text: shareCaption,
-        url: shareUrl,
+      // 2. Fetch the image blob
+      const url = `/api/share/${shareFormat}/${entityId}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("generation_failed");
+      const blob = await res.blob();
+      
+      // 3. Create File object
+      const file = new File([blob], `vcp-${entityId}-${shareFormat}.png`, {
+        type: "image/png",
       });
-    } catch {
-      // User cancelled or share failed silently
+
+      // 4. Validate sharing files
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: shareHeadline,
+          // Some platforms ignore text if files are present, but good to include
+          text: shareCaption, 
+          // Note: Including URL with files is often flaky on Android/iOS (sometimes creates a link card instead of image).
+          // We prioritize the IMAGE here as per user request ("share that [the image]").
+          // If you really need the URL, append it to text.
+          // url: shareUrl, 
+        });
+      } else {
+        // Fallback if file sharing not supported
+        await navigator.share({
+          title: shareHeadline,
+          text: shareCaption,
+          url: shareUrl,
+        });
+      }
+    } catch (e: any) {
+      // User cancelled or share failed
+      if (e.name !== "AbortError" && e.name !== "NotAllowedError") {
+        console.error("Share failed:", e);
+        setDownloadError("share_failed"); 
+      }
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -324,7 +360,7 @@ export function ShareActions({
             type="button"
             className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={handleNativeShare}
-            disabled={isDisabled}
+            disabled={isDisabled || downloading}
           >
             <Share2 size={14} />
             Share
