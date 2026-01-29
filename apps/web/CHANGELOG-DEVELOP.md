@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.0-alpha.6](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.5...web-v0.1.0-alpha.6) (2026-01-29)
+
+
+### Features
+
+* **settings/repos:** improve UX with platform filtering and simplified view ([61db163](https://github.com/devakone/vibe-coding-profiler/commit/61db163a2006046a0fe99d9a3b57fa66b6eec480))
+
+
+### Bug Fixes
+
+* address code review observations for multi-platform integration ([3d67b0f](https://github.com/devakone/vibe-coding-profiler/commit/3d67b0f93dbddeab5c4ca176401d0f4b3a5d0f38))
+* handle object format for narrative highlights in UnifiedInsightSection ([bc9686a](https://github.com/devakone/vibe-coding-profiler/commit/bc9686aac4ae5b7adca1b725d63e227549fef4d0))
+* resolve hydration mismatch in NotificationDropdown ([f987526](https://github.com/devakone/vibe-coding-profiler/commit/f98752674e1e81f9f5a43e173a01d4b42ff67017))
+
 ## [0.1.0-alpha.5](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.4...web-v0.1.0-alpha.5) (2026-01-23)
 
 
