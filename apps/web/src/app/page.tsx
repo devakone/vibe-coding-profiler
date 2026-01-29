@@ -106,7 +106,7 @@ type AuthStats = {
     narrative?: {
       headline?: string;
       paragraphs?: string[];
-      highlights?: string[];
+      highlights?: Array<{ label: string; value: string; interpretation?: string }>;
     } | null;
     llmModel?: string | null;
     llmKeySource?: string | null;
@@ -518,7 +518,7 @@ export default async function Home({
     narrative_json: {
       headline?: string;
       paragraphs?: string[];
-      highlights?: string[];
+      highlights?: Array<{ label: string; value: string; interpretation?: string }>;
     } | null;
     llm_model: string | null;
     llm_key_source: string | null;
@@ -611,7 +611,7 @@ export default async function Home({
     narrative_json: {
       headline?: string;
       paragraphs?: string[];
-      highlights?: string[];
+      highlights?: Array<{ label: string; value: string; interpretation?: string }>;
     } | null;
     llm_model: string | null;
     llm_key_source: string | null;

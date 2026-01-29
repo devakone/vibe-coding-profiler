@@ -2,19 +2,39 @@
 
 import { cn } from "@/lib/utils";
 
+// Highlight can be a simple string or a rich object
+type HighlightItem = 
+  | string 
+  | { label: string; value: string | number; interpretation?: string };
+
 interface UnifiedInsightSectionProps {
   /** Main headline/insight */
   headline: string;
   /** Additional narrative paragraphs (LLM-generated) */
   paragraphs?: string[];
-  /** Highlight bullet points (LLM-generated) */
-  highlights?: string[];
+  /** Highlight bullet points (LLM-generated) - can be strings or objects */
+  highlights?: HighlightItem[];
   /** Whether the narrative is LLM-generated */
   isLLMGenerated?: boolean;
   /** LLM model used */
   llmModel?: string | null;
   /** Additional class names */
   className?: string;
+}
+
+/**
+ * Render a highlight item - handles both string and object formats
+ */
+function renderHighlight(item: HighlightItem): string {
+  if (typeof item === "string") {
+    return item;
+  }
+  // Object format: { label, value, interpretation }
+  const parts = [`${item.label}: ${item.value}`];
+  if (item.interpretation) {
+    parts.push(`— ${item.interpretation}`);
+  }
+  return parts.join(" ");
 }
 
 /**
@@ -60,7 +80,7 @@ export function UnifiedInsightSection({
             {highlights.map((highlight, idx) => (
               <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
                 <span className="mt-1 text-violet-400">•</span>
-                <span>{highlight}</span>
+                <span>{renderHighlight(highlight)}</span>
               </li>
             ))}
           </ul>
