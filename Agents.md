@@ -506,6 +506,37 @@ MCP Supabase tools connect to remote projects, not local. For local development:
 - **Keep PRD.md current** if requirements change
 - **This file (Agents.md)** is the source of truth for agent behavior
 
+
+## Code Review Protocol
+
+When reviewing code or PRs, apply deep analysis ("ultrathink") to validate reasonableness:
+
+### 1. Plan/PRD Validation
+- **Check alignment**: Does the code match the plan or PRD?
+- **Identify gaps**: What will NOT work? What will break?
+- **Surface oversights**: What was overlooked or not considered?
+- **Edge cases**: Are all edge cases handled?
+
+### 2. Simplification Analysis
+- **Reduce complexity**: Is there a simpler approach that achieves the same outcome?
+- **Remove redundancy**: Are there unnecessary abstractions or indirections?
+- **Question scope**: Is the change doing more than required?
+
+### 3. Regression Risk Assessment
+- **Existing functionality**: Will this break current behavior?
+- **Dependent code**: What other code relies on the modified paths?
+- **Test coverage**: Are existing tests still valid? Do they need updates?
+- **Backward compatibility**: Are APIs/interfaces preserved or properly versioned?
+
+### Review Checklist
+- [ ] Code matches PRD/plan intent
+- [ ] No obvious failure modes overlooked
+- [ ] Simplest reasonable approach used
+- [ ] No unnecessary scope creep
+- [ ] Existing tests still pass
+- [ ] New tests cover changed behavior
+- [ ] No breaking changes to existing functionality (or documented if intentional)
+
 ---
 
 *Last updated: 2026-01-22*
