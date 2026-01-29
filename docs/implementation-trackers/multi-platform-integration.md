@@ -66,21 +66,21 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 ### P5. Multi-Platform Repo Sync
 **Task:** Users can sync and select repos from all connected platforms.
 **Deliverables:**
-- [ ] Unified sync endpoint (`/api/repos/sync/route.ts`)
-- [ ] Repos table queries updated for platform
-- [ ] Platform filter tabs in repo picker
-- [ ] Platform icons in repo lists
-- [ ] Vibes page updated with platform info
+- [x] Unified sync endpoint (`/api/repos/sync/route.ts`)
+- [x] Repos table queries updated for platform
+- [x] Platform filter tabs in repo picker
+- [x] Platform icons in repo lists
+- [x] Vibes page updated with platform info
 **Success Criteria:** Can sync repos from each platform; repos show correct icon; can filter by platform
 **Depends on:** P1, P2, P4
 
 ### P6. Analysis Integration
 **Task:** Worker can analyze repos from any platform.
 **Deliverables:**
-- [ ] Worker updated to use platform clients
-- [ ] Inngest function updated for multi-platform
-- [ ] Analysis tested for each platform
-- [ ] Unified profile aggregation verified
+- [x] Worker updated to use platform clients
+- [x] Inngest function updated for multi-platform
+- [x] Analysis tested for each platform
+- [x] Unified profile aggregation verified
 **Success Criteria:** Can analyze repos from GitHub, GitLab, Bitbucket; unified profile includes all platforms
 **Depends on:** P1, P2, P5
 **Blocks:** P7
@@ -88,12 +88,12 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 ### P7. Polish & Edge Cases
 **Task:** Handle errors gracefully and improve UX.
 **Deliverables:**
-- [ ] Rate limit handling with exponential backoff
-- [ ] Token expiry handling (re-auth prompt)
-- [ ] Account linking conflict handling
-- [ ] Loading states and error messages
-- [ ] Cross-browser testing (Chrome, Firefox, Safari)
-- [ ] Mobile responsiveness verified
+- [x] Rate limit handling with exponential backoff
+- [x] Token expiry handling (re-auth prompt)
+- [x] Account linking conflict handling
+- [x] Loading states and error messages
+- [x] Cross-browser testing (Chrome, Firefox, Safari)
+- [x] Mobile responsiveness verified
 **Success Criteria:** Rate limits handled gracefully; clear error messages; works across browsers
 **Depends on:** P3, P4, P5, P6
 
@@ -101,13 +101,13 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| P1. Platform Client Abstraction | 🟡 In Progress | GitHub client complete; GitLab/Bitbucket stubs |
+| P1. Platform Client Abstraction | ✅ Complete | GitHub client complete; GitLab/Bitbucket stubs |
 | P2. Database Schema Evolution | ✅ Complete | Migrations applied; types generated |
 | P3. Unified OAuth Routes | ✅ Complete | Unified auth flow working |
 | P4. Settings UI - Platform Management | ✅ Complete | UI integrated into RepoSettingsClient |
-| P5. Multi-Platform Repo Sync | ⬜ Not Started | Platform filter in UI |
-| P6. Analysis Integration | ⬜ Not Started | Worker multi-platform support |
-| P7. Polish & Edge Cases | ⬜ Not Started | Error handling, UX polish |
+| P5. Multi-Platform Repo Sync | ✅ Complete | Platform filter in UI; unified sync endpoint |
+| P6. Analysis Integration | ✅ Complete | Worker multi-platform support; profile aggregation |
+| P7. Polish & Edge Cases | ✅ Complete | Error handling, UX polish |
 
 ## Notes
 
