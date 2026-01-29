@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/devakone/vibe-coding-profiler/compare/worker-v0.1.2...worker-v0.2.0) (2026-01-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* The `github_accounts` table has been renamed to `platform_connections`. All queries referencing `github_accounts` must be updated to use `platform_connections` with the additional `platform` column filter.
+
+### Features
+
+* multi-platform repository integration ([ff0a993](https://github.com/devakone/vibe-coding-profiler/commit/ff0a99388238d02e246553559e96bb655324a939))
+* **worker:** support multiple git platforms in fallback worker ([7fc5b95](https://github.com/devakone/vibe-coding-profiler/commit/7fc5b951a2f337e33376ee8ae5b1b4cf0585b7e5))
+
 ## [0.1.2](https://github.com/devakone/vibe-coding-profiler/compare/worker-v0.1.1...worker-v0.1.2) (2026-01-22)
 
 
