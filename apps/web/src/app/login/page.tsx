@@ -12,8 +12,10 @@ export default function LoginPage() {
         <p className="mt-2 text-sm text-zinc-600">
           Sign in to analyze your build patterns from git history.
         </p>
-        <div className="mt-6">
-          <LoginButton />
+        <div className="mt-6 space-y-3">
+          <LoginButton provider="github" />
+          <LoginButton provider="gitlab" />
+          <LoginButton provider="bitbucket" />
         </div>
         <div className="mt-6 flex items-center justify-between gap-4 text-xs text-zinc-500">
           <Link href="/" className="underline underline-offset-2">

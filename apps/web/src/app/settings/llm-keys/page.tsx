@@ -4,6 +4,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { wrappedTheme } from "@/lib/theme";
 import LLMKeysClient from "./LLMKeysClient";
 
+import { SettingsTabs } from "@/components/settings/SettingsTabs";
+
 export const metadata = {
   title: "LLM API Keys · Settings · Vibe Coding Profiler",
   description: "Manage your LLM API keys for AI-powered narrative generation",
@@ -39,17 +41,7 @@ export default async function LLMKeysPage() {
         </div>
 
         {/* Settings Tabs */}
-        <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
-          <span className="flex-1 rounded-lg bg-white px-4 py-2 text-center text-sm font-medium text-zinc-900 shadow-sm">
-            LLM Keys
-          </span>
-          <Link
-            href="/settings/repos"
-            className="flex-1 rounded-lg px-4 py-2 text-center text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
-          >
-            Repos
-          </Link>
-        </div>
+        <SettingsTabs activeTab="llm-keys" />
 
         {/* Main content */}
         <div className={`${wrappedTheme.card} p-6`}>

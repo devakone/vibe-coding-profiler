@@ -1,21 +1,24 @@
 import { decryptString } from "@vibed/core";
-import type { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-export async function getGithubAccessToken(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  userId: string
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getPlatformAccessToken(
+  supabase: SupabaseClient<any, any, any>,
+  userId: string,
+  platform: 'github' | 'gitlab' | 'bitbucket' = 'github'
 ): Promise<string> {
   const encryptionKey = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
   if (!encryptionKey) throw new Error("Missing GITHUB_TOKEN_ENCRYPTION_KEY");
 
   const { data, error } = await supabase
-    .from("github_accounts")
+    .from("platform_connections")
     .select("encrypted_token")
     .eq("user_id", userId)
+    .eq("platform", platform)
     .single();
 
   const row = data as unknown as { encrypted_token: string } | null;
-  if (error || !row) throw new Error("GitHub account not connected");
+  if (error || !row) throw new Error(`${platform} account not connected`);
 
   return decryptString(row.encrypted_token, encryptionKey);
 }

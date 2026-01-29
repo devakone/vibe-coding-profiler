@@ -64,14 +64,15 @@ export async function GET(request: Request) {
     const githubUserId = userRow?.github_id;
 
     if (githubUserId) {
-      await service.from("github_accounts").upsert(
+      await service.from("platform_connections").upsert(
         {
           user_id: userId,
+          platform: "github",
           github_user_id: githubUserId,
           encrypted_token: encryptedToken,
           scopes,
         },
-        { onConflict: "user_id" }
+        { onConflict: "user_id, platform" }
       );
     }
   }

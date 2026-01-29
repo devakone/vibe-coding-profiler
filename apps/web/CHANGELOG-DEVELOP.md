@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.1.0-alpha.6](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.5...web-v0.1.0-alpha.6) (2026-01-29)
+
+
+### Features
+
+* **settings/repos:** improve UX with platform filtering and simplified view ([61db163](https://github.com/devakone/vibe-coding-profiler/commit/61db163a2006046a0fe99d9a3b57fa66b6eec480))
+
+
+### Bug Fixes
+
+* address code review observations for multi-platform integration ([3d67b0f](https://github.com/devakone/vibe-coding-profiler/commit/3d67b0f93dbddeab5c4ca176401d0f4b3a5d0f38))
+* handle object format for narrative highlights in UnifiedInsightSection ([bc9686a](https://github.com/devakone/vibe-coding-profiler/commit/bc9686aac4ae5b7adca1b725d63e227549fef4d0))
+* resolve hydration mismatch in NotificationDropdown ([f987526](https://github.com/devakone/vibe-coding-profiler/commit/f98752674e1e81f9f5a43e173a01d4b42ff67017))
+
+## [0.1.0-alpha.5](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.4...web-v0.1.0-alpha.5) (2026-01-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* The `github_accounts` table has been renamed to `platform_connections`. All queries referencing `github_accounts` must be updated to use `platform_connections` with the additional `platform` column filter.
+
+### Features
+
+* multi-platform repository integration ([ff0a993](https://github.com/devakone/vibe-coding-profiler/commit/ff0a99388238d02e246553559e96bb655324a939))
+* **oauth:** add GitLab and Bitbucket OAuth support ([75a5009](https://github.com/devakone/vibe-coding-profiler/commit/75a500931dafcd5780acf9b4376a471d4e5d7c2e))
+* **platforms:** add API endpoints and UI for managing platform connections ([b8a2948](https://github.com/devakone/vibe-coding-profiler/commit/b8a294825156a7954f815408cf297ce530f54007))
+* **settings:** add platforms page and extract settings tabs component ([29f9082](https://github.com/devakone/vibe-coding-profiler/commit/29f9082110f790e84d6995c7d1781f5fc63797cb))
+* unify repo management for multiple platforms ([d22dd27](https://github.com/devakone/vibe-coding-profiler/commit/d22dd279be5011deb00aaf6126dbe8ea01f9c14c))
+* **worker:** support multiple git platforms in fallback worker ([7fc5b95](https://github.com/devakone/vibe-coding-profiler/commit/7fc5b951a2f337e33376ee8ae5b1b4cf0585b7e5))
+
 ## [0.1.0-alpha.4](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.3...web-v0.1.0-alpha.4) (2026-01-22)
 
 

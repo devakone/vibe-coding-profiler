@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+.npm-cache/
 /.pnp
 .pnp.*
 .yarn/*
@@ -35,6 +36,13 @@ supabase/.temp/
 *.swo
 *~
 .cursor-memory
+
+# Claude Code
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Personal workflow
+docs/WorkflowJournal.md
 
 # OS
 .DS_Store

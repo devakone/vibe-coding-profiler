@@ -15,18 +15,22 @@ export default async function ReposPage() {
 
   const { data } = await supabase
     .from("user_repos")
-    .select("repo_id, repos(full_name)")
+    .select("repo_id, repos(id, full_name, platform)")
     .eq("user_id", user.id)
     .is("disconnected_at", null);
 
   const rows = (data ?? []) as unknown as Array<{
     repo_id: string;
-    repos: { full_name: string } | null;
+    repos: { full_name: string; platform: string } | null;
   }>;
 
   const initialConnected = rows
     .filter((r) => Boolean(r.repos?.full_name))
-    .map((r) => ({ repo_id: r.repo_id, full_name: r.repos!.full_name }));
+    .map((r) => ({
+      repo_id: r.repo_id,
+      full_name: r.repos!.full_name,
+      platform: (r.repos!.platform as "github" | "gitlab" | "bitbucket") ?? "github",
+    }));
 
   const { data: analyzedJobs } = await supabase
     .from("analysis_jobs")

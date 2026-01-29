@@ -98,6 +98,12 @@ export type VibeTypeName =
   | "refactor-driven"
   | "unique";
 
+// =============================================================================
+// Platforms
+// =============================================================================
+
+export * from "./platforms";
+
 export interface VibeType {
   id: VibeTypeName;
   name: string;
@@ -855,6 +861,7 @@ export function percentile(arr: number[], p: number): number {
 export * from "./crypto";
 export * from "./vibe";
 export * from "./llm";
+export * from "./platforms";
 
 function mean(arr: number[]): number {
   if (arr.length === 0) return 0;

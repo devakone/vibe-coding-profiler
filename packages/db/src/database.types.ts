@@ -47,8 +47,8 @@ export type Database = {
           persona_label: string | null
           share_template: Json
           sources: Json
-          tech_signals: Json
           tagline: string | null
+          tech_signals: Json
         }
         Insert: {
           generated_at?: string
@@ -62,8 +62,8 @@ export type Database = {
           persona_label?: string | null
           share_template?: Json
           sources?: Json
-          tech_signals?: Json
           tagline?: string | null
+          tech_signals?: Json
         }
         Update: {
           generated_at?: string
@@ -77,8 +77,8 @@ export type Database = {
           persona_label?: string | null
           share_template?: Json
           sources?: Json
-          tech_signals?: Json
           tagline?: string | null
+          tech_signals?: Json
         }
         Relationships: [
           {
@@ -98,6 +98,7 @@ export type Database = {
           created_at: string
           error_message: string | null
           id: string
+          platform: string
           repo_id: string
           started_at: string | null
           status: string
@@ -110,6 +111,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          platform?: string
           repo_id: string
           started_at?: string | null
           status?: string
@@ -122,6 +124,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          platform?: string
           repo_id?: string
           started_at?: string | null
           status?: string
@@ -182,7 +185,10 @@ export type Database = {
           generated_at: string
           id: string
           job_id: string
+          llm_input_tokens: number | null
+          llm_key_source: string | null
           llm_model: string
+          llm_output_tokens: number | null
           narrative_json: Json
           vibe_type: string | null
         }
@@ -191,7 +197,10 @@ export type Database = {
           generated_at?: string
           id?: string
           job_id: string
+          llm_input_tokens?: number | null
+          llm_key_source?: string | null
           llm_model?: string
+          llm_output_tokens?: number | null
           narrative_json: Json
           vibe_type?: string | null
         }
@@ -200,7 +209,10 @@ export type Database = {
           generated_at?: string
           id?: string
           job_id?: string
+          llm_input_tokens?: number | null
+          llm_key_source?: string | null
           llm_model?: string
+          llm_output_tokens?: number | null
           narrative_json?: Json
           vibe_type?: string | null
         }
@@ -214,39 +226,116 @@ export type Database = {
           },
         ]
       }
-      github_accounts: {
+      llm_configs: {
+        Row: {
+          api_key_encrypted: string
+          created_at: string
+          free_tier_limit: number | null
+          id: string
+          is_active: boolean
+          label: string | null
+          llm_disabled: boolean
+          model: string | null
+          profile_llm_repo_limit: number | null
+          provider: string
+          scope: string
+          scope_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_key_encrypted: string
+          created_at?: string
+          free_tier_limit?: number | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          llm_disabled?: boolean
+          model?: string | null
+          profile_llm_repo_limit?: number | null
+          provider: string
+          scope: string
+          scope_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_key_encrypted?: string
+          created_at?: string
+          free_tier_limit?: number | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          llm_disabled?: boolean
+          model?: string | null
+          profile_llm_repo_limit?: number | null
+          provider?: string
+          scope?: string
+          scope_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      llm_usage: {
         Row: {
           created_at: string
-          encrypted_token: string
-          github_user_id: number
+          error_message: string | null
           id: string
-          scopes: string[]
-          updated_at: string
+          input_tokens: number | null
+          job_id: string | null
+          key_source: string
+          model: string
+          output_tokens: number | null
+          provider: string
+          repo_id: string | null
+          success: boolean
           user_id: string
         }
         Insert: {
           created_at?: string
-          encrypted_token: string
-          github_user_id: number
+          error_message?: string | null
           id?: string
-          scopes?: string[]
-          updated_at?: string
+          input_tokens?: number | null
+          job_id?: string | null
+          key_source: string
+          model: string
+          output_tokens?: number | null
+          provider: string
+          repo_id?: string | null
+          success: boolean
           user_id: string
         }
         Update: {
           created_at?: string
-          encrypted_token?: string
-          github_user_id?: number
+          error_message?: string | null
           id?: string
-          scopes?: string[]
-          updated_at?: string
+          input_tokens?: number | null
+          job_id?: string | null
+          key_source?: string
+          model?: string
+          output_tokens?: number | null
+          provider?: string
+          repo_id?: string | null
+          success?: boolean
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "github_accounts_user_id_fkey"
+            foreignKeyName: "llm_usage_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "llm_usage_repo_id_fkey"
+            columns: ["repo_id"]
+            isOneToOne: false
+            referencedRelation: "repos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "llm_usage_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -302,36 +391,208 @@ export type Database = {
           },
         ]
       }
+      platform_connections: {
+        Row: {
+          created_at: string
+          disconnected_at: string | null
+          encrypted_token: string
+          github_user_id: number | null
+          id: string
+          is_primary: boolean
+          platform: string
+          platform_avatar_url: string | null
+          platform_email: string | null
+          platform_user_id: string | null
+          platform_username: string | null
+          refresh_token_encrypted: string | null
+          scopes: string[]
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          disconnected_at?: string | null
+          encrypted_token: string
+          github_user_id?: number | null
+          id?: string
+          is_primary?: boolean
+          platform?: string
+          platform_avatar_url?: string | null
+          platform_email?: string | null
+          platform_user_id?: string | null
+          platform_username?: string | null
+          refresh_token_encrypted?: string | null
+          scopes?: string[]
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          disconnected_at?: string | null
+          encrypted_token?: string
+          github_user_id?: number | null
+          id?: string
+          is_primary?: boolean
+          platform?: string
+          platform_avatar_url?: string | null
+          platform_email?: string | null
+          platform_user_id?: string | null
+          platform_username?: string | null
+          refresh_token_encrypted?: string | null
+          scopes?: string[]
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "github_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pull_requests: {
+        Row: {
+          additions: number | null
+          author_login: string | null
+          base_ref: string | null
+          body: string | null
+          changed_files: number | null
+          closed_at: string | null
+          comments_count: number
+          commit_count: number | null
+          created_at: string
+          deletions: number | null
+          github_pr_number: number
+          has_checklist: boolean
+          has_template_markers: boolean
+          head_ref: string | null
+          head_sha: string | null
+          id: string
+          linked_issue_numbers: number[]
+          merge_commit_sha: string | null
+          merge_method: string | null
+          merged: boolean
+          merged_at: string | null
+          repo_id: string
+          review_comments_count: number
+          state: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          additions?: number | null
+          author_login?: string | null
+          base_ref?: string | null
+          body?: string | null
+          changed_files?: number | null
+          closed_at?: string | null
+          comments_count?: number
+          commit_count?: number | null
+          created_at: string
+          deletions?: number | null
+          github_pr_number: number
+          has_checklist?: boolean
+          has_template_markers?: boolean
+          head_ref?: string | null
+          head_sha?: string | null
+          id?: string
+          linked_issue_numbers?: number[]
+          merge_commit_sha?: string | null
+          merge_method?: string | null
+          merged?: boolean
+          merged_at?: string | null
+          repo_id: string
+          review_comments_count?: number
+          state: string
+          title: string
+          updated_at: string
+        }
+        Update: {
+          additions?: number | null
+          author_login?: string | null
+          base_ref?: string | null
+          body?: string | null
+          changed_files?: number | null
+          closed_at?: string | null
+          comments_count?: number
+          commit_count?: number | null
+          created_at?: string
+          deletions?: number | null
+          github_pr_number?: number
+          has_checklist?: boolean
+          has_template_markers?: boolean
+          head_ref?: string | null
+          head_sha?: string | null
+          id?: string
+          linked_issue_numbers?: number[]
+          merge_commit_sha?: string | null
+          merge_method?: string | null
+          merged?: boolean
+          merged_at?: string | null
+          repo_id?: string
+          review_comments_count?: number
+          state?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pull_requests_repo_id_fkey"
+            columns: ["repo_id"]
+            isOneToOne: false
+            referencedRelation: "repos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       repos: {
         Row: {
           created_at: string
           default_branch: string
           full_name: string
-          github_id: number
           id: string
           is_private: boolean
+          last_pr_sync_at: string | null
           name: string
           owner: string
+          platform: string
+          platform_owner: string | null
+          platform_project_id: string | null
+          platform_repo_id: string
         }
         Insert: {
           created_at?: string
           default_branch?: string
           full_name: string
-          github_id: number
           id?: string
           is_private?: boolean
+          last_pr_sync_at?: string | null
           name: string
           owner: string
+          platform?: string
+          platform_owner?: string | null
+          platform_project_id?: string | null
+          platform_repo_id: string
         }
         Update: {
           created_at?: string
           default_branch?: string
           full_name?: string
-          github_id?: number
           id?: string
           is_private?: boolean
+          last_pr_sync_at?: string | null
           name?: string
           owner?: string
+          platform?: string
+          platform_owner?: string | null
+          platform_project_id?: string | null
+          platform_repo_id?: string
         }
         Relationships: []
       }
@@ -546,6 +807,7 @@ export type Database = {
           github_username: string | null
           id: string
           is_admin: boolean
+          llm_narrative_opt_in: boolean
           updated_at: string
         }
         Insert: {
@@ -556,6 +818,7 @@ export type Database = {
           github_username?: string | null
           id: string
           is_admin?: boolean
+          llm_narrative_opt_in?: boolean
           updated_at?: string
         }
         Update: {
@@ -566,6 +829,7 @@ export type Database = {
           github_username?: string | null
           id?: string
           is_admin?: boolean
+          llm_narrative_opt_in?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -643,6 +907,10 @@ export type Database = {
           p_window_seconds: number
         }
         Returns: boolean
+      }
+      count_free_llm_analyses: {
+        Args: { p_repo_id: string; p_user_id: string }
+        Returns: number
       }
       is_current_user_admin: { Args: never; Returns: boolean }
     }
@@ -780,3 +1048,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

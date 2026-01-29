@@ -2,15 +2,22 @@
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useState } from "react";
+import { OAUTH_CONFIG, OAuthProvider } from "@/lib/platforms/oauth";
+import { PlatformIcon } from "@/components/icons/platform";
 
-export default function LoginButton() {
+interface LoginButtonProps {
+  provider?: OAuthProvider;
+}
+
+export default function LoginButton({ provider = "github" }: LoginButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const config = OAUTH_CONFIG[provider];
 
   function computeRedirectTo(): string {
     const baseUrl = window.location.origin.replace(/\/$/, "");
     const url = new URL(baseUrl);
-    return `${url.origin}/auth/callback`;
+    return `${url.origin}/api/auth/${provider}/callback`;
   }
 
   async function signIn() {
@@ -21,8 +28,15 @@ export default function LoginButton() {
     const redirectTo = computeRedirectTo();
 
     const { error: signInError } = await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: { redirectTo, scopes: "read:org repo" },
+      provider: provider,
+      options: { 
+        redirectTo, 
+        scopes: config.scopes,
+        queryParams: {
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
     });
 
     if (signInError) {
@@ -64,11 +78,12 @@ export default function LoginButton() {
     <div className="flex flex-col gap-3">
       <button
         type="button"
-        className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-60"
+        className="flex items-center justify-center gap-2 rounded-md bg-black px-4 py-2 text-white disabled:opacity-60"
         onClick={signIn}
         disabled={isLoading}
       >
-        {isLoading ? "Signing in..." : "Sign in with GitHub"}
+        <PlatformIcon platform={provider} className="h-5 w-5" />
+        {isLoading ? "Signing in..." : `Sign in with ${config.label}`}
       </button>
       {error ? <p className="whitespace-pre-wrap text-sm text-red-600">{error}</p> : null}
     </div>
