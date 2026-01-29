@@ -61,6 +61,8 @@ export interface ShareActionsProps {
   disabled?: boolean;
   /** Optional story download endpoint */
   storyEndpoint?: string;
+  /** Optional JSON data to export */
+  shareJson?: Record<string, unknown>;
 }
 
 export interface ShareImageTemplate {

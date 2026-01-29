@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Copy, Check, Link2, Share2, Download } from "lucide-react";
+import { Copy, Check, Link2, Share2, Download, FileText } from "lucide-react";
 import { SHARE_FORMATS, downloadSharePng, downloadShareSvg, downloadBlob } from "./share-image";
 import type { ShareActionsProps, ShareFormat } from "./types";
 
@@ -48,6 +48,7 @@ export function ShareActions({
   entityId,
   disabled = false,
   storyEndpoint,
+  shareJson,
 }: ShareActionsProps) {
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -59,7 +60,8 @@ export function ShareActions({
 
   useEffect(() => {
     setSupportsNativeShare(typeof navigator !== "undefined" && "share" in navigator);
-  }, []);
+    console.log("ShareActions mounted:", { shareUrl, disabled, shareTemplate: !!shareTemplate });
+  }, [shareUrl, disabled, shareTemplate]);
 
   const handleCopyText = async () => {
     try {
@@ -139,37 +141,54 @@ export function ShareActions({
   };
 
   const handleDownloadPng = async () => {
-    if (!shareTemplate) return;
+    console.log("handleDownloadPng triggered");
     setDownloadError(null);
     setDownloading(true);
     try {
-      await downloadSharePng(shareTemplate, shareFormat, entityId);
+      // Use the new backend API for consistent image generation
+      const url = `/api/share/${shareFormat}/${entityId}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("generation_failed");
+      const blob = await res.blob();
+      downloadBlob(blob, `vcp-${entityId}-${shareFormat}.png`);
+      console.log("PNG download complete");
     } catch (e) {
+      console.error("PNG download failed:", e);
       setDownloadError(e instanceof Error ? e.message : "download_failed");
     } finally {
       setDownloading(false);
     }
   };
 
-  const handleDownloadSvg = () => {
-    if (!shareTemplate) return;
-    setDownloadError(null);
-    downloadShareSvg(shareTemplate, shareFormat, entityId);
-  };
-
   const handleDownloadStory = async () => {
-    if (!storyEndpoint) return;
+    console.log("handleDownloadStory triggered");
     setDownloadError(null);
     setStoryDownloading(true);
     try {
-      const res = await fetch(storyEndpoint, { cache: "no-store" });
+      // Use the new backend API for story generation
+      const url = `/api/share/story/${entityId}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("story_failed");
       const blob = await res.blob();
-      downloadBlob(blob, `${entityId}-story.png`);
+      downloadBlob(blob, `vcp-${entityId}-story.png`);
     } catch (e) {
+      console.error("Story download failed:", e);
       setDownloadError(e instanceof Error ? e.message : "story_download_failed");
     } finally {
       setStoryDownloading(false);
+    }
+  };
+
+  const handleDownloadJson = () => {
+    console.log("handleDownloadJson triggered");
+    if (!shareJson) return;
+    try {
+      const jsonString = JSON.stringify(shareJson, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      downloadBlob(blob, `vcp-profile-${entityId}.json`);
+    } catch (e) {
+      console.error("JSON download failed:", e);
+      setDownloadError("json_failed");
     }
   };
 
@@ -197,30 +216,31 @@ export function ShareActions({
               className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
               onClick={handleDownloadPng}
               disabled={downloading}
-              title="Download PNG"
+              title="Download Image"
             >
               <Download size={14} />
               PNG
             </button>
+            {/* SVG Export removed as it does not match VCP design (user request) */}
             <button
               type="button"
-              className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100"
-              onClick={handleDownloadSvg}
-              title="Download SVG"
+              className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={handleDownloadStory}
+              disabled={storyDownloading}
+              title="Download Story"
             >
               <Download size={14} />
-              SVG
+              Story
             </button>
-            {storyEndpoint ? (
+            {shareJson ? (
               <button
                 type="button"
-                className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
-                onClick={handleDownloadStory}
-                disabled={storyDownloading}
-                title="Download Story"
+                className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100"
+                onClick={handleDownloadJson}
+                title="Download JSON"
               >
-                <Download size={14} />
-                Story
+                <FileText size={14} />
+                JSON
               </button>
             ) : null}
           </div>

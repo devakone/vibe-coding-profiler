@@ -123,6 +123,26 @@ export function ProfileShareSection({
     };
   }, [personaName, personaTagline, personaConfidence, colors, shareCardMetrics, topAxes, shareTagline]);
 
+  const shareJson = useMemo(() => ({
+    meta: {
+      generatedAt: new Date().toISOString(),
+      profileUrl: shareUrl,
+    },
+    persona: {
+      label: personaName,
+      tagline: personaTagline,
+      confidence: personaConfidence,
+      insight,
+    },
+    metrics: {
+      totalRepos,
+      totalCommits,
+      clarity,
+      topAxes,
+    },
+    axes,
+  }), [personaName, personaTagline, personaConfidence, insight, totalRepos, totalCommits, clarity, topAxes, axes, shareUrl]);
+
   return (
     <div className="space-y-4">
       <ShareCard
@@ -149,8 +169,8 @@ export function ProfileShareSection({
         shareCaption={shareCaption}
         shareHeadline={`Unified VCP: ${personaName}`}
         shareTemplate={shareImageTemplate}
-        entityId="profile"
-        storyEndpoint={userId ? `/api/share/story/${userId}` : undefined}
+        entityId={userId}
+        shareJson={shareJson}
       />
     </div>
   );
