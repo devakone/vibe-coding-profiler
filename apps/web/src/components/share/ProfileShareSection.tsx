@@ -63,6 +63,10 @@ interface ProfileShareSectionProps {
   insight: string;
   axes: VibeAxes;
   userId: string;
+  /** When set and public profile is enabled, share URL uses /u/{username} */
+  username?: string | null;
+  /** Whether the user's public profile is enabled */
+  profileEnabled?: boolean;
 }
 
 export function ProfileShareSection({
@@ -77,6 +81,8 @@ export function ProfileShareSection({
   insight,
   axes,
   userId,
+  username,
+  profileEnabled,
 }: ProfileShareSectionProps) {
   const shareOrigin = useOrigin();
 
@@ -94,8 +100,11 @@ export function ProfileShareSection({
 
   const shareUrl = useMemo(() => {
     if (!shareOrigin) return "";
-    return shareOrigin; // Profile is at root
-  }, [shareOrigin]);
+    if (username && profileEnabled) {
+      return `${shareOrigin}/u/${username}`;
+    }
+    return shareOrigin;
+  }, [shareOrigin, username, profileEnabled]);
 
   const shareTagline = insight ?? personaTagline ?? "";
 

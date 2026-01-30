@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-type TabName = "llm-keys" | "platforms" | "repos";
+type TabName = "llm-keys" | "platforms" | "repos" | "public-profile";
 
 export function SettingsTabs({ activeTab }: { activeTab: TabName }) {
   return (
@@ -8,6 +8,7 @@ export function SettingsTabs({ activeTab }: { activeTab: TabName }) {
       <Tab href="/settings/repos" label="Repos" isActive={activeTab === "repos"} />
       <Tab href="/settings/platforms" label="Platforms" isActive={activeTab === "platforms"} />
       <Tab href="/settings/llm-keys" label="LLM Keys" isActive={activeTab === "llm-keys"} />
+      <Tab href="/settings/public-profile" label="Public Profile" isActive={activeTab === "public-profile"} />
     </div>
   );
 }

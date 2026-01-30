@@ -803,7 +803,28 @@ export default async function Home({
       }
     : null;
 
-  return <AuthenticatedDashboard stats={stats} debugInfo={debugInfo} userId={user.id} />;
+  // Fetch username and public profile settings for share URL
+  const { data: userRow } = await supabase
+    .from("users")
+    .select()
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const userRowTyped = userRow as { username?: string | null; public_profile_settings?: Record<string, unknown> | null } | null;
+  const publicUsername = userRowTyped?.username ?? null;
+  const publicProfileEnabled =
+    publicUsername != null &&
+    userRowTyped?.public_profile_settings?.profile_enabled === true;
+
+  return (
+    <AuthenticatedDashboard
+      stats={stats}
+      debugInfo={debugInfo}
+      userId={user.id}
+      username={publicUsername}
+      profileEnabled={publicProfileEnabled}
+    />
+  );
 }
 
 function MarketingLanding() {
@@ -960,10 +981,14 @@ function AuthenticatedDashboard({
   stats,
   debugInfo,
   userId,
+  username,
+  profileEnabled,
 }: {
   stats: AuthStats;
   debugInfo: Record<string, unknown> | null;
   userId: string;
+  username: string | null;
+  profileEnabled: boolean;
 }) {
   const isAxisValue = (v: unknown): v is { score: number; level: string; why: string[] } => {
     if (typeof v !== "object" || v === null) return false;
@@ -1144,6 +1169,8 @@ function AuthenticatedDashboard({
             insight={crossRepoInsight}
             axes={stats.userProfile.axes as unknown as VibeAxes}
             userId={userId}
+            username={username}
+            profileEnabled={profileEnabled}
           />
         ) : null}
 
