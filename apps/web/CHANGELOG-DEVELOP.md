@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0-alpha.8](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.7...web-v0.1.0-alpha.8) (2026-01-30)
+
+
+### Bug Fixes
+
+* resolve all lint errors and type issues across codebase ([78d96a6](https://github.com/devakone/vibe-coding-profiler/commit/78d96a6ee602017b3d9a5329dfbcec31a817c93e))
+* resolve all npm audit vulnerabilities ([6d5d2b5](https://github.com/devakone/vibe-coding-profiler/commit/6d5d2b531a023f4644d300a3806c2627bf330191))
+
 ## [0.1.0-alpha.7](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.6...web-v0.1.0-alpha.7) (2026-01-30)
 
 
