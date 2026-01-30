@@ -7,6 +7,7 @@ import { ChevronRight, ChevronDown } from "lucide-react";
 import { wrappedTheme } from "@/lib/theme";
 import { toast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
+import { useJobs } from "@/contexts/JobsContext";
 
 type VibeVersion = {
   jobId: string;
@@ -40,8 +41,16 @@ function formatDate(dateStr: string | null): string {
 
 export default function VibesClient({ repos }: VibesClientProps) {
   const router = useRouter();
+  const { jobs, refreshJobs } = useJobs();
   const [expandedRepos, setExpandedRepos] = useState<Set<string>>(new Set());
   const [loadingRepoId, setLoadingRepoId] = useState<string | null>(null);
+
+  const activeJobRepoIds = new Set(
+    jobs
+      .filter((j) => j.status === "pending" || j.status === "running" || j.status === "queued")
+      .map((j) => j.repoId)
+      .filter((id): id is string => id !== null)
+  );
 
   const toggleExpanded = (repoId: string) => {
     setExpandedRepos((prev) => {
@@ -79,6 +88,7 @@ export default function VibesClient({ repos }: VibesClientProps) {
           </ToastAction>
         ),
       });
+      await refreshJobs();
       router.refresh();
     } catch (e) {
       toast({
@@ -114,6 +124,8 @@ export default function VibesClient({ repos }: VibesClientProps) {
         {repos.map((repo) => {
           const isExpanded = expandedRepos.has(repo.repoId);
           const isLoading = loadingRepoId === repo.repoId;
+          const hasActiveJob = activeJobRepoIds.has(repo.repoId);
+          const isBusy = isLoading || hasActiveJob;
 
           return (
             <div key={repo.repoId}>
@@ -169,20 +181,20 @@ export default function VibesClient({ repos }: VibesClientProps) {
                       <button
                         type="button"
                         onClick={() => startAnalysis(repo.repoId, repo.repoName)}
-                        disabled={isLoading}
+                        disabled={isBusy}
                         className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur transition hover:bg-white disabled:opacity-60"
                       >
-                        {isLoading ? "Starting..." : "Re-run"}
+                        {hasActiveJob ? "Analyzing…" : isLoading ? "Starting..." : "Re-run"}
                       </button>
                     </>
                   ) : (
                     <button
                       type="button"
                       onClick={() => startAnalysis(repo.repoId, repo.repoName)}
-                      disabled={isLoading}
+                      disabled={isBusy}
                       className={`${wrappedTheme.primaryButtonSm} disabled:opacity-60`}
                     >
-                      {isLoading ? "Starting..." : "Get Vibe"}
+                      {hasActiveJob ? "Analyzing…" : isLoading ? "Starting..." : "Get Vibe"}
                     </button>
                   )}
                 </div>
