@@ -1,5 +1,67 @@
 # Changelog
 
+## [0.2.0](https://github.com/devakone/vibe-coding-profiler/compare/vide-coding-v0.1.4...vide-coding-v0.2.0) (2026-01-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* The `github_accounts` table has been renamed to `platform_connections`. All queries referencing `github_accounts` must be updated to use `platform_connections` with the additional `platform` column filter.
+
+### Features
+
+* Add a new section outlining the code review protocol and checklist. ([069337c](https://github.com/devakone/vibe-coding-profiler/commit/069337c486c97d08a1f031a442c67851453ed712))
+* add foundational documentation and security measures ([d10c5c4](https://github.com/devakone/vibe-coding-profiler/commit/d10c5c4ca46a36bf006deee23776ae9b5a8ad7c6))
+* add GitHub Actions workflow for security checks ([686ea44](https://github.com/devakone/vibe-coding-profiler/commit/686ea445bb53cce8e95f1e2c8ee3edeb08b2d6b0))
+* add multi-platform support for repositories and connections ([266a717](https://github.com/devakone/vibe-coding-profiler/commit/266a71713c6ab96865d170fd70bbdc9dee87ef27))
+* **core:** add platform client abstraction for multi-platform support ([1b8c152](https://github.com/devakone/vibe-coding-profiler/commit/1b8c15274ab5316dd1fce21a64b6472984124519))
+* **db:** add platform support and LLM usage tracking ([a82acb7](https://github.com/devakone/vibe-coding-profiler/commit/a82acb7ed4e4abb925d8d8fa7de8b065669c7cdb))
+* multi-platform repository integration ([ff0a993](https://github.com/devakone/vibe-coding-profiler/commit/ff0a99388238d02e246553559e96bb655324a939))
+* **oauth:** add GitLab and Bitbucket OAuth support ([75a5009](https://github.com/devakone/vibe-coding-profiler/commit/75a500931dafcd5780acf9b4376a471d4e5d7c2e))
+* **platforms:** add API endpoints and UI for managing platform connections ([b8a2948](https://github.com/devakone/vibe-coding-profiler/commit/b8a294825156a7954f815408cf297ce530f54007))
+* **platforms:** implement Bitbucket and GitLab API clients ([0692731](https://github.com/devakone/vibe-coding-profiler/commit/06927315459b77397b11acffc4d6d2f3f1a6a7a5))
+* **settings/repos:** improve UX with platform filtering and simplified view ([61db163](https://github.com/devakone/vibe-coding-profiler/commit/61db163a2006046a0fe99d9a3b57fa66b6eec480))
+* **settings:** add platforms page and extract settings tabs component ([29f9082](https://github.com/devakone/vibe-coding-profiler/commit/29f9082110f790e84d6995c7d1781f5fc63797cb))
+* **supabase:** enable GitLab and Bitbucket OAuth providers locally ([36229c8](https://github.com/devakone/vibe-coding-profiler/commit/36229c8ac875c28d87eebc9d33396ad0be5e1055))
+* unify repo management for multiple platforms ([d22dd27](https://github.com/devakone/vibe-coding-profiler/commit/d22dd279be5011deb00aaf6126dbe8ea01f9c14c))
+* **worker:** support multiple git platforms in fallback worker ([7fc5b95](https://github.com/devakone/vibe-coding-profiler/commit/7fc5b951a2f337e33376ee8ae5b1b4cf0585b7e5))
+
+
+### Bug Fixes
+
+* address code review observations for multi-platform integration ([3d67b0f](https://github.com/devakone/vibe-coding-profiler/commit/3d67b0f93dbddeab5c4ca176401d0f4b3a5d0f38))
+* handle object format for narrative highlights in UnifiedInsightSection ([bc9686a](https://github.com/devakone/vibe-coding-profiler/commit/bc9686aac4ae5b7adca1b725d63e227549fef4d0))
+* resolve hydration mismatch in NotificationDropdown ([f987526](https://github.com/devakone/vibe-coding-profiler/commit/f98752674e1e81f9f5a43e173a01d4b42ff67017))
+
+## [0.1.4](https://github.com/devakone/vibe-coding-profiler/compare/vide-coding-v0.1.3...vide-coding-v0.1.4) (2026-01-22)
+
+
+### Bug Fixes
+
+* **web:** update branding from "vibed.app" to "vibe-coding-profiler.com" ([852cfc5](https://github.com/devakone/vibe-coding-profiler/commit/852cfc511c21b1c40ba29a310668d7686e9af533))
+
+## [0.1.3](https://github.com/devakone/vibe-coding-profiler/compare/vide-coding-v0.1.2...vide-coding-v0.1.3) (2026-01-22)
+
+
+### Features
+
+* add implementation tracker for Information Architecture Restructure ([15f99fb](https://github.com/devakone/vibe-coding-profiler/commit/15f99fb9928399ff9dc2e88f1f2447e28dc8d1d2))
+* add new persona aura images and update theme colors ([4ca44f2](https://github.com/devakone/vibe-coding-profiler/commit/4ca44f2d7613031b3af8d319d5d423586d40bed1))
+* add Open Source Preparedness documentation ([6c1c40a](https://github.com/devakone/vibe-coding-profiler/commit/6c1c40a49b0eae29977aa1b71f1cde75b2be9231))
+* implement VCP component system with primitives, blocks, and utilities ([bc6abdd](https://github.com/devakone/vibe-coding-profiler/commit/bc6abdd8c577ecd9f4c3c2955fa421b4e182fddc))
+* introduce new PRDs for information architecture, multi-agent detection, and LLM provider abstraction ([7929886](https://github.com/devakone/vibe-coding-profiler/commit/792988698317c87beb07a30eb7fce1e5b126ffe6))
+* **notifications:** add notification dropdown to header ([aadc064](https://github.com/devakone/vibe-coding-profiler/commit/aadc064c2e26ae654e228f1e69912282863a8061))
+* update ShareCard component to incorporate persona aura backgrounds and icons ([ad2d4a0](https://github.com/devakone/vibe-coding-profiler/commit/ad2d4a0db7b50a8f1299a05734e5ad93c58a5a68))
+* **vcp:** add unified and repo VCP display components (P3) ([b6a6179](https://github.com/devakone/vibe-coding-profiler/commit/b6a617948ff68601f7b468edaa374cfd79c88004))
+* **web:** add tooltip component and integrate into VCP sections ([699433c](https://github.com/devakone/vibe-coding-profiler/commit/699433c0f1a3fcae572d58133594d1e9223f6ebb))
+* **web:** enhance sharing features with LLM-generated taglines ([ef3b589](https://github.com/devakone/vibe-coding-profiler/commit/ef3b589a6cdf71485c2ebef11f20a4692a49be13))
+* **web:** enhance user profile sharing and navigation updates ([85ed9a2](https://github.com/devakone/vibe-coding-profiler/commit/85ed9a215cc9bd7b2a4a466a586a093614a33638))
+* **web:** implement P2 navigation & routes restructure ([9ad5734](https://github.com/devakone/vibe-coding-profiler/commit/9ad5734ab6b462e576e81aba39051fb438b4484f))
+* **web:** implement redirects and update internal links for improved navigation ([a4ce715](https://github.com/devakone/vibe-coding-profiler/commit/a4ce7153c638383b2949601052877d7aef111784))
+* **web:** integrate QR code generation and vertical story download feature ([975239d](https://github.com/devakone/vibe-coding-profiler/commit/975239d3b4c683c64a4c083658289ac1840d6c0f))
+* **web:** refactor AnalysisClient to integrate new VCP components ([f2d2621](https://github.com/devakone/vibe-coding-profiler/commit/f2d26211218a4f5d5b17b038db29bfde009edb3b))
+* **web:** refactor layout to improve component structure and user experience ([eb88fec](https://github.com/devakone/vibe-coding-profiler/commit/eb88fecfa519b1e9b203c7d1b28d701f0c331a21))
+* **web:** update navigation labels and enhance analysis insights ([17af33d](https://github.com/devakone/vibe-coding-profiler/commit/17af33d3a0a7adfa16210a6c8118dd448aded274))
+
 ## [0.1.2](https://github.com/devakone/vibed-coding/compare/vide-coding-v0.1.1...vide-coding-v0.1.2) (2026-01-21)
 
 
