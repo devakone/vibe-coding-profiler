@@ -30,5 +30,8 @@
   "packageManager": "npm@10.2.0",
   "dependencies": {
     "sharp": "^0.34.5"
+  },
+  "overrides": {
+    "next": ">=16.1.5"
   }
 }
