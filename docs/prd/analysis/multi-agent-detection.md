@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Status:** Implemented (Phases 1-5 complete)
+**Status:** Implemented (Phases 1-6 complete)
 **Priority:** High
 **Owner:** TBD
 **Created:** January 2026
@@ -115,6 +115,44 @@ Orchestrator workflows tend to leave a durable “git trail” (branches, commit
 | Add “artifact traceability” signals to insights | ✅ Done | `ArtifactTraceability` interface with PR coverage, issue link rate, structured PR rate |
 | Add conductor vs orchestrator scoring hooks | ✅ Done | `WorkflowStyle` type with orchestrator/conductor/hybrid detection |
 | Surface artifact evidence in UI | ✅ Done | Workflow Style section with metrics and score breakdown |
+
+### Phase 6: AI Tool Metrics & VCP Display
+
+Surfaces per-tool AI usage data to users. Formalizes the distinction between raw **signals** (extracted from commits) and derived **metrics** (displayed in UI).
+
+**Files modified:**
+- `packages/core/src/index.ts` — AI tool registry, `identifyAITool()`, per-tool collection in trailer loop
+- `packages/core/src/vibe.ts` — `AIToolMetrics` type, `extractAIToolMetrics()`, aggregation across repos
+- `packages/core/src/__tests__/parseCommitTrailers.test.ts` — 20 new tests for tool identification and metrics
+- `supabase/migrations/20260130003641_add_ai_tools_to_vibe_insights.sql` — `ai_tools_json` JSONB column
+- `packages/db/src/database.types.ts` — Column types
+- `apps/web/src/inngest/functions/analyze-repo.ts` — Store and aggregate `ai_tools_json`
+- `apps/web/src/components/vcp/blocks/VCPAIToolsSection.tsx` — **NEW** display component
+- `apps/web/src/app/analysis/[jobId]/AnalysisClient.tsx` — Repo VCP integration
+- `apps/web/src/app/page.tsx` — Unified VCP dashboard integration
+- `apps/web/src/components/public-profile/PublicProfileView.tsx` — Public profile integration
+- `apps/web/src/types/public-profile.ts` — `show_ai_tools` toggle
+- `apps/web/src/components/settings/PublicProfileSettings.tsx` — Settings UI toggle
+
+| Task | Status | Notes |
+|------|--------|-------|
+| AI tool registry (11 tools) and `identifyAITool()` | ✅ Done | Pattern-based matching against Co-Authored-By values |
+| Per-tool signal collection in trailer loop | ✅ Done | `tool_co_authors` in `multi_agent_signals` |
+| `AIToolMetrics` type and `extractAIToolMetrics()` | ✅ Done | Self-contained in vibe.ts (no circular imports) |
+| `ai_tools` in `VibeInsightsV1` | ✅ Done | Computed during `computeVibeFromCommits()` |
+| Cross-repo aggregation (`aggregateAIToolMetrics()`) | ✅ Done | Merges tool counts, recomputes percentages |
+| Database migration (`ai_tools_json` column) | ✅ Done | JSONB on `vibe_insights` |
+| Storage in Inngest worker | ✅ Done | Stored during vibe_insights upsert |
+| `VCPAIToolsSection` component | ✅ Done | Primary tool badge, per-tool bars, stats grid |
+| Repo VCP integration | ✅ Done | Between narrative and contribution card |
+| Unified VCP dashboard integration | ✅ Done | Between axes and evolution sections |
+| Public profile integration | ✅ Done | Prominent placement after axes chart |
+| `show_ai_tools` settings toggle | ✅ Done | Default: true |
+| Unit tests (20 new) | ✅ Done | identifyAITool, extractAIToolMetrics, edge cases |
+
+**Signal vs Metric classification:** See [AI Tool Metrics Architecture](../../architecture/ai-tool-metrics.md).
+
+**Supported tools:** Claude, GitHub Copilot, Cursor, Aider, Cline, Roo Code, Windsurf, Devin, Codegen, SWE-Agent, Gemini.
 
 ---
 

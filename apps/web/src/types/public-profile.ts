@@ -1,4 +1,4 @@
-import type { VibeAxes } from "@vibed/core";
+import type { VibeAxes, AIToolMetrics } from "@vibed/core";
 
 /**
  * Public profile visibility settings.
@@ -21,6 +21,7 @@ export interface PublicProfileSettings {
   show_shipping_rhythm: boolean;
   show_near_miss_personas: boolean;
   show_avatar: boolean;
+  show_ai_tools: boolean;
 }
 
 export const DEFAULT_PUBLIC_PROFILE_SETTINGS: PublicProfileSettings = {
@@ -40,6 +41,7 @@ export const DEFAULT_PUBLIC_PROFILE_SETTINGS: PublicProfileSettings = {
   show_shipping_rhythm: false,
   show_near_miss_personas: false,
   show_avatar: true,
+  show_ai_tools: true,
 };
 
 /**
@@ -60,6 +62,7 @@ export interface PublicProfileData {
   narrative: string | null;
   insight_cards: unknown[] | null;
   repo_breakdown: RepoPersonaSummary[] | null;
+  ai_tools: AIToolMetrics | null;
   settings: PublicProfileSettings;
 }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { PublicProfileSettings } from "@/types/public-profile";
 import { DEFAULT_PUBLIC_PROFILE_SETTINGS } from "@/types/public-profile";
+import type { AIToolMetrics } from "@vibed/core";
 
 export const runtime = "nodejs";
 
@@ -41,7 +42,7 @@ export async function GET(
   const { data: profile } = await service
     .from("user_profiles")
     .select(
-      "persona_id, persona_name, persona_tagline, persona_confidence, persona_score, total_repos, total_commits, axes_json, cards_json, repo_personas_json, narrative_json"
+      "persona_id, persona_name, persona_tagline, persona_confidence, persona_score, total_repos, total_commits, axes_json, cards_json, repo_personas_json, narrative_json, job_ids"
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -99,6 +100,62 @@ export async function GET(
 
   const narrative = profile.narrative_json as { insight?: string; summary?: string } | null;
 
+  // Aggregate AI tool metrics from vibe_insights
+  let aiTools: AIToolMetrics | null = null;
+  if (settings.show_ai_tools) {
+    const jobIds = Array.isArray(profile.job_ids)
+      ? (profile.job_ids as string[]).filter((id): id is string => typeof id === "string")
+      : [];
+
+    if (jobIds.length > 0) {
+      const { data: vibeRows } = await service
+        .from("vibe_insights")
+        .select("ai_tools_json")
+        .in("job_id", jobIds);
+
+      if (vibeRows && vibeRows.length > 0) {
+        const toolCounts = new Map<string, { name: string; count: number }>();
+        let totalAiCommits = 0;
+
+        for (const row of vibeRows) {
+          const tools = row.ai_tools_json as AIToolMetrics | null;
+          if (!tools || !tools.detected) continue;
+          totalAiCommits += tools.ai_assisted_commits;
+          for (const tool of tools.tools) {
+            const existing = toolCounts.get(tool.tool_id);
+            if (existing) {
+              existing.count += tool.commit_count;
+            } else {
+              toolCounts.set(tool.tool_id, { name: tool.tool_name, count: tool.commit_count });
+            }
+          }
+        }
+
+        if (toolCounts.size > 0) {
+          const totalCommits = profile.total_commits ?? 0;
+          const tools = Array.from(toolCounts.entries())
+            .map(([id, data]) => ({
+              tool_id: id,
+              tool_name: data.name,
+              commit_count: data.count,
+              percentage: totalAiCommits > 0 ? Math.round((data.count / totalAiCommits) * 100) : 0,
+            }))
+            .sort((a, b) => b.commit_count - a.commit_count);
+
+          aiTools = {
+            detected: true,
+            ai_assisted_commits: totalAiCommits,
+            ai_collaboration_rate: totalCommits > 0 ? totalAiCommits / totalCommits : 0,
+            primary_tool: { id: tools[0].tool_id, name: tools[0].tool_name },
+            tool_diversity: tools.length,
+            tools,
+            confidence: totalAiCommits >= 10 ? "high" : totalAiCommits >= 3 ? "medium" : "low",
+          };
+        }
+      }
+    }
+  }
+
   const response = {
     username: user.username,
     avatar_url: settings.show_avatar ? user.avatar_url : null,
@@ -114,6 +171,7 @@ export async function GET(
     narrative: settings.show_narrative ? (narrative?.insight ?? narrative?.summary ?? null) : null,
     insight_cards: settings.show_insight_cards ? (profile.cards_json as unknown[] | null) : null,
     repo_breakdown: repoBreakdown,
+    ai_tools: aiTools,
     settings,
   };
 

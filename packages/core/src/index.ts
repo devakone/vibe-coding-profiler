@@ -650,6 +650,12 @@ export interface AnalysisInsights {
     pr_linked_issue_rate: number | null;
     confidence: AnalysisInsightConfidence;
     evidence_shas: string[];
+    tool_co_authors: Array<{
+      tool_id: string;
+      tool_name: string;
+      commit_count: number;
+      evidence_shas: string[];
+    }>;
   };
   pull_requests: {
     total: number;
@@ -1321,6 +1327,42 @@ export interface CommitTrailer {
   value: string;
 }
 
+// =============================================================================
+// AI Tool Detection
+// =============================================================================
+
+export interface AIToolDef {
+  id: string;
+  name: string;
+  patterns: RegExp[];
+}
+
+export const AI_TOOL_REGISTRY: AIToolDef[] = [
+  { id: "claude", name: "Claude", patterns: [/claude/i, /anthropic/i] },
+  { id: "copilot", name: "GitHub Copilot", patterns: [/copilot/i] },
+  { id: "cursor", name: "Cursor", patterns: [/cursor/i] },
+  { id: "aider", name: "Aider", patterns: [/aider/i] },
+  { id: "cline", name: "Cline", patterns: [/cline/i] },
+  { id: "roo", name: "Roo Code", patterns: [/\broo\b/i] },
+  { id: "windsurf", name: "Windsurf", patterns: [/windsurf/i, /codeium/i] },
+  { id: "devin", name: "Devin", patterns: [/devin/i, /cognition/i] },
+  { id: "codegen", name: "Codegen", patterns: [/codegen/i] },
+  { id: "swe-agent", name: "SWE-Agent", patterns: [/swe-?agent/i] },
+  { id: "gemini", name: "Gemini", patterns: [/gemini/i, /google.*ai/i] },
+];
+
+/** Returns tool id or null if no known tool matched */
+export function identifyAITool(coAuthorValue: string): string | null {
+  for (const tool of AI_TOOL_REGISTRY) {
+    for (const pattern of tool.patterns) {
+      if (pattern.test(coAuthorValue)) {
+        return tool.id;
+      }
+    }
+  }
+  return null;
+}
+
 /**
  * Parse git trailers from a commit message.
  * Git trailers appear at the end of commit messages, each on their own line.
@@ -1414,6 +1456,9 @@ export function computeAnalysisInsights(
   let coAuthorCount = 0;
   let aiTrailerCount = 0;
 
+  // Per-tool tracking
+  const toolCommitMap = new Map<string, { count: number; shas: string[] }>();
+
   for (const e of byTimeAsc) {
     const dayKey = utcDayKey(e.committer_date);
     if (dayKey) dayCounts.set(dayKey, (dayCounts.get(dayKey) ?? 0) + 1);
@@ -1457,6 +1502,15 @@ export function computeAnalysisInsights(
       if (name === "co-authored-by") {
         coAuthorCount++;
         if (coAuthorEvidence.length < 5) coAuthorEvidence.push(e.sha);
+
+        // Identify specific AI tool
+        const toolId = identifyAITool(trailer.value);
+        if (toolId) {
+          const entry = toolCommitMap.get(toolId) ?? { count: 0, shas: [] };
+          entry.count++;
+          if (entry.shas.length < 5) entry.shas.push(e.sha);
+          toolCommitMap.set(toolId, entry);
+        }
       }
 
       // AI-related trailers
@@ -1682,6 +1736,17 @@ export function computeAnalysisInsights(
         0,
         5
       ),
+      tool_co_authors: Array.from(toolCommitMap.entries())
+        .map(([toolId, data]) => {
+          const tool = AI_TOOL_REGISTRY.find((t) => t.id === toolId);
+          return {
+            tool_id: toolId,
+            tool_name: tool?.name ?? toolId,
+            commit_count: data.count,
+            evidence_shas: data.shas,
+          };
+        })
+        .sort((a, b) => b.commit_count - a.commit_count),
     },
     pull_requests: {
       total: prTotal,

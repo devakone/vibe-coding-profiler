@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { computeAnalysisInsights } from "@vibed/core";
-import type { AnalysisInsights, AnalysisMetrics, CommitEvent } from "@vibed/core";
+import type { AnalysisInsights, AnalysisMetrics, CommitEvent, AIToolMetrics } from "@vibed/core";
 import { formatMetricLabel, formatMetricValue } from "@/lib/format-labels";
 import { computeShareCardMetrics } from "@/lib/vcp/metrics";
 import { isVibeAxes } from "@/lib/vcp/validators";
@@ -15,6 +15,7 @@ import {
   RepoMetricsGrid,
   ProfileContributionCard,
 } from "@/components/vcp/repo";
+import { VCPAIToolsSection } from "@/components/vcp/blocks";
 
 type Job = {
   id: string;
@@ -103,6 +104,7 @@ type VibeInsightsRow = {
   persona_tagline: string | null;
   persona_confidence: string;
   persona_score: number | null;
+  ai_tools_json?: unknown;
 };
 
 type InsightHistoryEntry = {
@@ -452,6 +454,33 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
   const persona = wrapped.persona;
   const shareTemplate = wrapped.share_template;
+
+  // AI tool metrics — prefer vibe_insights data, fall back to analysis_insights signals
+  const aiToolMetrics = useMemo<AIToolMetrics | null>(() => {
+    const vibeAiTools = parsedVibeInsights?.ai_tools_json;
+    if (vibeAiTools && typeof vibeAiTools === "object" && "detected" in (vibeAiTools as Record<string, unknown>)) {
+      return vibeAiTools as unknown as AIToolMetrics;
+    }
+    // Fall back to tool_co_authors from analysis insights
+    const toolCoAuthors = wrapped.multi_agent_signals?.tool_co_authors;
+    if (!toolCoAuthors || toolCoAuthors.length === 0) return null;
+    const totalAiCommits = toolCoAuthors.reduce((s, t) => s + t.commit_count, 0);
+    const totalCommits = wrapped.totals?.commits ?? 0;
+    return {
+      detected: true,
+      ai_assisted_commits: totalAiCommits,
+      ai_collaboration_rate: totalCommits > 0 ? totalAiCommits / totalCommits : 0,
+      primary_tool: { id: toolCoAuthors[0].tool_id, name: toolCoAuthors[0].tool_name },
+      tool_diversity: toolCoAuthors.length,
+      tools: toolCoAuthors.map((t) => ({
+        tool_id: t.tool_id,
+        tool_name: t.tool_name,
+        commit_count: t.commit_count,
+        percentage: totalAiCommits > 0 ? Math.round((t.commit_count / totalAiCommits) * 100) : 0,
+      })),
+      confidence: totalAiCommits >= 10 ? "high" : totalAiCommits >= 3 ? "medium" : "low",
+    } satisfies AIToolMetrics;
+  }, [parsedVibeInsights, wrapped]);
 
   const shareText = useMemo(() => {
     if (!shareTemplate) return "";
@@ -1062,6 +1091,13 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                   <p className="mt-4 text-sm text-zinc-600">No narrative is available for this Repo VCP yet.</p>
                 )}
               </div>
+
+              {/* AI Coding Tools Section */}
+              {aiToolMetrics?.detected ? (
+                <div className="mt-6 rounded-2xl border border-black/5 bg-white/60 p-5 backdrop-blur">
+                  <VCPAIToolsSection aiTools={aiToolMetrics} />
+                </div>
+              ) : null}
 
               {profileContribution ? (
                 <ProfileContributionCard

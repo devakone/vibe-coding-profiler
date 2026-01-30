@@ -857,6 +857,7 @@ export type Database = {
       }
       vibe_insights: {
         Row: {
+          ai_tools_json: Json | null
           axes_json: Json
           cards_json: Json | null
           evidence_json: Json | null
@@ -872,6 +873,7 @@ export type Database = {
           version: string
         }
         Insert: {
+          ai_tools_json?: Json | null
           axes_json?: Json
           cards_json?: Json | null
           evidence_json?: Json | null
@@ -887,6 +889,7 @@ export type Database = {
           version: string
         }
         Update: {
+          ai_tools_json?: Json | null
           axes_json?: Json
           cards_json?: Json | null
           evidence_json?: Json | null

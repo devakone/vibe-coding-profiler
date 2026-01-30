@@ -26,6 +26,7 @@ import {
   type PlatformType,
   type RepoInsightSummary,
   type VibeAxes,
+  type AIToolMetrics,
   type VibeCommitEvent,
   type VibePersona,
 } from "@vibed/core";
@@ -1003,6 +1004,7 @@ export const analyzeRepo = inngest.createFunction(
           persona_score: vibeInsights.persona.score,
           cards_json: vibeInsights.cards,
           evidence_json: vibeInsights.evidence_index,
+          ai_tools_json: vibeInsights.ai_tools,
         },
         { onConflict: "job_id" }
       );
@@ -1104,7 +1106,7 @@ export const analyzeRepo = inngest.createFunction(
       // Try vibe_insights first
       const { data: vibeInsightsData } = await supabase
         .from("vibe_insights")
-        .select("job_id, axes_json, persona_id, persona_name, persona_tagline, persona_confidence, persona_score")
+        .select("job_id, axes_json, persona_id, persona_name, persona_tagline, persona_confidence, persona_score, ai_tools_json")
         .in("job_id", jobIds);
 
       type VibeInsightsRow = {
@@ -1115,6 +1117,7 @@ export const analyzeRepo = inngest.createFunction(
         persona_tagline: string | null;
         persona_confidence: string;
         persona_score: number | null;
+        ai_tools_json: unknown;
       };
 
       const vibeInsights = (vibeInsightsData ?? []) as VibeInsightsRow[];
@@ -1207,6 +1210,7 @@ export const analyzeRepo = inngest.createFunction(
         cards_json: v.cards,
         evidence_json: v.evidence_index,
         generated_at: v.generated_at,
+        ai_tools_json: v.ai_tools,
       }));
 
       if (backfillRows.length > 0) {
@@ -1258,6 +1262,7 @@ export const analyzeRepo = inngest.createFunction(
             axes,
             persona: detectVibePersona(axes, { commitCount, prCount: 0 }),
             analyzedAt: job.completed_at ?? new Date().toISOString(),
+            aiTools: vibeInsight.ai_tools_json as AIToolMetrics | null,
           });
           continue;
         }
@@ -1271,6 +1276,7 @@ export const analyzeRepo = inngest.createFunction(
             axes: computed.axes,
             persona: computed.persona,
             analyzedAt: job.completed_at ?? new Date().toISOString(),
+            aiTools: computed.ai_tools,
           });
           continue;
         }

@@ -1,8 +1,9 @@
-import type { VibeAxes } from "@vibed/core";
+import type { VibeAxes, AIToolMetrics } from "@vibed/core";
 import type { PublicProfileSettings } from "@/types/public-profile";
 import { PublicIdentityHeader } from "./PublicIdentityHeader";
 import { PublicProfileCTA } from "./PublicProfileCTA";
 import { UnifiedAxesSection } from "@/components/vcp/unified/UnifiedAxesSection";
+import { VCPAIToolsSection } from "@/components/vcp/blocks";
 import Link from "next/link";
 
 interface PublicProfileViewProps {
@@ -27,6 +28,7 @@ interface PublicProfileViewProps {
       persona_tagline: string | null;
       commit_count: number;
     }> | null;
+    aiTools: AIToolMetrics | null;
     settings: PublicProfileSettings;
   };
 }
@@ -47,6 +49,7 @@ export function PublicProfileView({ data }: PublicProfileViewProps) {
     axes,
     narrative,
     repoBreakdown,
+    aiTools,
     settings,
   } = data;
 
@@ -66,6 +69,13 @@ export function PublicProfileView({ data }: PublicProfileViewProps) {
       {/* Axes chart */}
       {settings.show_axes_chart && axes ? (
         <UnifiedAxesSection axes={axes as unknown as VibeAxes} />
+      ) : null}
+
+      {/* AI coding tools — highlighted section */}
+      {settings.show_ai_tools && aiTools?.detected ? (
+        <div className="border-t border-black/5 px-8 py-6 sm:px-10">
+          <VCPAIToolsSection aiTools={aiTools} />
+        </div>
       ) : null}
 
       {/* Narrative insight */}

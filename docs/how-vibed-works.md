@@ -104,11 +104,48 @@ Deterministic insights are computed server-side:
 - **Chunkiness:** Slicer (focused), Mixer (balanced), or Chunker (wide scope)
 - **Tech Signals:** Keywords detected in commit messages
 - **Multi-Agent Signals:** Co-author trailers, AI attribution patterns
+- **AI Tool Metrics:** Per-tool usage breakdown from Co-Authored-By trailers (see below)
 
 ### Step 7: LLM Narrative (Optional)
 If LLM is configured, we generate a human-readable narrative about your *engineering patterns*, never about what you built, only how you built it.
 
 **Privacy:** The LLM only sees metadata (timestamps, categories, metrics), never commit message content or code.
+
+---
+
+## AI Tool Detection
+
+Vibe Coding Profile detects which AI coding tools you use by parsing `Co-Authored-By` trailers in your commit messages. Many AI tools automatically add these trailers when they help write code.
+
+### How It Works
+
+1. **Extract** — We parse `Co-Authored-By` trailers from every commit message.
+2. **Identify** — Each trailer value is matched against a registry of 11 known AI tools (Claude, GitHub Copilot, Cursor, Aider, Cline, Roo Code, Windsurf, Devin, Codegen, SWE-Agent, Gemini).
+3. **Quantify** — We count how many commits each tool co-authored, compute an overall AI collaboration rate, and identify the primary tool.
+
+### What You See
+
+| Metric | Description |
+|--------|-------------|
+| **AI Collaboration Rate** | Fraction of commits with AI co-authorship (0–100%) |
+| **Primary Tool** | The AI tool that appears most frequently |
+| **Tool Breakdown** | Per-tool usage percentages |
+| **Tool Diversity** | Number of different AI tools detected |
+| **Confidence** | high/medium/low based on number of AI-assisted commits |
+
+### Limitations
+
+- **Trailer-dependent:** If an AI tool doesn't add `Co-Authored-By` trailers, we can't detect it. IDE autocomplete, copy-paste from ChatGPT, etc. are invisible.
+- **Pattern matching:** A human co-author whose name matches a tool pattern (e.g., someone named "Claude") could be counted. This is rare in practice.
+- **Not usage tracking:** We detect presence in commits, not how much of the code the tool wrote.
+
+### Where It Appears
+
+- **Repo VCP:** AI tools section on individual repo analysis pages
+- **Unified VCP:** Aggregated across all your repos on the dashboard
+- **Public Profile:** Visible when the "AI Tools" toggle is enabled (default: on)
+
+See [AI Tool Metrics Architecture](./architecture/ai-tool-metrics.md) for technical details.
 
 ---
 
@@ -150,7 +187,7 @@ Every insight includes a confidence level:
 
 - **Not a productivity tracker:** We don't measure "good" vs "bad"
 - **Not a code quality tool:** We don't analyze code, just patterns
-- **Not AI detection:** We detect workflow patterns, not AI usage
+- **Not an AI policing tool:** We show which AI tools you use as a feature, not a judgment. Every coding style has strengths.
 - **Not surveillance:** You control what repos to analyze, data is yours
 
 ---
@@ -181,6 +218,7 @@ Our internal research documents are available in [docs/research/](./research/).
 
 - [Technical Architecture](./architecture/vibed-analysis-pipeline.md): Deep dive with Mermaid diagrams
 - [Vibe Metrics v2](./architecture/vibe-metrics-v2.md): Axis computation details
+- [AI Tool Metrics](./architecture/ai-tool-metrics.md): Tool detection pipeline and registry
 - [PRD: Vibe Coding Profile Narrative Layer](./PRD-vibed.md): Product requirements
 - [PRD: Profile Aggregation](./PRD-profile-aggregation.md): Multi-repo aggregation
 

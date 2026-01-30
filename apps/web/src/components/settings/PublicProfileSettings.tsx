@@ -19,6 +19,7 @@ const DEFAULT_PUBLIC_TOGGLES: ToggleItem[] = [
   { key: "show_total_repos", label: "Repo Count", description: "Total number of repos analyzed" },
   { key: "show_total_commits", label: "Commit Count", description: "Total number of commits analyzed" },
   { key: "show_avatar", label: "Avatar", description: "Your GitHub avatar" },
+  { key: "show_ai_tools", label: "AI Tools", description: "AI coding tools detected in your commits" },
 ];
 
 const OPT_IN_TOGGLES: ToggleItem[] = [
