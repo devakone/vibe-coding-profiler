@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import type { VCPVersionHistoryProps, VCPVersionEntry } from "../types";
+import type { VCPVersionHistoryProps } from "../types";
 import { VCPCollapsible } from "../primitives";
 import { getPersonaIcon } from "../constants";
 
@@ -23,7 +23,6 @@ export function VCPVersionHistory({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const currentVersion = versions.find((v) => v.id === currentVersionId);
-  const currentIndex = versions.findIndex((v) => v.id === currentVersionId);
 
   const triggerLabel = variant === "unified"
     ? `Profile History (${versions.length} snapshots)`

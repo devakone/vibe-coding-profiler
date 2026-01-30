@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { VCPAxesGridProps, AxisKey } from "../types";
+import type { VCPAxesGridProps } from "../types";
 import { VCPProgressBar } from "../primitives";
 import { AXIS_METADATA, AXIS_ORDER } from "../constants";
 import { AxisInfoTooltip } from "../AxisInfoTooltip";
@@ -24,7 +24,7 @@ export function VCPAxesGrid({
   if (layout === "list") {
     return (
       <div className={cn("space-y-4", className)}>
-        {axisEntries.map(({ key, score, level, meta }) => (
+        {axisEntries.map(({ key, score, meta }) => (
           <div key={key} className="space-y-1">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-1">
@@ -50,7 +50,7 @@ export function VCPAxesGrid({
         className
       )}
     >
-      {axisEntries.map(({ key, score, level, meta }) => (
+      {axisEntries.map(({ key, score, meta }) => (
         <div
           key={key}
           className="rounded-xl bg-white/5 p-4"

@@ -13,11 +13,6 @@ import {
   computeShareCardMetrics,
   formatConfidence,
   computeConsistencyLabel,
-  type StrongestAxis,
-  type StyleDescriptor,
-  type RhythmLabel,
-  type PeakWindow,
-  type PeakLabel,
 } from "../metrics";
 
 // =============================================================================

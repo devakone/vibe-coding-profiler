@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Copy, Check, Link2, Share2, Download, FileText } from "lucide-react";
-import { SHARE_FORMATS, downloadSharePng, downloadShareSvg, downloadBlob } from "./share-image";
+import { SHARE_FORMATS, downloadBlob } from "./share-image";
 import type { ShareActionsProps, ShareFormat } from "./types";
 
 // Brand icons (Lucide doesn't include these)
@@ -47,7 +47,6 @@ export function ShareActions({
   shareTemplate,
   entityId,
   disabled = false,
-  storyEndpoint,
   shareJson,
 }: ShareActionsProps) {
   const [copied, setCopied] = useState(false);
@@ -165,11 +164,12 @@ export function ShareActions({
           url: shareUrl,
         });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       // User cancelled or share failed
-      if (e.name !== "AbortError" && e.name !== "NotAllowedError") {
+      const err = e instanceof Error ? e : null;
+      if (err && err.name !== "AbortError" && err.name !== "NotAllowedError") {
         console.error("Share failed:", e);
-        setDownloadError("share_failed"); 
+        setDownloadError("share_failed");
       }
     } finally {
       setDownloading(false);

@@ -24,7 +24,7 @@ export default async function AdminUserDetailPage({
   }
 
   const { userId } = await params;
-  const { success, user, error } = await getAdminUserDetail(userId);
+  const { success, user } = await getAdminUserDetail(userId);
 
   if (!success || !user) {
     notFound();
@@ -43,6 +43,7 @@ export default async function AdminUserDetailPage({
           </Link>
           <div className="mt-4 flex items-center gap-4">
             {user.avatar_url ? (
+              /* eslint-disable-next-line @next/next/no-img-element -- admin page, external avatar URL */
               <img
                 src={user.avatar_url}
                 alt=""

@@ -32,7 +32,8 @@ interface LLMKeysResponse {
 export default function LLMKeysClient() {
   const [keys, setKeys] = useState<LLMKey[]>([]);
   const [providers, setProviders] = useState<SupportedProvider[]>([]);
-  const [platformLimits, setPlatformLimits] = useState<LLMKeysResponse["platformLimits"] | null>(null);
+  // platformLimits stored for future UI use
+  const [, setPlatformLimits] = useState<LLMKeysResponse["platformLimits"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,10 +55,8 @@ export default function LLMKeysClient() {
   const [testingId, setTestingId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ id: string; valid: boolean; error?: string } | null>(null);
 
-  useEffect(() => {
-    fetchKeys();
-    fetchOptInStatus();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- initial fetch on mount only
+  useEffect(() => { fetchKeys(); fetchOptInStatus(); }, []);
 
   async function fetchOptInStatus() {
     setOptInLoading(true);

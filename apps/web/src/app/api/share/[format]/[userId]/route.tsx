@@ -98,8 +98,8 @@ export async function GET(
     // -------------------------------------------------------------------------
     // Metric Computation
     // -------------------------------------------------------------------------
-    const axes = profile.axes_json as any;
-    const narrative = profile.narrative_json as any;
+    const axes = profile.axes_json as Record<string, { score: number }> | null;
+    const narrative = profile.narrative_json as { insight?: string; summary?: string } | null;
     
     let metrics = {
       strongest: "N/A",
@@ -166,9 +166,9 @@ export async function GET(
     // Resolve fonts
     const [fontDataNormal, fontDataBold] = await Promise.all([fontNormalPromise, fontBoldPromise]);
 
-    const fonts: any[] = [];
-    if (fontDataNormal) fonts.push({ name: "Space Grotesk", data: fontDataNormal, style: "normal", weight: 400 });
-    if (fontDataBold) fonts.push({ name: "Space Grotesk", data: fontDataBold, style: "normal", weight: 700 });
+    const fonts: Array<{ name: string; data: ArrayBuffer; style: "normal" | "italic"; weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 }> = [];
+    if (fontDataNormal) fonts.push({ name: "Space Grotesk", data: fontDataNormal, style: "normal" as const, weight: 400 as const });
+    if (fontDataBold) fonts.push({ name: "Space Grotesk", data: fontDataBold, style: "normal" as const, weight: 700 as const });
 
     const paddingX = 60 * scale;
     const paddingY = 60 * scale;
@@ -267,6 +267,7 @@ export async function GET(
             </div>
 
             {/* Icon (Top Right) */}
+            {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text -- OG image generation uses satori which requires <img> */}
             <img
               src={iconUrl}
               width={140 * scale}
@@ -395,8 +396,10 @@ export async function GET(
         fonts: fonts.length > 0 ? fonts : undefined,
       }
     );
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("API Error detailed:", e);
-    return new Response(`Server Error: ${e.message}\n${e.stack}`, { status: 500 });
+    const message = e instanceof Error ? e.message : "Unknown error";
+    const stack = e instanceof Error ? e.stack : "";
+    return new Response(`Server Error: ${message}\n${stack}`, { status: 500 });
   }
 }
