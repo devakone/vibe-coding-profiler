@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-alpha.9](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.8...web-v0.1.0-alpha.9) (2026-01-30)
+
+
+### Bug Fixes
+
+* disable Get Vibe button while analysis job is running ([4a07531](https://github.com/devakone/vibe-coding-profiler/commit/4a0753184ce97d9410591ac991522a17301a41be))
+
 ## [0.1.0-alpha.8](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.7...web-v0.1.0-alpha.8) (2026-01-30)
 
 
