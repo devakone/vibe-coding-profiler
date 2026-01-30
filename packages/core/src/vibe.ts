@@ -887,7 +887,7 @@ export function detectVibePersona(
     {
       id: "prompt_sprinter",
       name: "Vibe Prototyper",
-      tagline: "You build to think — code is your sketchpad.",
+      tagline: "You prompt fast, ship fast, and let the code evolve — vibing your way to a working build.",
       conditions: [
         { id: "A>=70", ok: () => A >= 70 },
         { id: "C>=65", ok: () => C >= 65 },
@@ -901,7 +901,7 @@ export function detectVibePersona(
     {
       id: "guardrailed_viber",
       name: "Test-First Validator",
-      tagline: "You lean on tests and safety nets before big changes.",
+      tagline: "You give AI the wheel but keep tests and CI in the passenger seat — guardrails before velocity.",
       conditions: [
         { id: "A>=65", ok: () => A >= 65 },
         { id: "B>=65", ok: () => B >= 65 },
@@ -914,7 +914,7 @@ export function detectVibePersona(
     {
       id: "spec_first_director",
       name: "Spec-Driven Architect",
-      tagline: "Plans thoroughly before touching code; constraints show up early and often.",
+      tagline: "You write the spec before the prompt — AI follows your blueprint, not the other way around.",
       conditions: [
         { id: "D>=70", ok: () => D >= 70 },
         { id: "B>=55", ok: () => B >= 55 },
@@ -927,7 +927,7 @@ export function detectVibePersona(
     {
       id: "vertical_slice_shipper",
       name: "Agent Orchestrator",
-      tagline: "Coordinates tools and assistants; breaks work into structured moves.",
+      tagline: "You orchestrate agents across the stack — full slices land in one coordinated push.",
       conditions: [
         { id: "E>=70", ok: () => E >= 70 },
         { id: "A>=60", ok: () => A >= 60 },
@@ -939,7 +939,7 @@ export function detectVibePersona(
     {
       id: "fix_loop_hacker",
       name: "Hands-On Debugger",
-      tagline: "You move fast through triage and fix loops, refining in tight cycles.",
+      tagline: "You prompt, run, fix, repeat — tight feedback loops until the build is clean.",
       conditions: [
         { id: "C>=80", ok: () => C >= 80 },
         { id: "F>=60", ok: () => F >= 60 },
@@ -951,7 +951,7 @@ export function detectVibePersona(
     {
       id: "rapid_risk_taker",
       name: "Rapid Risk-Taker",
-      tagline: "You vibe with AI and ship fast — guardrails can wait.",
+      tagline: "You trust the AI output and ship — tests and docs will catch up later.",
       conditions: [
         { id: "A>=65", ok: () => A >= 65 },
         { id: "B<45", ok: () => B < 45 },
@@ -970,7 +970,7 @@ export function detectVibePersona(
   const fallback = {
     id: "balanced_builder" as const,
     name: "Reflective Balancer",
-    tagline: "You balance exploration, guardrails, and shipping rhythm.",
+    tagline: "You blend AI-assisted speed with manual craft — no single pattern dominates your workflow.",
     score: Math.round((A + B + C + D + E + F) / 6),
     matched_rules: [] as string[],
   };
@@ -1280,10 +1280,10 @@ export function buildInsightCards(
     "Automation style",
     axes.automation_heaviness,
     axes.automation_heaviness.level === "high"
-      ? "Big slices and high-leverage moves show up often"
+      ? "You lean heavily on AI agents for large-scale, multi-file changes"
       : axes.automation_heaviness.level === "medium"
-        ? "A mix of small moves and larger drops"
-        : "More manual, incremental changes"
+        ? "A blend of AI-assisted drops and manual edits"
+        : "Most changes are hand-written, incremental edits"
   );
 
   axisCard(
@@ -1292,10 +1292,10 @@ export function buildInsightCards(
     "Guardrails",
     axes.guardrail_strength,
     axes.guardrail_strength.level === "high"
-      ? "Tests/CI/docs stay close to the work"
+      ? "Tests and CI land alongside or right after AI-generated code"
       : axes.guardrail_strength.level === "medium"
-        ? "Some guardrails, but not always adjacent to big changes"
-        : "Guardrails tend to come later or appear less often"
+        ? "Guardrails appear, but not always alongside the AI-assisted work"
+        : "AI output ships first — tests and docs follow later, if at all"
   );
 
   axisCard(
@@ -1304,10 +1304,10 @@ export function buildInsightCards(
     "Feedback loops",
     axes.iteration_loop_intensity,
     axes.iteration_loop_intensity.level === "high"
-      ? "You iterate quickly after shipping changes"
+      ? "Rapid prompt-fix-run loops — you iterate until the build is clean"
       : axes.iteration_loop_intensity.level === "medium"
-        ? "You iterate sometimes, with occasional fix bursts"
-        : "You tend to stabilize in fewer follow-up passes"
+        ? "Some fix loops after AI output, but not a dominant pattern"
+        : "Changes land clean — minimal fix loops needed after shipping"
   );
 
   axisCard(
@@ -1316,10 +1316,10 @@ export function buildInsightCards(
     "Planning signal",
     axes.planning_signal,
     axes.planning_signal.level === "high"
-      ? "Work is often structured through issues, conventions, or docs-first moves"
+      ? "Specs, issues, and docs shape the prompt before code is generated"
       : axes.planning_signal.level === "medium"
-        ? "Some structure appears, but not consistently"
-        : "Structure is light, the work leads the way"
+        ? "Some upfront structure, but prompts often come before plans"
+        : "You discover the architecture as you vibe — prompts lead, plans follow"
   );
 
   axisCard(
@@ -1328,10 +1328,10 @@ export function buildInsightCards(
     "Surface area",
     axes.surface_area_per_change,
     axes.surface_area_per_change.level === "high"
-      ? "Your typical change touches many subsystems"
+      ? "Your prompts generate changes that span the full stack"
       : axes.surface_area_per_change.level === "medium"
-        ? "Your changes touch a few subsystems at a time"
-        : "Your changes stay narrowly scoped"
+        ? "Changes typically cross a few boundaries at a time"
+        : "Tightly scoped changes — one subsystem at a time"
   );
 
   axisCard(
@@ -1340,10 +1340,10 @@ export function buildInsightCards(
     "Shipping rhythm",
     axes.shipping_rhythm,
     axes.shipping_rhythm.level === "high"
-      ? "Bursty sessions followed by pauses"
+      ? "Intense vibe coding sessions followed by quiet stretches"
       : axes.shipping_rhythm.level === "medium"
-        ? "A mix of bursts and steady progress"
-        : "More steady, incremental rhythm"
+        ? "A mix of focused coding sessions and steady output"
+        : "Steady, consistent shipping — no marathon sessions"
   );
 
   return cards.slice(0, 8);

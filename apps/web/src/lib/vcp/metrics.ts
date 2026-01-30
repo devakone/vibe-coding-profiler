@@ -44,11 +44,12 @@ export function computeStrongestAxis(axes: VibeAxes): StrongestAxis {
 }
 
 /**
- * Format strongest axis for display (e.g., "Automation 78")
+ * Format strongest axis for display (e.g., "AI-Heavy Automation")
  */
 export function formatStrongestAxis(axes: VibeAxes): string {
-  const { name, score } = computeStrongestAxis(axes);
-  return `${name} ${score}`;
+  const { key } = computeStrongestAxis(axes);
+  const meta = AXIS_METADATA[key];
+  return `${meta.highLabel} ${meta.name}`;
 }
 
 // =============================================================================
@@ -126,7 +127,7 @@ export function computeRhythmLabel(axes: VibeAxes): RhythmLabel {
 // =============================================================================
 
 export type PeakWindow = "mornings" | "afternoons" | "evenings" | "late_nights" | null;
-export type PeakLabel = "Mornings" | "Afternoons" | "Evenings" | "Late Nights" | "Varied";
+export type PeakLabel = "Mornings" | "Afternoons" | "Evenings" | "Late Nights" | "All Hours";
 
 /**
  * Compute a peak time label from timing analysis.
@@ -144,7 +145,7 @@ export function computePeakLabel(peakWindow: PeakWindow): PeakLabel {
     case "late_nights":
       return "Late Nights";
     default:
-      return "Varied";
+      return "All Hours";
   }
 }
 
@@ -200,7 +201,7 @@ export function analyzePeakWindow(commitTimestamps: string[]): PeakWindow {
 // =============================================================================
 
 export interface ShareCardMetrics {
-  strongest: string;      // "Automation 78"
+  strongest: string;      // "AI-Heavy Automation"
   style: StyleDescriptor; // "Fast Builder"
   rhythm: RhythmLabel;    // "Bursty"
   peak: PeakLabel;        // "Afternoons"

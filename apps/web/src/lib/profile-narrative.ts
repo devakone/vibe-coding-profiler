@@ -75,20 +75,20 @@ export function toProfileNarrativeFallback(params: {
     .join(", ");
 
   return {
-    summary: `Across ${totalRepos} repositories and ${totalCommits} commits, you demonstrate a ${persona.name} coding style with ${persona.confidence} confidence.`,
+    summary: `Across ${totalRepos} repositories and ${totalCommits} commits, your AI-assisted coding workflow maps to the ${persona.name} persona with ${persona.confidence} confidence.`,
     sections: [
       {
-        title: "Your Coding Identity",
-        content: `Your aggregated profile shows you as a ${persona.name}. ${persona.tagline}. This pattern emerges consistently across your analyzed repositories.`,
+        title: "Vibe Coding Identity",
+        content: `Your aggregated profile identifies you as a ${persona.name}. ${persona.tagline}. This pattern emerges consistently across your analyzed repositories.`,
       },
       {
-        title: "Dominant Trait",
-        content: `Your strongest characteristic is ${dominantAxis[0].replace(/_/g, " ")} with a score of ${dominantAxis[1].score}/100. ${dominantAxis[1].why[0] ?? ""}`,
+        title: "Strongest Signal",
+        content: `Your most pronounced trait is ${dominantAxis[0].replace(/_/g, " ")} with a score of ${dominantAxis[1].score}/100. ${dominantAxis[1].why[0] ?? ""}`,
       },
       {
         title: "Repository Breakdown",
         content: repoSummary
-          ? `Your style varies across projects: ${repoSummary}${repoBreakdown.length > 3 ? ` and ${repoBreakdown.length - 3} more` : ""}.`
+          ? `Your vibe coding style varies across projects: ${repoSummary}${repoBreakdown.length > 3 ? ` and ${repoBreakdown.length - 3} more` : ""}.`
           : "No repository breakdown available.",
       },
     ],
@@ -124,27 +124,29 @@ export async function generateProfileNarrativeWithLLM(params: {
   const { provider, apiKey, model, profile } = params;
 
   const systemPrompt = [
-    "You write a personalized narrative about a developer's SOFTWARE ENGINEERING PATTERNS based on their aggregated profile data.",
-    "The profile is computed from multiple repository analyses and represents their overall coding identity.",
+    "You write a personalized narrative about a developer's AI-ASSISTED CODING WORKFLOW based on their aggregated vibe coding profile.",
+    "The profile measures how developers work with AI coding tools (Claude, Copilot, Cursor, etc.) across multiple repositories.",
     "",
     "PRIVACY RULES (CRITICAL - VIOLATION MEANS FAILURE):",
     "- NEVER mention project names, product names, or repository names",
     "- NEVER infer or mention what products, apps, or features the developer builds",
     "- NEVER reference business domains, industries, or product categories",
     "- Repository identifiers (Repo1, Repo2, etc.) are anonymized - do not try to interpret them",
-    "- Focus ONLY on: development rhythm, iteration patterns, testing approach, code organization, shipping cadence",
+    "- Focus ONLY on: AI-assisted workflow patterns, prompt-iterate loops, guardrail habits, session rhythm",
     "",
     "ALLOWED TOPICS:",
-    "- How they iterate (small vs large commits, batch vs continuous)",
-    "- Testing rhythm (when tests appear, test coverage patterns)",
-    "- Shipping cadence (release frequency, stabilization patterns)",
-    "- Code organization (refactoring frequency, structural changes)",
-    "- Collaboration patterns (if visible in data)",
+    "- How they use AI tools (agentic vs manual, large drops vs incremental edits)",
+    "- Prompt-fix-run iteration loops and feedback cycles",
+    "- Guardrail timing (when tests/CI/docs appear relative to AI-generated code)",
+    "- Session patterns (vibe coding marathons vs steady output)",
+    "- Planning before prompting (specs-first vs emergent architecture)",
+    "- Scope of AI-assisted changes (single file vs full-stack slices)",
     "",
     "CONTENT RULES:",
     "- Never infer skill level, code quality, or make judgments",
-    "- Focus on describing observable engineering patterns",
+    "- Focus on describing observable AI-assisted coding patterns",
     "- Be encouraging but factual. Avoid generic motivational language.",
+    "- Use vocabulary like: vibe coding, prompt-iterate, agentic workflow, AI-assisted, fix loops, session rhythm",
     "",
     "Output must be STRICT JSON with this schema:",
     '{"summary":"2-3 sentence overview","sections":[{"title":"...","content":"..."}],"highlights":[{"label":"...","value":"...","interpretation":"..."}]}',
@@ -181,9 +183,9 @@ export async function generateProfileNarrativeWithLLM(params: {
     "Persona Reasoning:",
     profile.persona.why?.join(". ") || "(No reasoning available)",
     "",
-    "Write a personalized narrative about the developer's SOFTWARE ENGINEERING approach and patterns.",
-    "Focus on: how they iterate, their testing rhythm, shipping cadence, and code organization style.",
-    "Do NOT interpret repository names or infer what products they build. Focus only on engineering patterns.",
+    "Write a personalized narrative about the developer's AI-assisted coding workflow and vibe coding patterns.",
+    "Focus on: how they use AI tools, their prompt-iterate loops, guardrail timing, session rhythm, and scope of changes.",
+    "Do NOT interpret repository names or infer what products they build. Focus only on AI-assisted workflow patterns.",
   ].join("\n");
 
   const client = createLLMClient({

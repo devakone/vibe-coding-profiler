@@ -105,29 +105,37 @@ export async function GET(
       strongest: "N/A",
       style: "Balanced",
       rhythm: "Mixed",
-      peak: "Varied"
+      peak: "All Hours"
     };
 
     if (axes) {
       // 1. Strongest
       let maxScore = -1;
-      let maxName = "";
+      let maxKey = "";
       const AXIS_NAMES: Record<string, string> = {
         automation_heaviness: "Automation",
         guardrail_strength: "Guardrails",
-        iteration_loop_intensity: "Loops",
+        iteration_loop_intensity: "Iteration",
         planning_signal: "Planning",
-        surface_area_per_change: "Scope",
+        surface_area_per_change: "Surface Area",
         shipping_rhythm: "Rhythm",
+      };
+      const AXIS_HIGH_LABELS: Record<string, string> = {
+        automation_heaviness: "AI-Heavy",
+        guardrail_strength: "Rigorous",
+        iteration_loop_intensity: "Rapid",
+        planning_signal: "Structured",
+        surface_area_per_change: "Wide",
+        shipping_rhythm: "Bursty",
       };
       for (const [key, val] of Object.entries(axes)) {
         const axis = val as { score: number };
         if (axis.score > maxScore && AXIS_NAMES[key]) {
           maxScore = axis.score;
-          maxName = AXIS_NAMES[key];
+          maxKey = key;
         }
       }
-      const strongest = maxName ? `${maxName} ${maxScore}` : "N/A";
+      const strongest = maxKey ? `${AXIS_HIGH_LABELS[maxKey]} ${AXIS_NAMES[maxKey]}` : "N/A";
 
       // 2. Style
       let style = "Mixed"; // Default
