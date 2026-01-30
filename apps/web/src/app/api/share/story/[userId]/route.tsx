@@ -9,7 +9,8 @@ import type { ShareCardColors, ShareCardMetric } from "@/components/share/types"
 import type { InsightCard, VibeAxes } from "@vibe-coding-profiler/core";
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "edge";
+// Node.js runtime required: qrcode package uses Node APIs incompatible with edge
+export const runtime = "nodejs";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseClientInstance = any;
