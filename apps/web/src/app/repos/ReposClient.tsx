@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ToastAction } from "@/components/ui/toast";
 import { toast } from "@/components/ui/use-toast";
 import { PlatformIcon } from "@/components/icons/platform";
-import type { PlatformRepo, PlatformType } from "@vibed/core";
+import type { PlatformRepo, PlatformType } from "@vibe-coding-profiler/core";
 
 type ConnectedRepo = {
   repo_id: string;

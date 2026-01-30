@@ -596,6 +596,21 @@ export type Database = {
         }
         Relationships: []
       }
+      reserved_usernames: {
+        Row: {
+          reason: string
+          username: string
+        }
+        Insert: {
+          reason?: string
+          username: string
+        }
+        Update: {
+          reason?: string
+          username?: string
+        }
+        Relationships: []
+      }
       user_action_rate_limits: {
         Row: {
           action: string
@@ -808,7 +823,9 @@ export type Database = {
           id: string
           is_admin: boolean
           llm_narrative_opt_in: boolean
+          public_profile_settings: Json
           updated_at: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -819,7 +836,9 @@ export type Database = {
           id: string
           is_admin?: boolean
           llm_narrative_opt_in?: boolean
+          public_profile_settings?: Json
           updated_at?: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -830,12 +849,15 @@ export type Database = {
           id?: string
           is_admin?: boolean
           llm_narrative_opt_in?: boolean
+          public_profile_settings?: Json
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
       vibe_insights: {
         Row: {
+          ai_tools_json: Json | null
           axes_json: Json
           cards_json: Json | null
           evidence_json: Json | null
@@ -851,6 +873,7 @@ export type Database = {
           version: string
         }
         Insert: {
+          ai_tools_json?: Json | null
           axes_json?: Json
           cards_json?: Json | null
           evidence_json?: Json | null
@@ -866,6 +889,7 @@ export type Database = {
           version: string
         }
         Update: {
+          ai_tools_json?: Json | null
           axes_json?: Json
           cards_json?: Json | null
           evidence_json?: Json | null

@@ -694,6 +694,36 @@ Planning Signal:         40-70  (medium)
 
 ---
 
+## AI Tool Metrics
+
+In addition to axes and personas, the system detects and quantifies AI coding tool usage from `Co-Authored-By` trailers in commit messages.
+
+### Tool Registry
+
+11 tools are recognized via regex patterns against Co-Authored-By values: Claude, GitHub Copilot, Cursor, Aider, Cline, Roo Code, Windsurf, Devin, Codegen, SWE-Agent, Gemini.
+
+### Metrics Computed
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `detected` | boolean | Whether any AI tool was found |
+| `ai_assisted_commits` | number | Total commits with AI co-authorship |
+| `ai_collaboration_rate` | number (0–1) | Fraction of total commits with AI |
+| `primary_tool` | `{ id, name }` | Most frequently used tool |
+| `tool_diversity` | number | Count of distinct tools |
+| `tools[]` | array | Per-tool breakdown with percentages |
+| `confidence` | string | high (≥10), medium (3–9), low (1–2) |
+
+### Relation to Multi-Agent Signals
+
+AI tool metrics are a **superset** of existing multi-agent signals. The raw `tool_co_authors` signal (in `multi_agent_signals`) feeds into `AIToolMetrics` (in `VibeInsightsV1`). See [AI Tool Metrics Architecture](./ai-tool-metrics.md).
+
+### Storage
+
+Stored as `ai_tools_json` (JSONB) on the `vibe_insights` table. Aggregated across repos for unified profiles and public profiles.
+
+---
+
 ## Confidence Scoring (v1)
 
 Based on data coverage and signal strength.

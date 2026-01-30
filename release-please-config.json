@@ -24,7 +24,7 @@
   "packages": {
     ".": {
       "release-type": "node",
-      "component": "vide-coding",
+      "component": "vibe-coding-profiler",
       "changelog-path": "CHANGELOG.md"
     },
     "apps/web": {

@@ -22,7 +22,7 @@ This document explains how the Vibe Coding Profile stack fits together, how data
 
 3. **Vibe Coding Profile Worker** (`apps/worker`)
    - Polls `analysis_jobs` (via `claim_analysis_job` RPC) and processes each job sequentially.
-   - Fetches commits through the GitHub API, decrypts stored tokens, calculates metrics with `@vibed/core`, assigns a Vibe persona, and writes structured results back to Postgres (`analysis_metrics`, `analysis_reports`, `analysis_insights`, updates job status).
+   - Fetches commits through the GitHub API, decrypts stored tokens, calculates metrics with `@vibe-coding-profiler/core`, assigns a Vibe persona, and writes structured results back to Postgres (`analysis_metrics`, `analysis_reports`, `analysis_insights`, updates job status).
    - Hosts a health endpoint so orchestration (e.g., Docker Compose, Supervisord, or manual runs) can monitor liveness.
 
 4. **Shared Libraries**
@@ -57,7 +57,7 @@ flowchart LR
 graph TD
     JobQueue["analysis_jobs status: queued"] -->|"claim"| Worker["Worker Loop"]
     Worker -->|"fetch commits (GitHub API)"| CommitData["Commit Events"]
-    Worker -->|"compute metrics"| Core["@vibed/core"]
+    Worker -->|"compute metrics"| Core["@vibe-coding-profiler/core"]
     Core -->|"writes"| Metrics["analysis_metrics"]
     Core -->|"writes"| Narrative["analysis_reports"]
     Core -->|"writes"| Insights["analysis_insights"]

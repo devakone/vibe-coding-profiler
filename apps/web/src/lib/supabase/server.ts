@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import type { Database, DbSchema } from "@vibed/db";
+import type { Database, DbSchema } from "@vibe-coding-profiler/db";
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();

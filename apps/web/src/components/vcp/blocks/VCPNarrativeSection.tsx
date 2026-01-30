@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils";
 import type { VCPNarrativeSectionProps } from "../types";
 import { VCPSection, VCPInsightBox } from "../primitives";
 

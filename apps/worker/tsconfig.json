@@ -12,10 +12,10 @@
     "outDir": "./dist",
     "rootDir": "../..",
     "paths": {
-      "@vibed/core": ["../../packages/core/src/index.ts"],
-      "@vibed/core/*": ["../../packages/core/src/*"],
-      "@vibed/db": ["../../packages/db/src/index.ts"],
-      "@vibed/db/*": ["../../packages/db/src/*"]
+      "@vibe-coding-profiler/core": ["../../packages/core/src/index.ts"],
+      "@vibe-coding-profiler/core/*": ["../../packages/core/src/*"],
+      "@vibe-coding-profiler/db": ["../../packages/db/src/index.ts"],
+      "@vibe-coding-profiler/db/*": ["../../packages/db/src/*"]
     }
   },
   "include": ["src/**/*"],

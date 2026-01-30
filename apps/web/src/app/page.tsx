@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Database } from "@vibed/db";
+import type { Database } from "@vibe-coding-profiler/db";
 import { wrappedTheme } from "@/lib/theme";
 import { ProfileShareSection } from "@/components/share";
 import { ProfileVersionSelector } from "@/components/ProfileVersionSelector";
@@ -9,10 +9,11 @@ import {
   aggregateUserProfile,
   computeVibeFromCommits,
   detectVibePersona,
+  type AIToolMetrics,
   type RepoInsightSummary,
   type VibeAxes,
   type VibeCommitEvent,
-} from "@vibed/core";
+} from "@vibe-coding-profiler/core";
 import {
   UnifiedIdentitySection,
   UnifiedInsightSection,
@@ -21,6 +22,7 @@ import {
   RepoBreakdownSection,
   UnifiedMethodologySection,
 } from "@/components/vcp/unified";
+import { VCPAIToolsSection } from "@/components/vcp/blocks";
 
 const heroFeatures = [
   "A Vibe Coding Profile (VCP) built from AI-assisted engineering signals in your commit history",
@@ -110,6 +112,7 @@ type AuthStats = {
     } | null;
     llmModel?: string | null;
     llmKeySource?: string | null;
+    aiTools?: AIToolMetrics | null;
   };
 };
 
@@ -675,6 +678,50 @@ export default async function Home({
   const latestInsightRepoName = (latestInsightRepoNameResult?.data ??
     null) as unknown as RepoNameRow | null;
 
+  // Fetch aggregated AI tool metrics from vibe_insights
+  let profileAiTools: AIToolMetrics | null = null;
+  if (userProfileData) {
+    const effectiveJobIds = profileJobIds ?? [];
+    if (effectiveJobIds.length > 0) {
+      const { data: vibeRows } = await supabase
+        .from("vibe_insights")
+        .select("ai_tools_json")
+        .in("job_id", effectiveJobIds);
+
+      const vibeToolRows = (vibeRows ?? []) as Array<{ ai_tools_json: unknown }>;
+      if (vibeToolRows.length > 0) {
+        const toolCounts = new Map<string, { name: string; count: number }>();
+        let totalAiCommits = 0;
+        for (const row of vibeToolRows) {
+          const tools = row.ai_tools_json as AIToolMetrics | null;
+          if (!tools || !tools.detected) continue;
+          totalAiCommits += tools.ai_assisted_commits;
+          for (const tool of tools.tools) {
+            const existing = toolCounts.get(tool.tool_id);
+            if (existing) existing.count += tool.commit_count;
+            else toolCounts.set(tool.tool_id, { name: tool.tool_name, count: tool.commit_count });
+          }
+        }
+        if (toolCounts.size > 0) {
+          const total = userProfileData.total_commits ?? 0;
+          const tools = Array.from(toolCounts.entries())
+            .map(([id, d]) => ({
+              tool_id: id, tool_name: d.name, commit_count: d.count,
+              percentage: totalAiCommits > 0 ? Math.round((d.count / totalAiCommits) * 100) : 0,
+            }))
+            .sort((a, b) => b.commit_count - a.commit_count);
+          profileAiTools = {
+            detected: true, ai_assisted_commits: totalAiCommits,
+            ai_collaboration_rate: total > 0 ? totalAiCommits / total : 0,
+            primary_tool: { id: tools[0].tool_id, name: tools[0].tool_name },
+            tool_diversity: tools.length, tools,
+            confidence: totalAiCommits >= 10 ? "high" : totalAiCommits >= 3 ? "medium" : "low",
+          };
+        }
+      }
+    }
+  }
+
   const debugParam = resolvedSearchParams.debug;
   const debugEnabled =
     debugParam === "1" || (Array.isArray(debugParam) && debugParam.includes("1"));
@@ -719,6 +766,7 @@ export default async function Home({
           narrative: userProfileData.narrative_json ?? null,
           llmModel: userProfileData.llm_model ?? null,
           llmKeySource: userProfileData.llm_key_source ?? null,
+          aiTools: profileAiTools,
         }
       : undefined,
   };
@@ -803,7 +851,28 @@ export default async function Home({
       }
     : null;
 
-  return <AuthenticatedDashboard stats={stats} debugInfo={debugInfo} userId={user.id} />;
+  // Fetch username and public profile settings for share URL
+  const { data: userRow } = await supabase
+    .from("users")
+    .select()
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const userRowTyped = userRow as { username?: string | null; public_profile_settings?: Record<string, unknown> | null } | null;
+  const publicUsername = userRowTyped?.username ?? null;
+  const publicProfileEnabled =
+    publicUsername != null &&
+    userRowTyped?.public_profile_settings?.profile_enabled === true;
+
+  return (
+    <AuthenticatedDashboard
+      stats={stats}
+      debugInfo={debugInfo}
+      userId={user.id}
+      username={publicUsername}
+      profileEnabled={publicProfileEnabled}
+    />
+  );
 }
 
 function MarketingLanding() {
@@ -960,10 +1029,14 @@ function AuthenticatedDashboard({
   stats,
   debugInfo,
   userId,
+  username,
+  profileEnabled,
 }: {
   stats: AuthStats;
   debugInfo: Record<string, unknown> | null;
   userId: string;
+  username: string | null;
+  profileEnabled: boolean;
 }) {
   const isAxisValue = (v: unknown): v is { score: number; level: string; why: string[] } => {
     if (typeof v !== "object" || v === null) return false;
@@ -1144,6 +1217,8 @@ function AuthenticatedDashboard({
             insight={crossRepoInsight}
             axes={stats.userProfile.axes as unknown as VibeAxes}
             userId={userId}
+            username={username}
+            profileEnabled={profileEnabled}
           />
         ) : null}
 
@@ -1182,6 +1257,13 @@ function AuthenticatedDashboard({
           {/* Section 3: Your Axes */}
           {stats.userProfile && isVibeAxes(stats.userProfile.axes) ? (
             <UnifiedAxesSection axes={stats.userProfile.axes} />
+          ) : null}
+
+          {/* Section 3b: AI Coding Tools */}
+          {stats.userProfile?.aiTools?.detected ? (
+            <div className="border-t border-black/5 px-8 py-6 sm:px-10">
+              <VCPAIToolsSection aiTools={stats.userProfile.aiTools} />
+            </div>
           ) : null}
 
           {/* Section 4: Evolution */}

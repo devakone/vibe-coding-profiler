@@ -5,7 +5,7 @@
  * Used by both Unified VCP and Repo VCP share sections.
  */
 
-import type { VibeAxes, Level } from "@vibed/core";
+import type { VibeAxes } from "@vibe-coding-profiler/core";
 import { AXIS_METADATA, AXIS_ORDER } from "@/components/vcp/constants";
 import type { AxisKey } from "@/components/vcp/types";
 

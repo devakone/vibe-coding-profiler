@@ -12,3 +12,4 @@ export { VCPMatchedSignals } from "./VCPMatchedSignals";
 export { VCPMethodologyLink } from "./VCPMethodologyLink";
 export { VCPFooter } from "./VCPFooter";
 export { VCPVersionHistory } from "./VCPVersionHistory";
+export { VCPAIToolsSection } from "./VCPAIToolsSection";

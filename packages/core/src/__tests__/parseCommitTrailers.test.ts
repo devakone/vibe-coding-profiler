@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { parseCommitTrailers } from "../index";
+import { parseCommitTrailers, identifyAITool } from "../index";
+import { extractAIToolMetrics } from "../vibe";
 
 describe("parseCommitTrailers", () => {
   it("parses Co-authored-by trailer after blank line", () => {
@@ -139,5 +140,156 @@ Signed-off-by: Bob <bob@example.com>`;
     expect(trailers).toHaveLength(2);
     expect(trailers.map((t) => t.name)).toContain("Co-authored-by");
     expect(trailers.map((t) => t.name)).toContain("Signed-off-by");
+  });
+});
+
+describe("identifyAITool", () => {
+  it("identifies Claude from co-author value", () => {
+    expect(identifyAITool("Claude <noreply@anthropic.com>")).toBe("claude");
+  });
+
+  it("identifies Claude from anthropic domain", () => {
+    expect(identifyAITool("AI Assistant <assistant@anthropic.com>")).toBe("claude");
+  });
+
+  it("identifies GitHub Copilot", () => {
+    expect(identifyAITool("GitHub Copilot <copilot@github.com>")).toBe("copilot");
+  });
+
+  it("identifies Cursor", () => {
+    expect(identifyAITool("Cursor AI <cursor@cursor.sh>")).toBe("cursor");
+  });
+
+  it("identifies Aider", () => {
+    expect(identifyAITool("aider <aider@aider.chat>")).toBe("aider");
+  });
+
+  it("identifies Cline", () => {
+    expect(identifyAITool("Cline Bot <cline@bot.dev>")).toBe("cline");
+  });
+
+  it("identifies Roo Code", () => {
+    expect(identifyAITool("Roo <roo@example.com>")).toBe("roo");
+  });
+
+  it("identifies Windsurf via codeium", () => {
+    expect(identifyAITool("Codeium AI <noreply@codeium.com>")).toBe("windsurf");
+  });
+
+  it("identifies Devin via cognition", () => {
+    expect(identifyAITool("Devin AI <devin@cognition.dev>")).toBe("devin");
+  });
+
+  it("identifies Gemini", () => {
+    expect(identifyAITool("Gemini <gemini@google.com>")).toBe("gemini");
+  });
+
+  it("identifies SWE-Agent", () => {
+    expect(identifyAITool("SWE-Agent <swe-agent@bot.dev>")).toBe("swe-agent");
+    expect(identifyAITool("sweagent <sweagent@bot.dev>")).toBe("swe-agent");
+  });
+
+  it("returns null for human co-authors", () => {
+    expect(identifyAITool("Alice <alice@example.com>")).toBeNull();
+    expect(identifyAITool("Bob Smith <bob@company.org>")).toBeNull();
+    expect(identifyAITool("John Developer <john@dev.io>")).toBeNull();
+  });
+
+  it("returns null for empty string", () => {
+    expect(identifyAITool("")).toBeNull();
+  });
+});
+
+describe("extractAIToolMetrics", () => {
+  it("detects tools from commits with AI co-authors", () => {
+    const commits = [
+      { message: "feat: add feature\n\nCo-authored-by: Claude <noreply@anthropic.com>" },
+      { message: "fix: bug fix\n\nCo-authored-by: Claude <noreply@anthropic.com>" },
+      { message: "feat: another feature\n\nCo-authored-by: GitHub Copilot <copilot@github.com>" },
+      { message: "chore: cleanup" },
+    ];
+
+    const metrics = extractAIToolMetrics(commits);
+    expect(metrics.detected).toBe(true);
+    expect(metrics.ai_assisted_commits).toBe(3);
+    expect(metrics.ai_collaboration_rate).toBe(0.75);
+    expect(metrics.primary_tool).toEqual({ id: "claude", name: "Claude" });
+    expect(metrics.tool_diversity).toBe(2);
+    expect(metrics.tools).toHaveLength(2);
+    expect(metrics.tools[0].tool_id).toBe("claude");
+    expect(metrics.tools[0].commit_count).toBe(2);
+    expect(metrics.tools[1].tool_id).toBe("copilot");
+    expect(metrics.tools[1].commit_count).toBe(1);
+  });
+
+  it("handles commits with multiple AI co-authors in same commit", () => {
+    const commits = [
+      {
+        message:
+          "feat: complex feature\n\nCo-authored-by: Claude <noreply@anthropic.com>\nCo-authored-by: GitHub Copilot <copilot@github.com>",
+      },
+    ];
+
+    const metrics = extractAIToolMetrics(commits);
+    expect(metrics.detected).toBe(true);
+    expect(metrics.ai_assisted_commits).toBe(1);
+    expect(metrics.tool_diversity).toBe(2);
+    // Both tools get credit for 1 commit
+    expect(metrics.tools.find((t) => t.tool_id === "claude")?.commit_count).toBe(1);
+    expect(metrics.tools.find((t) => t.tool_id === "copilot")?.commit_count).toBe(1);
+  });
+
+  it("returns detected: false when no AI co-authors", () => {
+    const commits = [
+      { message: "feat: add feature" },
+      { message: "fix: bug fix\n\nCo-authored-by: Alice <alice@example.com>" },
+    ];
+
+    const metrics = extractAIToolMetrics(commits);
+    expect(metrics.detected).toBe(false);
+    expect(metrics.ai_assisted_commits).toBe(0);
+    expect(metrics.ai_collaboration_rate).toBe(0);
+    expect(metrics.primary_tool).toBeNull();
+    expect(metrics.tool_diversity).toBe(0);
+    expect(metrics.tools).toHaveLength(0);
+  });
+
+  it("computes correct percentages", () => {
+    const commits = [
+      { message: "feat: a\n\nCo-authored-by: Claude <noreply@anthropic.com>" },
+      { message: "feat: b\n\nCo-authored-by: Claude <noreply@anthropic.com>" },
+      { message: "feat: c\n\nCo-authored-by: Claude <noreply@anthropic.com>" },
+      { message: "feat: d\n\nCo-authored-by: GitHub Copilot <copilot@github.com>" },
+    ];
+
+    const metrics = extractAIToolMetrics(commits);
+    expect(metrics.tools[0].percentage).toBe(75); // Claude: 3 of 4
+    expect(metrics.tools[1].percentage).toBe(25); // Copilot: 1 of 4
+  });
+
+  it("uses totalCommits param for collaboration rate", () => {
+    const commits = [
+      { message: "feat: a\n\nCo-authored-by: Claude <noreply@anthropic.com>" },
+    ];
+
+    const metrics = extractAIToolMetrics(commits, 10);
+    expect(metrics.ai_collaboration_rate).toBe(0.1); // 1 of 10
+  });
+
+  it("sets confidence based on signal count", () => {
+    const lowCommits = [
+      { message: "feat: a\n\nCo-authored-by: Claude <noreply@anthropic.com>" },
+    ];
+    expect(extractAIToolMetrics(lowCommits).confidence).toBe("low");
+
+    const medCommits = Array.from({ length: 5 }, (_, i) => ({
+      message: `feat: ${i}\n\nCo-authored-by: Claude <noreply@anthropic.com>`,
+    }));
+    expect(extractAIToolMetrics(medCommits).confidence).toBe("medium");
+
+    const highCommits = Array.from({ length: 15 }, (_, i) => ({
+      message: `feat: ${i}\n\nCo-authored-by: Claude <noreply@anthropic.com>`,
+    }));
+    expect(extractAIToolMetrics(highCommits).confidence).toBe("high");
   });
 });

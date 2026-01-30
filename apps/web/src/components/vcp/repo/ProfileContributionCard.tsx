@@ -37,7 +37,6 @@ export function ProfileContributionCard({
   className,
 }: ProfileContributionCardProps) {
   const {
-    repoName,
     jobCommitCount,
     includedInProfile,
     profileTotalCommits,

@@ -2,7 +2,7 @@
 
 import { useMemo, useSyncExternalStore } from "react";
 import { computeShareCardMetrics } from "@/lib/vcp/metrics";
-import type { VibeAxes } from "@vibed/core";
+import type { VibeAxes } from "@vibe-coding-profiler/core";
 import { ShareCard, ShareActions } from "./index";
 import type { ShareCardMetric, ShareImageTemplate } from "./types";
 
@@ -63,6 +63,10 @@ interface ProfileShareSectionProps {
   insight: string;
   axes: VibeAxes;
   userId: string;
+  /** When set and public profile is enabled, share URL uses /u/{username} */
+  username?: string | null;
+  /** Whether the user's public profile is enabled */
+  profileEnabled?: boolean;
 }
 
 export function ProfileShareSection({
@@ -77,6 +81,8 @@ export function ProfileShareSection({
   insight,
   axes,
   userId,
+  username,
+  profileEnabled,
 }: ProfileShareSectionProps) {
   const shareOrigin = useOrigin();
 
@@ -94,8 +100,11 @@ export function ProfileShareSection({
 
   const shareUrl = useMemo(() => {
     if (!shareOrigin) return "";
-    return shareOrigin; // Profile is at root
-  }, [shareOrigin]);
+    if (username && profileEnabled) {
+      return `${shareOrigin}/u/${username}`;
+    }
+    return shareOrigin;
+  }, [shareOrigin, username, profileEnabled]);
 
   const shareTagline = insight ?? personaTagline ?? "";
 
@@ -123,6 +132,26 @@ export function ProfileShareSection({
     };
   }, [personaName, personaTagline, personaConfidence, colors, shareCardMetrics, topAxes, shareTagline]);
 
+  const shareJson = useMemo(() => ({
+    meta: {
+      generatedAt: new Date().toISOString(),
+      profileUrl: shareUrl,
+    },
+    persona: {
+      label: personaName,
+      tagline: personaTagline,
+      confidence: personaConfidence,
+      insight,
+    },
+    metrics: {
+      totalRepos,
+      totalCommits,
+      clarity,
+      topAxes,
+    },
+    axes,
+  }), [personaName, personaTagline, personaConfidence, insight, totalRepos, totalCommits, clarity, topAxes, axes, shareUrl]);
+
   return (
     <div className="space-y-4">
       <ShareCard
@@ -149,8 +178,8 @@ export function ProfileShareSection({
         shareCaption={shareCaption}
         shareHeadline={`Unified VCP: ${personaName}`}
         shareTemplate={shareImageTemplate}
-        entityId="profile"
-        storyEndpoint={userId ? `/api/share/story/${userId}` : undefined}
+        entityId={userId}
+        shareJson={shareJson}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 /**
- * @vibed/db
+ * @vibe-coding-profiler/db
  *
  * Supabase client and database utilities for Vibed Coding.
  */

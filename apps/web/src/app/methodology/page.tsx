@@ -29,6 +29,7 @@ export default async function MethodologyPage() {
             <li>Commit metadata: timestamps, files changed, additions/deletions.</li>
             <li>Commit message subjects: lightweight patterns like feat/fix/test/docs.</li>
             <li>Changed file paths when available (to infer which subsystems changed together).</li>
+            <li>Commit trailers: Co-Authored-By attribution (used to detect AI tool usage).</li>
             <li>PR metadata when available: changed-files counts, issue linking, checklists.</li>
           </ul>
           <p className="text-sm text-zinc-700">
@@ -140,7 +141,39 @@ export default async function MethodologyPage() {
         </section>
 
         <section className={`${wrappedTheme.card} space-y-4 p-6`}>
-          <h2 className="text-lg font-semibold text-zinc-950">5) Why it can be wrong</h2>
+          <h2 className="text-lg font-semibold text-zinc-950">5) AI tool detection</h2>
+          <p className="text-sm text-zinc-700">
+            We detect which AI coding tools you use by parsing{" "}
+            <code className="rounded bg-zinc-100 px-1 py-0.5 text-xs">Co-Authored-By</code>{" "}
+            trailers in your commit messages. Many AI tools (Claude Code, GitHub Copilot, Cursor,
+            Aider, and others) automatically add these trailers when they help write code.
+          </p>
+          <p className="text-sm text-zinc-700">
+            From these trailers we compute:
+          </p>
+          <ul className="list-disc space-y-2 pl-5 text-sm text-zinc-700">
+            <li>
+              <span className="font-semibold text-zinc-950">AI collaboration rate</span> — the
+              fraction of your commits that have AI co-authorship.
+            </li>
+            <li>
+              <span className="font-semibold text-zinc-950">Primary tool</span> — the AI tool that
+              appears most frequently in your history.
+            </li>
+            <li>
+              <span className="font-semibold text-zinc-950">Tool breakdown</span> — per-tool usage
+              percentages across all detected tools.
+            </li>
+          </ul>
+          <p className="text-sm text-zinc-700">
+            We currently recognize 11 tools: Claude, GitHub Copilot, Cursor, Aider, Cline, Roo Code,
+            Windsurf, Devin, Codegen, SWE-Agent, and Gemini. If a tool doesn&apos;t add
+            Co-Authored-By trailers, we can&apos;t detect it — this is a known limitation.
+          </p>
+        </section>
+
+        <section className={`${wrappedTheme.card} space-y-4 p-6`}>
+          <h2 className="text-lg font-semibold text-zinc-950">6) Why it can be wrong</h2>
           <ul className="list-disc space-y-2 pl-5 text-sm text-zinc-700">
             <li>GitHub only shows what’s pushed; local work and private repos may be missing.</li>
             <li>Some repos have incomplete metadata (e.g., missing file paths).</li>

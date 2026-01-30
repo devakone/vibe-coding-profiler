@@ -1,13 +1,14 @@
 import Link from "next/link";
 
-type TabName = "llm-keys" | "platforms" | "repos";
+type TabName = "llm-keys" | "platforms" | "repos" | "public-profile";
 
 export function SettingsTabs({ activeTab }: { activeTab: TabName }) {
   return (
     <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
-      <Tab href="/settings/llm-keys" label="LLM Keys" isActive={activeTab === "llm-keys"} />
-      <Tab href="/settings/platforms" label="Platforms" isActive={activeTab === "platforms"} />
       <Tab href="/settings/repos" label="Repos" isActive={activeTab === "repos"} />
+      <Tab href="/settings/platforms" label="Platforms" isActive={activeTab === "platforms"} />
+      <Tab href="/settings/llm-keys" label="LLM Keys" isActive={activeTab === "llm-keys"} />
+      <Tab href="/settings/public-profile" label="Public Profile" isActive={activeTab === "public-profile"} />
     </div>
   );
 }

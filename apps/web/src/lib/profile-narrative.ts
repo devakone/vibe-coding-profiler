@@ -10,7 +10,7 @@ import {
   type AggregatedProfile,
   type VibeAxes,
   type VibePersona,
-} from "@vibed/core";
+} from "@vibe-coding-profiler/core";
 
 function safeJsonParse(value: string): unknown {
   try {

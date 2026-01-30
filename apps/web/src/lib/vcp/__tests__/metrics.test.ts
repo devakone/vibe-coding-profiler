@@ -2,7 +2,7 @@
  * Unit tests for VCP metric utilities
  */
 import { describe, it, expect } from "vitest";
-import type { VibeAxes } from "@vibed/core";
+import type { VibeAxes } from "@vibe-coding-profiler/core";
 import {
   computeStrongestAxis,
   formatStrongestAxis,
@@ -13,11 +13,6 @@ import {
   computeShareCardMetrics,
   formatConfidence,
   computeConsistencyLabel,
-  type StrongestAxis,
-  type StyleDescriptor,
-  type RhythmLabel,
-  type PeakWindow,
-  type PeakLabel,
 } from "../metrics";
 
 // =============================================================================

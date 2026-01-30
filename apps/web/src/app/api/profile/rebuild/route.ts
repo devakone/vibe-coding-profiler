@@ -11,8 +11,8 @@ import {
   type VibeAxes,
   type VibeCommitEvent,
   type VibePersona,
-} from "@vibed/core";
-import type { Insertable, Json } from "@vibed/db";
+} from "@vibe-coding-profiler/core";
+import type { Insertable, Json } from "@vibe-coding-profiler/db";
 import { resolveProfileLLMConfig, recordLLMUsage } from "@/lib/llm-config";
 import {
   generateProfileNarrativeWithLLM,

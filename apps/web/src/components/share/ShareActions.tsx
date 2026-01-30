@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Copy, Check, Link2, Share2, Download } from "lucide-react";
-import { SHARE_FORMATS, downloadSharePng, downloadShareSvg, downloadBlob } from "./share-image";
+import { Copy, Check, Link2, Share2, Download, FileText } from "lucide-react";
+import { SHARE_FORMATS, downloadBlob } from "./share-image";
 import type { ShareActionsProps, ShareFormat } from "./types";
 
 // Brand icons (Lucide doesn't include these)
@@ -47,7 +47,7 @@ export function ShareActions({
   shareTemplate,
   entityId,
   disabled = false,
-  storyEndpoint,
+  shareJson,
 }: ShareActionsProps) {
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -59,7 +59,8 @@ export function ShareActions({
 
   useEffect(() => {
     setSupportsNativeShare(typeof navigator !== "undefined" && "share" in navigator);
-  }, []);
+    console.log("ShareActions mounted:", { shareUrl, disabled, shareTemplate: !!shareTemplate });
+  }, [shareUrl, disabled, shareTemplate]);
 
   const handleCopyText = async () => {
     try {
@@ -125,51 +126,105 @@ export function ShareActions({
   };
 
   const handleNativeShare = async () => {
-    if (!shareUrl || !shareHeadline) return;
     if (!("share" in navigator)) return;
+    
+    // 1. Set loading state
+    setDownloadError(null);
+    setDownloading(true); // Reuse downloading state or add a new one, actually better to reuse to block UI
+
     try {
-      await navigator.share({
-        title: shareHeadline,
-        text: shareCaption,
-        url: shareUrl,
+      // 2. Fetch the image blob
+      const url = `/api/share/${shareFormat}/${entityId}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("generation_failed");
+      const blob = await res.blob();
+      
+      // 3. Create File object
+      const file = new File([blob], `vcp-${entityId}-${shareFormat}.png`, {
+        type: "image/png",
       });
-    } catch {
-      // User cancelled or share failed silently
+
+      // 4. Validate sharing files
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: shareHeadline,
+          // Some platforms ignore text if files are present, but good to include
+          text: shareCaption, 
+          // Note: Including URL with files is often flaky on Android/iOS (sometimes creates a link card instead of image).
+          // We prioritize the IMAGE here as per user request ("share that [the image]").
+          // If you really need the URL, append it to text.
+          // url: shareUrl, 
+        });
+      } else {
+        // Fallback if file sharing not supported
+        await navigator.share({
+          title: shareHeadline,
+          text: shareCaption,
+          url: shareUrl,
+        });
+      }
+    } catch (e: unknown) {
+      // User cancelled or share failed
+      const err = e instanceof Error ? e : null;
+      if (err && err.name !== "AbortError" && err.name !== "NotAllowedError") {
+        console.error("Share failed:", e);
+        setDownloadError("share_failed");
+      }
+    } finally {
+      setDownloading(false);
     }
   };
 
   const handleDownloadPng = async () => {
-    if (!shareTemplate) return;
+    console.log("handleDownloadPng triggered");
     setDownloadError(null);
     setDownloading(true);
     try {
-      await downloadSharePng(shareTemplate, shareFormat, entityId);
+      // Use the new backend API for consistent image generation
+      const url = `/api/share/${shareFormat}/${entityId}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("generation_failed");
+      const blob = await res.blob();
+      downloadBlob(blob, `vcp-${entityId}-${shareFormat}.png`);
+      console.log("PNG download complete");
     } catch (e) {
+      console.error("PNG download failed:", e);
       setDownloadError(e instanceof Error ? e.message : "download_failed");
     } finally {
       setDownloading(false);
     }
   };
 
-  const handleDownloadSvg = () => {
-    if (!shareTemplate) return;
-    setDownloadError(null);
-    downloadShareSvg(shareTemplate, shareFormat, entityId);
-  };
-
   const handleDownloadStory = async () => {
-    if (!storyEndpoint) return;
+    console.log("handleDownloadStory triggered");
     setDownloadError(null);
     setStoryDownloading(true);
     try {
-      const res = await fetch(storyEndpoint, { cache: "no-store" });
+      // Use the new backend API for story generation
+      const url = `/api/share/story/${entityId}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("story_failed");
       const blob = await res.blob();
-      downloadBlob(blob, `${entityId}-story.png`);
+      downloadBlob(blob, `vcp-${entityId}-story.png`);
     } catch (e) {
+      console.error("Story download failed:", e);
       setDownloadError(e instanceof Error ? e.message : "story_download_failed");
     } finally {
       setStoryDownloading(false);
+    }
+  };
+
+  const handleDownloadJson = () => {
+    console.log("handleDownloadJson triggered");
+    if (!shareJson) return;
+    try {
+      const jsonString = JSON.stringify(shareJson, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      downloadBlob(blob, `vcp-profile-${entityId}.json`);
+    } catch (e) {
+      console.error("JSON download failed:", e);
+      setDownloadError("json_failed");
     }
   };
 
@@ -197,30 +252,31 @@ export function ShareActions({
               className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
               onClick={handleDownloadPng}
               disabled={downloading}
-              title="Download PNG"
+              title="Download Image"
             >
               <Download size={14} />
               PNG
             </button>
+            {/* SVG Export removed as it does not match VCP design (user request) */}
             <button
               type="button"
-              className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100"
-              onClick={handleDownloadSvg}
-              title="Download SVG"
+              className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={handleDownloadStory}
+              disabled={storyDownloading}
+              title="Download Story"
             >
               <Download size={14} />
-              SVG
+              Story
             </button>
-            {storyEndpoint ? (
+            {shareJson ? (
               <button
                 type="button"
-                className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
-                onClick={handleDownloadStory}
-                disabled={storyDownloading}
-                title="Download Story"
+                className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100"
+                onClick={handleDownloadJson}
+                title="Download JSON"
               >
-                <Download size={14} />
-                Story
+                <FileText size={14} />
+                JSON
               </button>
             ) : null}
           </div>
@@ -304,7 +360,7 @@ export function ShareActions({
             type="button"
             className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={handleNativeShare}
-            disabled={isDisabled}
+            disabled={isDisabled || downloading}
           >
             <Share2 size={14} />
             Share

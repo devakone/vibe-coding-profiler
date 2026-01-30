@@ -6,7 +6,7 @@ This tracker accompanies `docs/prd/platform/prd-multi-platform-integration.md`. 
 ## Tracker
 
 ### P1. Platform Client Abstraction
-**Task:** Create platform abstraction layer in `@vibed/core` without breaking existing functionality.
+**Task:** Create platform abstraction layer in `@vibe-coding-profiler/core` without breaking existing functionality.
 **Deliverables:**
 - [x] Platform types created (`packages/core/src/platforms/types.ts`)
 - [x] GitHub client extracted from existing code

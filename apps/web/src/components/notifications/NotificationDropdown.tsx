@@ -20,13 +20,10 @@ import {
 export function NotificationDropdown() {
   const { jobs, unreadReportIds, unreadCount, markReportAsRead, markAllAsRead, isPolling } = useJobs();
   const [isOpen, setIsOpen] = useState(false);
+  // Track client-side mount to avoid hydration mismatch from Radix UI's random ID generation
   const [hasMounted, setHasMounted] = useState(false);
-
-  // Only render the full component on the client to avoid hydration mismatch
-  // from Radix UI's random ID generation
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional hydration guard pattern
+  useEffect(() => { setHasMounted(true); }, []);
 
   // Sort jobs: in-progress first, then by date
   const sortedJobs = [...jobs].sort((a, b) => {

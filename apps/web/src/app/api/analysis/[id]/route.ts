@@ -8,7 +8,7 @@ import {
   type RepoInsightSummary,
   type VibeAxes,
   type VibeCommitEvent,
-} from "@vibed/core";
+} from "@vibe-coding-profiler/core";
 
 export const runtime = "nodejs";
 
@@ -324,7 +324,7 @@ export async function GET(
     const { data: v } = await (supabase as unknown as SupabaseQueryLike)
       .from("vibe_insights")
       .select(
-        "job_id, axes_json, persona_id, persona_name, persona_tagline, persona_confidence, persona_score, cards_json"
+        "job_id, axes_json, persona_id, persona_name, persona_tagline, persona_confidence, persona_score, cards_json, ai_tools_json"
       )
       .eq("job_id", id)
       .single();
@@ -402,6 +402,7 @@ export async function GET(
           persona_confidence: computed.persona.confidence,
           persona_score: computed.persona.score,
           cards_json: computed.cards,
+          ai_tools_json: computed.ai_tools,
         };
       }
       return null;

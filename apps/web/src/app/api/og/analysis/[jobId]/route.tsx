@@ -4,7 +4,7 @@ import { computeShareCardMetrics } from "@/lib/vcp/metrics";
 import { isVibeAxes } from "@/lib/vcp/validators";
 import { getPersonaAura } from "@/lib/persona-auras";
 import type { ShareCardColors, ShareCardMetric } from "@/components/share/types";
-import type { VibeAxes } from "@vibed/core";
+import type { VibeAxes } from "@vibe-coding-profiler/core";
 import { NextRequest } from "next/server";
 
 export const runtime = "edge";

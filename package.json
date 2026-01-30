@@ -1,5 +1,5 @@
 {
-  "name": "vibed-coding",
+  "name": "vibe-coding-profiler",
   "version": "0.2.0",
   "private": true,
   "workspaces": [
@@ -13,8 +13,8 @@
     "type-check": "turbo type-check",
     "test": "turbo test",
     "clean": "turbo clean && rm -rf node_modules",
-    "dev:web": "turbo dev --filter=@vibed/web",
-    "dev:worker": "sh -c 'turbo dev --filter=@vibed/worker & npx inngest-cli@latest dev; wait'",
+    "dev:web": "turbo dev --filter=@vibe-coding-profiler/web",
+    "dev:worker": "sh -c 'turbo dev --filter=@vibe-coding-profiler/worker & npx inngest-cli@latest dev; wait'",
     "supabase:start": "node scripts/supabase.mjs start",
     "supabase:stop": "node scripts/supabase.mjs stop",
     "supabase:status": "node scripts/supabase.mjs status",
@@ -27,5 +27,11 @@
   "devDependencies": {
     "turbo": "^2"
   },
-  "packageManager": "npm@10.2.0"
+  "packageManager": "npm@10.2.0",
+  "dependencies": {
+    "sharp": "^0.34.5"
+  },
+  "overrides": {
+    "next": ">=16.1.5"
+  }
 }

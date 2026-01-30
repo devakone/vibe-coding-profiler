@@ -3,7 +3,7 @@ import Link from "next/link";
 import { isCurrentUserAdmin } from "@/lib/admin";
 import { wrappedTheme } from "@/lib/theme";
 import { getPlatformLLMConfigFull } from "@/lib/llm-config";
-import { PROVIDER_INFO, LLM_PROVIDERS, type LLMProvider } from "@vibed/core";
+import { PROVIDER_INFO, LLM_PROVIDERS, type LLMProvider } from "@vibe-coding-profiler/core";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
 interface LLMUsageStats {

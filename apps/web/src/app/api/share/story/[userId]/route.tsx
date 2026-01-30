@@ -6,7 +6,7 @@ import { isVibeAxes } from "@/lib/vcp/validators";
 import { AXIS_METADATA } from "@/components/vcp/constants";
 import { getPersonaAura } from "@/lib/persona-auras";
 import type { ShareCardColors, ShareCardMetric } from "@/components/share/types";
-import type { InsightCard, VibeAxes } from "@vibed/core";
+import type { InsightCard, VibeAxes } from "@vibe-coding-profiler/core";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "edge";

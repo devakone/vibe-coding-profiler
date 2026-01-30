@@ -47,7 +47,7 @@ flowchart TB
         Auth[Supabase Auth]
     end
 
-    subgraph Core["@vibed/core"]
+    subgraph Core["@vibe-coding-profiler/core"]
         Metrics[Metrics Computation]
         Axes[Vibe Axes]
         Persona[Persona Detection]
@@ -74,7 +74,7 @@ flowchart TB
 | Web Client | `apps/web` | UI, API routes, job triggering |
 | Inngest Function | `apps/web/src/inngest/functions/analyze-repo.ts` | Primary job processor |
 | Fallback Worker | `apps/worker/src/index.ts` | Self-hosted fallback |
-| @vibed/core | `packages/core/src/` | All analysis logic |
+| @vibe-coding-profiler/core | `packages/core/src/` | All analysis logic |
 | Database | `supabase/migrations/` | Persistent storage |
 
 ---
@@ -88,7 +88,7 @@ sequenceDiagram
     participant DB as Supabase
     participant Inngest
     participant GitHub
-    participant Core as @vibed/core
+    participant Core as @vibe-coding-profiler/core
     participant LLM
 
     User->>API: POST /api/analysis/start
@@ -104,11 +104,12 @@ sequenceDiagram
     Inngest->>Core: computeAnalysisMetrics()
     Inngest->>Core: computeAnalysisInsights()
     Inngest->>Core: computeVibeFromCommits()
+    Note over Core: Includes extractAIToolMetrics()
     Inngest->>Core: detectVibePersona()
-    
+
     Inngest->>DB: Store analysis_metrics
     Inngest->>DB: Store analysis_insights
-    Inngest->>DB: Store vibe_insights
+    Inngest->>DB: Store vibe_insights (incl. ai_tools_json)
     
     opt LLM Available
         Inngest->>LLM: Generate narrative
@@ -567,14 +568,15 @@ flowchart LR
     Commits[Commit Messages] --> Trailers[Parse Trailers]
     Trailers --> CoAuthor[Co-authored-by Count]
     Trailers --> AITrailer[AI Trailer Count]
-    
+    Trailers --> ToolID[identifyAITool]
+
     Messages[Message Keywords] --> AIKeywords[Agent/Copilot/Claude mentions]
-    
+
     PRs[Pull Requests] --> SquashRate[Squash Merge Rate]
     PRs --> TemplateRate[Template Usage Rate]
     PRs --> ChecklistRate[Checklist Rate]
     PRs --> IssueRate[Issue Link Rate]
-    
+
     CoAuthor --> Signals[Multi-Agent Signals]
     AITrailer --> Signals
     AIKeywords --> Signals
@@ -582,7 +584,15 @@ flowchart LR
     TemplateRate --> Signals
     ChecklistRate --> Signals
     IssueRate --> Signals
+    ToolID --> ToolMetrics[AI Tool Metrics]
+    ToolMetrics --> VCP[VCP Display]
 ```
+
+### AI Tool Detection Pipeline
+
+Per-tool identification is performed during trailer parsing. Each `Co-Authored-By` value is matched against the `AI_TOOL_REGISTRY` (11 tools). Results are stored as `tool_co_authors` in multi-agent signals, and as `AIToolMetrics` in `vibe_insights.ai_tools_json`.
+
+See [AI Tool Metrics Architecture](./ai-tool-metrics.md) for the full pipeline, tool registry, and confidence calculation.
 
 ---
 
@@ -762,6 +772,7 @@ erDiagram
         jsonb persona
         jsonb cards
         jsonb evidence_index
+        jsonb ai_tools_json
     }
     
     analysis_reports {
@@ -803,6 +814,8 @@ erDiagram
 | Commit Classification | `packages/core/src/index.ts` | `classifyCommit()`, `isAutomationCommit()` |
 | Insights Generation | `packages/core/src/index.ts` | `computeAnalysisInsights()` |
 | Vibe Axes | `packages/core/src/vibe.ts` | `computeVibeAxes()` |
+| AI Tool Metrics | `packages/core/src/vibe.ts` | `extractAIToolMetrics()`, `aggregateAIToolMetrics()` |
+| AI Tool Identification | `packages/core/src/index.ts` | `identifyAITool()`, `AI_TOOL_REGISTRY` |
 | Persona Detection | `packages/core/src/vibe.ts` | `detectVibePersona()` |
 | Episode Building | `packages/core/src/vibe.ts` | `buildWorkEpisodes()` |
 | Subsystem Classification | `packages/core/src/vibe.ts` | `classifySubsystem()` |
@@ -819,7 +832,8 @@ erDiagram
 - [Vibe Metrics v2](./vibe-metrics-v2.md) — Original axis design
 - [Inngest Integration](./inngest-integration.md) — Job processing details
 - [Architecture Overview](./overview.md) — System components
-- [PRD: Multi-Agent Detection](../prd/multi-agent-detection.md) — AI workflow signals
+- [AI Tool Metrics](./ai-tool-metrics.md) — Tool detection pipeline and registry
+- [PRD: Multi-Agent Detection](../prd/analysis/multi-agent-detection.md) — AI workflow signals
 
 ---
 

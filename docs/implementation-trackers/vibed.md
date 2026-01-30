@@ -17,7 +17,7 @@ This tracker accompanies `docs/PRD-vibed.md`. It captures the discrete implement
 ### F2. Worker & Narrative Pipeline
 **Task:** Extend the worker to compute `insights_json`, persist to `analysis_insights`, and feed narratives.
 **Deliverables:**
-- [x] Insight computation logic implemented + unit tested (streak, persona, chunkiness, tech signal detection) in `@vibed/core`.
+- [x] Insight computation logic implemented + unit tested (streak, persona, chunkiness, tech signal detection) in `@vibe-coding-profiler/core`.
 - [x] `vibe_insights` row inserted per job with persona/confidence + evidence via Inngest function.
 - [x] Updated Narrative LLM prompt referencing insights explicitly.
 - [x] Share-card payload generation (colors/text template) included in worker output.
@@ -46,7 +46,7 @@ This tracker accompanies `docs/PRD-vibed.md`. It captures the discrete implement
 ### F5. Reflection & Testing
 **Task:** Ensure deterministic insight generation, persona detection, and share assets behave as expected.
 **Deliverables:**
-- [x] Unit tests covering streak, persona classification outcomes, and chunkiness thresholds (31+ tests in `@vibed/core`).
+- [x] Unit tests covering streak, persona classification outcomes, and chunkiness thresholds (31+ tests in `@vibe-coding-profiler/core`).
 - [ ] Visual regression or storybook story for share cards.
 - [x] Documented confidence thresholds + persona hints in `vibe.ts`.
 - [x] Workflow documentation updated (`docs/research` links, PRD updates).

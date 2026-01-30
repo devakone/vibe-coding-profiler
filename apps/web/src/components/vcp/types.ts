@@ -5,7 +5,7 @@
  * Used across primitives, blocks, and page-specific components.
  */
 
-import type { VibeAxes, VibePersona, Level, Confidence } from "@vibed/core";
+import type { VibeAxes, VibePersona, Level, Confidence } from "@vibe-coding-profiler/core";
 
 // =============================================================================
 // Axis Types

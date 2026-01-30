@@ -67,6 +67,7 @@ export default async function AdminUsersPage({
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       {user.avatar_url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element -- admin page, external avatar URL */
                         <img
                           src={user.avatar_url}
                           alt=""

@@ -1,8 +1,8 @@
-import { decryptString } from "@vibed/core";
+import { decryptString } from "@vibe-coding-profiler/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getPlatformAccessToken(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- accepts any Supabase client generic variant
   supabase: SupabaseClient<any, any, any>,
   userId: string,
   platform: 'github' | 'gitlab' | 'bitbucket' = 'github'

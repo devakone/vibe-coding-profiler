@@ -1,4 +1,4 @@
-import { encryptString } from "@vibed/core";
+import { encryptString } from "@vibe-coding-profiler/core";
 import { NextResponse } from "next/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { createSupabaseServerClient } from "@/lib/supabase/server";

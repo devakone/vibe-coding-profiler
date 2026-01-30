@@ -13,7 +13,7 @@ import {
   type LLMKeySource,
   type LLMResolutionResult,
   getDefaultModel,
-} from "@vibed/core";
+} from "@vibe-coding-profiler/core";
 
 // Default per-repo LLM usage limit (used if not configured in database)
 const DEFAULT_LLM_ANALYSES_PER_REPO = 1;

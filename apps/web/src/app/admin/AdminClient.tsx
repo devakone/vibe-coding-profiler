@@ -32,7 +32,7 @@ export default function AdminClient({
 }: {
   initialReports: CoverageReport[];
 }) {
-  const [reports, setReports] = useState<CoverageReport[]>(initialReports);
+  const [reports] = useState<CoverageReport[]>(initialReports);
   const [isPending, startTransition] = useTransition();
   const [stepSize, setStepSize] = useState(20);
   const [notes, setNotes] = useState("");

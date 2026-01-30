@@ -15,7 +15,7 @@ This tracker accompanies `docs/PRD-profile-aggregation.md`. It captures the disc
 **Blocks:** P2, P3
 
 ### P2. Core Aggregation Logic
-**Task:** Add `aggregateUserProfile()` and supporting functions to `@vibed/core`.
+**Task:** Add `aggregateUserProfile()` and supporting functions to `@vibe-coding-profiler/core`.
 **Deliverables:**
 - [x] `RepoInsightSummary` interface defined
 - [x] `AggregatedProfile` interface defined
@@ -23,7 +23,7 @@ This tracker accompanies `docs/PRD-profile-aggregation.md`. It captures the disc
 - [x] `computeWeightedAxes()` helper implemented (weighted by commit count)
 - [x] `buildProfileCards()` generates profile-level insight cards
 - [ ] Unit tests for aggregation logic
-- [x] Functions exported from `@vibed/core`
+- [x] Functions exported from `@vibe-coding-profiler/core`
 **Depends on:** P1
 **Blocks:** P3, P4
 

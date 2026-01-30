@@ -114,6 +114,21 @@ export interface InsightCard {
   evidence: string[]; // evidence ids
 }
 
+export interface AIToolMetrics {
+  detected: boolean;
+  ai_assisted_commits: number;
+  ai_collaboration_rate: number; // 0-1
+  primary_tool: { id: string; name: string } | null;
+  tool_diversity: number;
+  tools: Array<{
+    tool_id: string;
+    tool_name: string;
+    commit_count: number;
+    percentage: number; // 0-100
+  }>;
+  confidence: Confidence;
+}
+
 export interface VibeInsightsV1 {
   version: "v1";
   generated_at: string;
@@ -121,6 +136,7 @@ export interface VibeInsightsV1 {
   persona: VibePersona;
   cards: InsightCard[];
   evidence_index: EvidenceItem[];
+  ai_tools: AIToolMetrics;
 }
 
 // =============================================================================
@@ -1334,11 +1350,123 @@ export function buildInsightCards(
 }
 
 // =============================================================================
+// AI Tool Metrics
+// =============================================================================
+
+/** Inline trailer/tool registry for self-contained extraction (no circular import). */
+const VIBE_AI_TOOL_PATTERNS: Array<{ id: string; name: string; patterns: RegExp[] }> = [
+  { id: "claude", name: "Claude", patterns: [/claude/i, /anthropic/i] },
+  { id: "copilot", name: "GitHub Copilot", patterns: [/copilot/i] },
+  { id: "cursor", name: "Cursor", patterns: [/cursor/i] },
+  { id: "aider", name: "Aider", patterns: [/aider/i] },
+  { id: "cline", name: "Cline", patterns: [/cline/i] },
+  { id: "roo", name: "Roo Code", patterns: [/\broo\b/i] },
+  { id: "windsurf", name: "Windsurf", patterns: [/windsurf/i, /codeium/i] },
+  { id: "devin", name: "Devin", patterns: [/devin/i, /cognition/i] },
+  { id: "codegen", name: "Codegen", patterns: [/codegen/i] },
+  { id: "swe-agent", name: "SWE-Agent", patterns: [/swe-?agent/i] },
+  { id: "gemini", name: "Gemini", patterns: [/gemini/i, /google.*ai/i] },
+];
+
+function vibeIdentifyAITool(value: string): string | null {
+  for (const tool of VIBE_AI_TOOL_PATTERNS) {
+    for (const pattern of tool.patterns) {
+      if (pattern.test(value)) return tool.id;
+    }
+  }
+  return null;
+}
+
+function vibeParseTrailers(message: string): Array<{ name: string; value: string }> {
+  const lines = message.split("\n");
+  const trailers: Array<{ name: string; value: string }> = [];
+  let lastBlankLineIndex = -1;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (lines[i].trim() === "") { lastBlankLineIndex = i; break; }
+  }
+  if (lastBlankLineIndex === -1 || lastBlankLineIndex === lines.length - 1) return [];
+  for (let i = lastBlankLineIndex + 1; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) continue;
+    const match = trimmed.match(/^([A-Za-z][a-zA-Z-]+):\s*(.+)$/);
+    if (match) {
+      trailers.push({ name: match[1], value: match[2] });
+    } else {
+      return [];
+    }
+  }
+  return trailers;
+}
+
+/**
+ * Extract AI tool metrics from commit messages by parsing trailers.
+ * Self-contained — does not depend on index.ts functions.
+ */
+export function extractAIToolMetrics(
+  commits: Array<{ message: string }>,
+  totalCommits?: number
+): AIToolMetrics {
+  const toolCommitMap = new Map<string, number>();
+  let aiAssistedCommits = 0;
+
+  for (const commit of commits) {
+    const trailers = vibeParseTrailers(commit.message);
+    const toolsInCommit = new Set<string>();
+
+    for (const trailer of trailers) {
+      if (trailer.name.toLowerCase() === "co-authored-by") {
+        const toolId = vibeIdentifyAITool(trailer.value);
+        if (toolId) toolsInCommit.add(toolId);
+      }
+    }
+
+    if (toolsInCommit.size > 0) {
+      aiAssistedCommits++;
+      for (const toolId of toolsInCommit) {
+        toolCommitMap.set(toolId, (toolCommitMap.get(toolId) ?? 0) + 1);
+      }
+    }
+  }
+
+  const total = totalCommits ?? commits.length;
+  const tools = Array.from(toolCommitMap.entries())
+    .map(([toolId, count]) => {
+      const def = VIBE_AI_TOOL_PATTERNS.find((t) => t.id === toolId);
+      return {
+        tool_id: toolId,
+        tool_name: def?.name ?? toolId,
+        commit_count: count,
+        percentage: aiAssistedCommits > 0 ? Math.round((count / aiAssistedCommits) * 100) : 0,
+      };
+    })
+    .sort((a, b) => b.commit_count - a.commit_count);
+
+  const detected = tools.length > 0;
+  const primaryTool = tools.length > 0
+    ? { id: tools[0].tool_id, name: tools[0].tool_name }
+    : null;
+
+  const signalCount = aiAssistedCommits;
+  const confidence: Confidence =
+    signalCount >= 10 ? "high" : signalCount >= 3 ? "medium" : "low";
+
+  return {
+    detected,
+    ai_assisted_commits: aiAssistedCommits,
+    ai_collaboration_rate: total > 0 ? aiAssistedCommits / total : 0,
+    primary_tool: primaryTool,
+    tool_diversity: tools.length,
+    tools,
+    confidence,
+  };
+}
+
+// =============================================================================
 // Top-Level Entry Point
 // =============================================================================
 
 export function computeVibeInsightsV1(
-  input: ComputeVibeAxesInput & { prCount?: number }
+  input: ComputeVibeAxesInput & { prCount?: number; rawCommitMessages?: Array<{ message: string }>; rawTotalCommits?: number }
 ): VibeInsightsV1 {
   const { axes, evidence } = computeVibeAxes(input);
 
@@ -1350,6 +1478,10 @@ export function computeVibeInsightsV1(
 
   const cards = buildInsightCards(persona, axes);
 
+  const aiTools = input.rawCommitMessages
+    ? extractAIToolMetrics(input.rawCommitMessages, input.rawTotalCommits)
+    : extractAIToolMetrics([], 0);
+
   return {
     version: "v1",
     generated_at: new Date().toISOString(),
@@ -1357,6 +1489,7 @@ export function computeVibeInsightsV1(
     persona,
     cards,
     evidence_index: evidence,
+    ai_tools: aiTools,
   };
 }
 
@@ -1526,6 +1659,8 @@ export function computeVibeFromCommits(
   return computeVibeInsightsV1({
     ...axisInput,
     prCount: prs?.length ?? 0,
+    rawCommitMessages: sortedCommits.map((c) => ({ message: c.message })),
+    rawTotalCommits: totalCommits,
   });
 }
 
@@ -1574,6 +1709,7 @@ export interface RepoInsightSummary {
   axes: VibeAxes;
   persona: VibePersona;
   analyzedAt: string;
+  aiTools?: AIToolMetrics | null;
 }
 
 /**
@@ -1612,6 +1748,9 @@ export interface AggregatedProfile {
 
   /** Profile-level insight cards */
   cards: InsightCard[];
+
+  /** Aggregated AI tool metrics across all repos */
+  aiTools: AIToolMetrics;
 
   /** When this profile was last updated */
   updatedAt: string;
@@ -1660,6 +1799,9 @@ export function aggregateUserProfile(
   // Build profile-level insight cards
   const cards = buildProfileCards(persona, aggregatedAxes, repoInsights);
 
+  // Aggregate AI tool metrics across repos
+  const aiTools = aggregateAIToolMetrics(repoInsights, totalCommits);
+
   return {
     totalCommits,
     totalRepos,
@@ -1668,7 +1810,60 @@ export function aggregateUserProfile(
     persona,
     repoBreakdown,
     cards,
+    aiTools,
     updatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Aggregate AI tool metrics across multiple repos.
+ * Merges tool counts and recomputes rates from totals.
+ */
+function aggregateAIToolMetrics(
+  repoInsights: RepoInsightSummary[],
+  totalCommits: number
+): AIToolMetrics {
+  const toolCounts = new Map<string, { name: string; count: number }>();
+  let totalAiAssistedCommits = 0;
+
+  for (const repo of repoInsights) {
+    if (!repo.aiTools?.detected) continue;
+    totalAiAssistedCommits += repo.aiTools.ai_assisted_commits;
+    for (const tool of repo.aiTools.tools) {
+      const existing = toolCounts.get(tool.tool_id);
+      if (existing) {
+        existing.count += tool.commit_count;
+      } else {
+        toolCounts.set(tool.tool_id, { name: tool.tool_name, count: tool.commit_count });
+      }
+    }
+  }
+
+  const tools = Array.from(toolCounts.entries())
+    .map(([id, data]) => ({
+      tool_id: id,
+      tool_name: data.name,
+      commit_count: data.count,
+      percentage: totalAiAssistedCommits > 0 ? Math.round((data.count / totalAiAssistedCommits) * 100) : 0,
+    }))
+    .sort((a, b) => b.commit_count - a.commit_count);
+
+  const detected = tools.length > 0;
+  const primaryTool = tools.length > 0
+    ? { id: tools[0].tool_id, name: tools[0].tool_name }
+    : null;
+
+  const confidence: Confidence =
+    totalAiAssistedCommits >= 10 ? "high" : totalAiAssistedCommits >= 3 ? "medium" : "low";
+
+  return {
+    detected,
+    ai_assisted_commits: totalAiAssistedCommits,
+    ai_collaboration_rate: totalCommits > 0 ? totalAiAssistedCommits / totalCommits : 0,
+    primary_tool: primaryTool,
+    tool_diversity: tools.length,
+    tools,
+    confidence,
   };
 }
 
