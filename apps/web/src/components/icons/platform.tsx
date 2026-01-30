@@ -1,7 +1,7 @@
 "use client";
 
 import { Github, Gitlab } from "lucide-react";
-import type { PlatformType } from "@vibed/core";
+import type { PlatformType } from "@vibe-coding-profiler/core";
 
 type PlatformIconProps = {
   platform: PlatformType;

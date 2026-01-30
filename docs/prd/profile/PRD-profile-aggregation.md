@@ -432,7 +432,7 @@ Add context that this feeds into the profile:
 ### Phase 1: Database + Core (No UI)
 
 1. Create `user_profiles` and `user_profile_history` tables
-2. Add `aggregateUserProfile()` to `@vibed/core`
+2. Add `aggregateUserProfile()` to `@vibe-coding-profiler/core`
 3. Update Inngest function to call aggregation after each job
 4. Backfill existing users' profiles
 

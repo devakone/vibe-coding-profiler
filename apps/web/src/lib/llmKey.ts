@@ -4,7 +4,7 @@
  * Uses a separate encryption key from GitHub tokens for defense in depth.
  */
 
-import { encryptString, decryptString, maskApiKey } from "@vibed/core";
+import { encryptString, decryptString, maskApiKey } from "@vibe-coding-profiler/core";
 
 const LLM_KEY_ENV = "LLM_KEY_ENCRYPTION_SECRET";
 
@@ -32,7 +32,7 @@ export function decryptLLMKey(ciphertext: string): string {
 
 /**
  * Mask an API key for display (show prefix + last 4 chars).
- * Re-exported from @vibed/core for convenience.
+ * Re-exported from @vibe-coding-profiler/core for convenience.
  */
 export { maskApiKey };
 

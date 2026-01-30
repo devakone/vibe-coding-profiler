@@ -7,7 +7,7 @@ import {
   detectVibePersona,
   type VibeAxes,
   type PersonaCoverageResult,
-} from "@vibed/core";
+} from "@vibe-coding-profiler/core";
 
 interface RunCoverageAnalysisResult {
   success: boolean;

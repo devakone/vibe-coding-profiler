@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { checkRateLimit } from "@/lib/rate-limit";
-import type { PlatformType } from "@vibed/core";
+import type { PlatformType } from "@vibe-coding-profiler/core";
 
 const ALLOWED_PLATFORMS: PlatformType[] = ["github", "gitlab", "bitbucket"];
 

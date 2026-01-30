@@ -22,12 +22,12 @@
  * 1. Polls the analysis_jobs table for queued jobs
  * 2. Claims a job using FOR UPDATE SKIP LOCKED
  * 3. Fetches commits from GitHub API
- * 4. Computes metrics using @vibed/core
+ * 4. Computes metrics using @vibe-coding-profiler/core
  * 5. Generates narrative via LLM (platform key only)
  * 6. Writes results back to database
  */
 
-import { createServerClient, type Json } from "@vibed/db";
+import { createServerClient, type Json } from "@vibe-coding-profiler/db";
 import {
   assignVibeType,
   computeAnalysisInsights,
@@ -41,7 +41,7 @@ import {
   type CommitEvent,
   type JobStatus,
   type LLMProvider,
-} from "@vibed/core";
+} from "@vibe-coding-profiler/core";
 import { fetchCommitDetail, fetchCommitList, mapWithConcurrency } from "./github";
 import fs from "node:fs";
 import path from "node:path";

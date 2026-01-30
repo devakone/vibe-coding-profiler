@@ -6,7 +6,7 @@ import {
   LLM_PROVIDERS,
   PROVIDER_INFO,
   getDefaultModel,
-} from "@vibed/core";
+} from "@vibe-coding-profiler/core";
 import { encryptLLMKey, isLLMKeyEncryptionConfigured, maskApiKey } from "@/lib/llmKey";
 
 export const runtime = "nodejs";

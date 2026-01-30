@@ -1,4 +1,4 @@
-import type { VibeAxes, AIToolMetrics } from "@vibed/core";
+import type { VibeAxes, AIToolMetrics } from "@vibe-coding-profiler/core";
 import type { PublicProfileSettings } from "@/types/public-profile";
 import { PublicIdentityHeader } from "./PublicIdentityHeader";
 import { PublicProfileCTA } from "./PublicProfileCTA";

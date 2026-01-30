@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Database, DbSchema } from "@vibed/db";
+import type { Database, DbSchema } from "@vibe-coding-profiler/db";
 
 export function createSupabaseServiceClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

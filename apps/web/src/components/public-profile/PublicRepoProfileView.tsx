@@ -1,4 +1,4 @@
-import type { VibeAxes } from "@vibed/core";
+import type { VibeAxes } from "@vibe-coding-profiler/core";
 import Link from "next/link";
 import { PublicProfileCTA } from "./PublicProfileCTA";
 import { UnifiedAxesSection } from "@/components/vcp/unified/UnifiedAxesSection";

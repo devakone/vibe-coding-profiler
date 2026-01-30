@@ -1,5 +1,5 @@
 /**
- * @vibed/core
+ * @vibe-coding-profiler/core
  *
  * Shared analysis logic, types, and utilities for Vibed Coding.
  */

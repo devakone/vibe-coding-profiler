@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { computeAnalysisInsights } from "@vibed/core";
-import type { AnalysisInsights, AnalysisMetrics, CommitEvent, AIToolMetrics } from "@vibed/core";
+import { computeAnalysisInsights } from "@vibe-coding-profiler/core";
+import type { AnalysisInsights, AnalysisMetrics, CommitEvent, AIToolMetrics } from "@vibe-coding-profiler/core";
 import { formatMetricLabel, formatMetricValue } from "@/lib/format-labels";
 import { computeShareCardMetrics } from "@/lib/vcp/metrics";
 import { isVibeAxes } from "@/lib/vcp/validators";

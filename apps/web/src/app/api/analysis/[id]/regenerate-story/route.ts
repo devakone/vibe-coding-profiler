@@ -7,7 +7,7 @@ import {
   type AnalysisReport,
   type CommitEvent,
   type LLMKeySource,
-} from "@vibed/core";
+} from "@vibe-coding-profiler/core";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { generateNarrativeWithLLM, toNarrativeFallback } from "@/inngest/functions/analyze-repo";

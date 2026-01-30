@@ -2,7 +2,7 @@
 
 import { useMemo, useSyncExternalStore } from "react";
 import { computeShareCardMetrics } from "@/lib/vcp/metrics";
-import type { VibeAxes } from "@vibed/core";
+import type { VibeAxes } from "@vibe-coding-profiler/core";
 import { ShareCard, ShareActions } from "./index";
 import type { ShareCardMetric, ShareImageTemplate } from "./types";
 

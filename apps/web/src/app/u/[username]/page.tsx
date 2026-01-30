@@ -4,7 +4,7 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { PublicProfileSettings } from "@/types/public-profile";
 import { DEFAULT_PUBLIC_PROFILE_SETTINGS } from "@/types/public-profile";
 import { PublicProfileView } from "@/components/public-profile/PublicProfileView";
-import type { AIToolMetrics } from "@vibed/core";
+import type { AIToolMetrics } from "@vibe-coding-profiler/core";
 
 interface PageProps {
   params: Promise<{ username: string }>;

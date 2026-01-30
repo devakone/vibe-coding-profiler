@@ -1,4 +1,4 @@
-import type { Level, VibeAxes } from "@vibed/core";
+import type { Level, VibeAxes } from "@vibe-coding-profiler/core";
 
 const AXIS_KEYS: (keyof VibeAxes)[] = [
   "automation_heaviness",

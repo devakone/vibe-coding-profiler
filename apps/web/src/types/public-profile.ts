@@ -1,4 +1,4 @@
-import type { VibeAxes, AIToolMetrics } from "@vibed/core";
+import type { VibeAxes, AIToolMetrics } from "@vibe-coding-profiler/core";
 
 /**
  * Public profile visibility settings.

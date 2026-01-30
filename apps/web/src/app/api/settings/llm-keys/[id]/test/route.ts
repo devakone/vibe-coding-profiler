@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { decryptLLMKey, isLLMKeyEncryptionConfigured } from "@/lib/llmKey";
-import { type LLMProvider, createLLMClient, getDefaultModel } from "@vibed/core";
+import { type LLMProvider, createLLMClient, getDefaultModel } from "@vibe-coding-profiler/core";
 
 export const runtime = "nodejs";
 

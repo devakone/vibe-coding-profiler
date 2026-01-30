@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { detectVibePersona, type VibeAxes } from "@vibed/core";
+import { detectVibePersona, type VibeAxes } from "@vibe-coding-profiler/core";
 
 export const runtime = "nodejs";
 

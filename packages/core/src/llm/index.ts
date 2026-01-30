@@ -5,7 +5,7 @@
  *
  * @example
  * ```typescript
- * import { createLLMClient, getDefaultModel } from "@vibed/core/llm";
+ * import { createLLMClient, getDefaultModel } from "@vibe-coding-profiler/core/llm";
  *
  * const client = createLLMClient({
  *   provider: "anthropic",

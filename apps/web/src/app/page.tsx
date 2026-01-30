@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Database } from "@vibed/db";
+import type { Database } from "@vibe-coding-profiler/db";
 import { wrappedTheme } from "@/lib/theme";
 import { ProfileShareSection } from "@/components/share";
 import { ProfileVersionSelector } from "@/components/ProfileVersionSelector";
@@ -13,7 +13,7 @@ import {
   type RepoInsightSummary,
   type VibeAxes,
   type VibeCommitEvent,
-} from "@vibed/core";
+} from "@vibe-coding-profiler/core";
 import {
   UnifiedIdentitySection,
   UnifiedInsightSection,

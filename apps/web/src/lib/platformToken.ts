@@ -1,4 +1,4 @@
-import { decryptString } from "@vibed/core";
+import { decryptString } from "@vibe-coding-profiler/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function getPlatformAccessToken(

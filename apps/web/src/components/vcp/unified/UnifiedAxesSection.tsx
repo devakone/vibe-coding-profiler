@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { VibeAxes } from "@vibed/core";
+import type { VibeAxes } from "@vibe-coding-profiler/core";
 import { AXIS_METADATA, AXIS_ORDER } from "../constants";
 import { AxisInfoTooltip } from "../AxisInfoTooltip";
 

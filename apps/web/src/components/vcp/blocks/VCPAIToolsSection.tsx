@@ -1,4 +1,4 @@
-import type { AIToolMetrics } from "@vibed/core";
+import type { AIToolMetrics } from "@vibe-coding-profiler/core";
 
 interface VCPAIToolsSectionProps {
   aiTools: AIToolMetrics;

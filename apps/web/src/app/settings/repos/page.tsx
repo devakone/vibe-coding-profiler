@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { wrappedTheme } from "@/lib/theme";
 import { SettingsTabs } from "@/components/settings/SettingsTabs";
 import ReposClient from "@/app/repos/ReposClient";
-import type { PlatformType } from "@vibed/core";
+import type { PlatformType } from "@vibe-coding-profiler/core";
 
 export const runtime = "nodejs";
 

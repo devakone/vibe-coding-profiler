@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { PublicProfileSettings } from "@/types/public-profile";
 import { DEFAULT_PUBLIC_PROFILE_SETTINGS } from "@/types/public-profile";
-import type { AIToolMetrics } from "@vibed/core";
+import type { AIToolMetrics } from "@vibe-coding-profiler/core";
 
 export const runtime = "nodejs";
 

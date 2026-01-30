@@ -1,5 +1,5 @@
 {
-  "name": "@vibed/worker",
+  "name": "@vibe-coding-profiler/worker",
   "version": "0.1.0-alpha.2",
   "private": true,
   "scripts": {
@@ -10,8 +10,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@vibed/core": "*",
-    "@vibed/db": "*",
+    "@vibe-coding-profiler/core": "*",
+    "@vibe-coding-profiler/db": "*",
     "@supabase/supabase-js": "^2.47.14"
   },
   "devDependencies": {

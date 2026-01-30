@@ -8,7 +8,7 @@ import {
   type RepoInsightSummary,
   type VibeAxes,
   type VibeCommitEvent,
-} from "@vibed/core";
+} from "@vibe-coding-profiler/core";
 
 export const runtime = "nodejs";
 

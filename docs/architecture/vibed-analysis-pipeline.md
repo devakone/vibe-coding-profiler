@@ -47,7 +47,7 @@ flowchart TB
         Auth[Supabase Auth]
     end
 
-    subgraph Core["@vibed/core"]
+    subgraph Core["@vibe-coding-profiler/core"]
         Metrics[Metrics Computation]
         Axes[Vibe Axes]
         Persona[Persona Detection]
@@ -74,7 +74,7 @@ flowchart TB
 | Web Client | `apps/web` | UI, API routes, job triggering |
 | Inngest Function | `apps/web/src/inngest/functions/analyze-repo.ts` | Primary job processor |
 | Fallback Worker | `apps/worker/src/index.ts` | Self-hosted fallback |
-| @vibed/core | `packages/core/src/` | All analysis logic |
+| @vibe-coding-profiler/core | `packages/core/src/` | All analysis logic |
 | Database | `supabase/migrations/` | Persistent storage |
 
 ---
@@ -88,7 +88,7 @@ sequenceDiagram
     participant DB as Supabase
     participant Inngest
     participant GitHub
-    participant Core as @vibed/core
+    participant Core as @vibe-coding-profiler/core
     participant LLM
 
     User->>API: POST /api/analysis/start

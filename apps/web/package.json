@@ -1,5 +1,5 @@
 {
-  "name": "@vibed/web",
+  "name": "@vibe-coding-profiler/web",
   "version": "0.1.2",
   "private": true,
   "scripts": {
@@ -18,8 +18,8 @@
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.14",
     "@vercel/og": "^0.8.6",
-    "@vibed/core": "*",
-    "@vibed/db": "*",
+    "@vibe-coding-profiler/core": "*",
+    "@vibe-coding-profiler/db": "*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

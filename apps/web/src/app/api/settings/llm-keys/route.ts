@@ -9,7 +9,7 @@ import {
   detectProviderFromKey,
   getDefaultModel,
   createLLMClient,
-} from "@vibed/core";
+} from "@vibe-coding-profiler/core";
 
 export const runtime = "nodejs";
 

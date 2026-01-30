@@ -29,7 +29,7 @@ import {
   type AIToolMetrics,
   type VibeCommitEvent,
   type VibePersona,
-} from "@vibed/core";
+} from "@vibe-coding-profiler/core";
 import { getPlatformAccessToken } from "@/lib/platformToken";
 import { resolveLLMConfig, resolveProfileLLMConfig, recordLLMUsage } from "@/lib/llm-config";
 import {

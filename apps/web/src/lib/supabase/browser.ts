@@ -1,5 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
-import type { Database, DbSchema } from "@vibed/db";
+import type { Database, DbSchema } from "@vibe-coding-profiler/db";
 
 export function createSupabaseBrowserClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
