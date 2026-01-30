@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.0-alpha.7](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.6...web-v0.1.0-alpha.7) (2026-01-30)
+
+
+### Features
+
+* add AI coding tool detection with per-tool metrics and VCP display ([f6fa433](https://github.com/devakone/vibe-coding-profiler/commit/f6fa4334108ec6e7d6f2411262e6097f5e6b5b8b))
+* add public profile pages with username system and privacy controls ([6276317](https://github.com/devakone/vibe-coding-profiler/commit/62763172a04e982c24f1138e8291469bbefce050))
+* generate share images with detailed persona metrics ([404b273](https://github.com/devakone/vibe-coding-profiler/commit/404b2739b0cb973c749382dfde87cf2388e42b87))
+* reorder settings tabs and add `shareJson` to `ShareProps` for exporting data. ([2622244](https://github.com/devakone/vibe-coding-profiler/commit/262224426c00c8ec06ed7d3f86d34d76ea3bc163))
+
+
+### Bug Fixes
+
+* fix JSON export functionality for profile share data. ([02d170c](https://github.com/devakone/vibe-coding-profiler/commit/02d170c08dc1f0e580037c7a342bd1a30a8be8d2))
+
 ## [0.1.0-alpha.6](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.5...web-v0.1.0-alpha.6) (2026-01-29)
 
 
