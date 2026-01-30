@@ -27,7 +27,7 @@
   "packages": {
     ".": {
       "release-type": "simple",
-      "component": "vibed-coding",
+      "component": "vibe-coding-profiler",
       "changelog-path": "CHANGELOG-DEVELOP.md",
       "prerelease": true,
       "versioning": "prerelease",
