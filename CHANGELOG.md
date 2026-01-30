@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.1](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.0...vibe-coding-profiler-v0.3.1) (2026-01-30)
+
+
+### Features
+
+* add script to retry queued analysis jobs by re-sending Inngest events ([aae9300](https://github.com/devakone/vibe-coding-profiler/commit/aae930065a767bfb2f22d12989dc7143b4d2e94a))
+
+
+### Bug Fixes
+
+* disable Get Vibe button while analysis job is running ([4a07531](https://github.com/devakone/vibe-coding-profiler/commit/4a0753184ce97d9410591ac991522a17301a41be))
+
 ## [0.3.0](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.2.0...vibe-coding-profiler-v0.3.0) (2026-01-30)
 
 
