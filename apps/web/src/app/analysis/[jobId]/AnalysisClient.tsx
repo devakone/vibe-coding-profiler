@@ -832,7 +832,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                 footer={{
                   left: process.env.NEXT_PUBLIC_APP_URL
                     ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname
-                    : "vibed.dev",
+                    : "Vibe Coding Profiler",
                   right: `${wrapped.totals.commits} commits${metricsJson?.active_days ? ` · ${metricsJson.active_days} active days` : ""}`,
                 }}
                 colors={shareTemplate.colors}
