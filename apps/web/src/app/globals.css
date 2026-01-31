@@ -141,18 +141,22 @@ body {
 .montoya-slash::after {
   content: "";
   position: absolute;
-  top: -10%;
-  right: 8%;
-  width: 1.5px;
-  height: 40%;
-  background: linear-gradient(to bottom, #7c3aed, #6366f1);
-  transform: rotate(-35deg);
-  transform-origin: top center;
+  top: 0;
+  right: 0;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(
+    225deg,
+    transparent calc(50% - 2px),
+    #7c3aed calc(50% - 2px),
+    #6366f1 calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.35;
   transition: opacity 0.3s;
 }
 
 .montoya-slash:hover::after {
-  opacity: 0.9;
+  opacity: 0.7;
 }
