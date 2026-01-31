@@ -52,7 +52,7 @@ export const wrappedTheme = {
   },
   container: "mx-auto max-w-6xl px-6 sm:px-10 lg:px-20",
   pageY: "py-12",
-  card: "montoya-slash rounded-3xl border border-black/5 bg-white shadow-[0_25px_80px_rgba(30,27,75,0.06)]",
+  card: "vibe-echo rounded-3xl border border-black/5 bg-white shadow-[0_25px_80px_rgba(30,27,75,0.06)]",
   cardInner: "rounded-2xl border border-black/5 bg-white",
   // Unified gradient text
   gradientText:
