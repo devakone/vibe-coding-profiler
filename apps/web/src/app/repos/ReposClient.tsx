@@ -214,6 +214,19 @@ export default function ReposClient({
     (repo) => repo.platform === selectedPlatform
   );
 
+  // Available repos: exclude already-connected ones
+  const availableRepos = useMemo(
+    () => repos.filter((repo) => !isConnected(repo)),
+    [repos, isConnected]
+  );
+
+  // Reset selection if it points to a now-connected repo
+  useEffect(() => {
+    if (selectedRepo && isConnected(selectedRepo)) {
+      setSelectedRepo(availableRepos[0] ?? null);
+    }
+  }, [availableRepos, selectedRepo, isConnected]);
+
   const isPlatformConnected = (platform: PlatformType) => connectedPlatforms.includes(platform);
 
   return (
@@ -323,8 +336,12 @@ export default function ReposClient({
         </div>
         {isLoading ? (
           <p className="text-sm text-zinc-600">Loading repositories…</p>
-        ) : repos.length === 0 ? (
-          <p className="text-sm text-zinc-600">No repositories found for {PLATFORM_LABELS[selectedPlatform]}.</p>
+        ) : availableRepos.length === 0 ? (
+          <p className="text-sm text-zinc-600">
+            {repos.length === 0
+              ? `No repositories found for ${PLATFORM_LABELS[selectedPlatform]}.`
+              : `All ${PLATFORM_LABELS[selectedPlatform]} repositories are already connected.`}
+          </p>
         ) : (
           <div className="space-y-3">
             <Popover>
@@ -346,7 +363,7 @@ export default function ReposClient({
                   <CommandList id="repo-picker-list">
                     <CommandEmpty>No matches.</CommandEmpty>
                     <CommandGroup>
-                      {repos.map((repo) => (
+                      {availableRepos.map((repo) => (
                         <CommandItem
                           key={`${repo.platform}-${repo.id}`}
                           value={repo.fullName}
@@ -356,9 +373,6 @@ export default function ReposClient({
                           <span className="flex-1 truncate text-sm font-semibold text-zinc-900">
                             {repo.fullName}
                           </span>
-                          {isConnected(repo) && (
-                            <span className="text-[11px] text-zinc-500">In profile</span>
-                          )}
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -372,10 +386,9 @@ export default function ReposClient({
                 className={`${wrappedTheme.primaryButtonSm} disabled:opacity-60`}
                 onClick={() => {
                   if (!selectedRepo) return;
-                  if (isConnected(selectedRepo)) return;
                   void connectRepo(selectedRepo, { startVibe: true });
                 }}
-                disabled={!selectedRepo || (selectedRepo && isConnected(selectedRepo))}
+                disabled={!selectedRepo}
               >
                 Add and get vibe
               </button>
