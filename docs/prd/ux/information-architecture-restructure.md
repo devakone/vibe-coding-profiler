@@ -331,7 +331,7 @@ The ShareCard displays **computed metrics** (not raw axes):
 
 | Metric | Description | Example |
 |--------|-------------|---------|
-| **Strongest** | Highest-scoring axis + score | "Automation 78" |
+| **Strongest** | Highest-scoring axis (highLabel + name) | "AI-Heavy Automation" |
 | **Style** | 2-word descriptor from axis combo | "Fast Builder" |
 | **Rhythm** | Shipping pattern label | "Bursty", "Steady" |
 | **Peak** | Most active time of day | "Afternoons", "Night Owl" |

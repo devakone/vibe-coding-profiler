@@ -25,7 +25,7 @@ The PRD even mocked the target:
 │  Based on 5 projects · 2,341 commits · 8 months of data    │
 │                                                             │
 │  🎭 PRIMARY VIBE: THE PROTOTYPER                           │
-│  "You build to think — code is your sketchpad"             │
+│  "You prompt fast, ship fast, and let the code evolve"      │
 │  ████████████████░░░░ 84% confident                        │
 └─────────────────────────────────────────────────────────────┘
 ```

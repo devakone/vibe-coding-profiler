@@ -6,6 +6,7 @@ import { wrappedTheme } from "@/lib/theme";
 import { Toaster } from "@/components/ui/toaster";
 import { JobsProvider } from "@/contexts/JobsContext";
 import AppHeader from "./AppHeader";
+import AppFooter from "./AppFooter";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -95,17 +96,20 @@ export default async function RootLayout({
           <div className={wrappedTheme.backgroundOrbs.orbC} />
           <div className={wrappedTheme.backgroundOrbs.vignette} />
         </div>
-        {user ? (
-          <JobsProvider>
-            <AppHeader isAuthed={Boolean(user)} isAdmin={isAdmin} signOut={signOut} />
-            {children}
-          </JobsProvider>
-        ) : (
-          <>
-            <AppHeader isAuthed={Boolean(user)} isAdmin={isAdmin} signOut={signOut} />
-            {children}
-          </>
-        )}
+        <div className="flex min-h-screen flex-col">
+          {user ? (
+            <JobsProvider>
+              <AppHeader isAuthed={Boolean(user)} isAdmin={isAdmin} userEmail={user.email ?? undefined} signOut={signOut} />
+              <main className="flex-1">{children}</main>
+            </JobsProvider>
+          ) : (
+            <>
+              <AppHeader isAuthed={Boolean(user)} isAdmin={isAdmin} signOut={signOut} />
+              <main className="flex-1">{children}</main>
+            </>
+          )}
+          <AppFooter />
+        </div>
         <Toaster />
       </body>
     </html>

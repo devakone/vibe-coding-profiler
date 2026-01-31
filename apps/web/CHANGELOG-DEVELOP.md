@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.0-alpha.10](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.9...web-v0.1.0-alpha.10) (2026-01-31)
+
+
+### Features
+
+* rewrite vibe coding language to be AI-native ([e45e55e](https://github.com/devakone/vibe-coding-profiler/commit/e45e55e4473869c3df80482245c836d19fa21a46))
+* simplify top nav with user menu dropdown and app footer ([029ad3a](https://github.com/devakone/vibe-coding-profiler/commit/029ad3af8b0d164d4f906c3eec3447691ba10e0b))
+
+
+### Bug Fixes
+
+* filter out already-connected repos from Add a Repo picker ([8d08166](https://github.com/devakone/vibe-coding-profiler/commit/8d0816695033c5919ad16b734777d125a6abe718))
+* resolve story export crash and B&W PNG output in share routes ([7193754](https://github.com/devakone/vibe-coding-profiler/commit/71937546a9ee003ba1973ea3e315b0d855583a93))
+
 ## [0.1.0-alpha.9](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.8...web-v0.1.0-alpha.9) (2026-01-30)
 
 

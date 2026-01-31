@@ -101,7 +101,7 @@ Beyond individual Repo VCPs, users should have a **Unified VCP**:
 │  Based on 5 projects · 2,341 commits · 8 months of data    │
 │                                                             │
 │  🎭 PRIMARY VIBE: THE PROTOTYPER                           │
-│  "You build to think — code is your sketchpad"             │
+│  "You prompt fast, ship fast, and let the code evolve"             │
 │  ████████████████░░░░ 84% confident                        │
 │                                                             │
 │  🔮 SECONDARY SIGNAL: THE GUARDIAN                         │
@@ -247,10 +247,10 @@ what kind of builder you are — with receipts.
 [Single CTA button: "Discover my vibe"]
 
 [Below: Animated preview cards cycling through personas]
-- "The Architect" — you plan before you build
-- "The Prototyper" — you build to think
-- "The Guardian" — you test before you trust
-- "The Orchestrator" — you conduct the AI symphony
+- "The Architect" — you write the spec before the prompt
+- "The Prototyper" — you prompt fast, ship fast
+- "The Validator" — guardrails before velocity
+- "The Orchestrator" — agents across the stack
 ```
 
 **Key changes:**
@@ -369,8 +369,8 @@ This is the hero moment. The screen should feel like opening a present.
 │                                                     │
 │         THE VIBE PROTOTYPER                         │
 │                                                     │
-│    "You build to think. Code is your sketchpad,    │
-│     and shipping is how you learn what works."     │
+│    "You prompt fast and ship fast — vibing your way    │
+│     to a working build."     │
 │                                                     │
 │    ████████░░ 78% confidence                        │
 │                                                     │
@@ -462,8 +462,8 @@ Share your coding vibe
 - [System share] (mobile) uses native share sheet when available
 
 Pre-written caption:
-"Just discovered I'm a Vibe Prototyper — I build to
-think. What's your coding personality?
+"Just discovered I'm a Vibe Prototyper — I prompt fast
+and ship fast. What's your coding personality?
 vibecoding.profile #VCP"
 ```
 
@@ -513,12 +513,12 @@ vibecoding.profile #VCP"
 ├─────────────────────────────────────────────────────┤
 │ Nov 2025 · acme/api                                 │
 │ THE GUARDIAN (82%)                                  │
-│ "Test before you trust"                             │
+│ "Guardrails before velocity"                        │
 │                                          [View →]   │
 ├─────────────────────────────────────────────────────┤
 │ Sep 2025 · acme/dashboard                           │
 │ THE ARCHITECT (71%)                                 │
-│ "Plan before you build"                             │
+│ "Spec before the prompt"                            │
 │                                          [View →]   │
 └─────────────────────────────────────────────────────┘
 
@@ -548,7 +548,7 @@ Something changed."
 │  YOUR AI CODING PROFILE                                     │
 │                                                             │
 │  🎭 THE PROTOTYPER                                         │
-│  "You build to think — code is your sketchpad"             │
+│  "You prompt fast, ship fast, and let the code evolve"             │
 │                                                             │
 │  Based on 3 projects · 1,247 commits                       │
 │                                                             │
@@ -757,7 +757,7 @@ This one has 23 — check back when you've shipped more!
 > "Analysis complete. 847 commits processed. Persona classification: Iterative Prototyper with 78% confidence based on commit frequency and file scope metrics."
 
 **Vibe Coding Profile (new):**
-> "We read 847 commits and the vibe is clear — you're a Prototyper. You build to think, and code is your sketchpad. We're 78% sure about this, based on how often you ship and how focused your changes are."
+> "We read 847 commits and the vibe is clear — you're a Prototyper. You prompt fast, ship fast, and let the code evolve. We're 78% sure about this, based on how often you ship and how focused your changes are."
 
 **Technical (old):**
 > "Your average inter-commit time is 4.2 hours with peak activity between 16:00-19:00 on Fridays."
@@ -771,12 +771,12 @@ Each persona has a tagline and a "vibe description":
 
 | Persona | Tagline | Description |
 |---------|---------|-------------|
-| The Architect | "Plan before you build" | You like to know where you're going before you start walking. Design docs, ADRs, clear structure — then code. |
-| The Guardian | "Test before you trust" | Safety nets first, features second. You write the tests, then make them pass. Discipline is your superpower. |
-| The Prototyper | "Build to think" | Code is how you explore ideas. Ship it, see what happens, iterate. Perfection can wait. |
-| The Orchestrator | "Conduct the symphony" | You coordinate tools, agents, and workflows. One commit might touch ten files because you see the whole board. |
-| The Surgeon | "Touch only what matters" | Precise, focused, minimal. Your commits are scalpels, not sledgehammers. |
-| The Night Owl | "Best code after dark" | The quiet hours are your productive hours. When the Slack messages stop, the real work begins. |
+| The Spec-Driven Architect | "You write the spec before the prompt" | AI follows your blueprint, not the other way around. Design docs, ADRs, clear structure — then prompt. |
+| The Test-First Validator | "Guardrails before velocity" | You give AI the wheel but keep tests and CI in the passenger seat. Safety nets first, AI output second. |
+| The Vibe Prototyper | "Prompt fast, ship fast" | You prompt fast, ship fast, and let the code evolve — vibing your way to a working build. |
+| The Agent Orchestrator | "Full slices in one push" | You orchestrate agents across the stack — full slices land in one coordinated push. |
+| The Hands-On Debugger | "Prompt, run, fix, repeat" | Tight feedback loops until the build is clean. You iterate rapidly after AI output. |
+| The Rapid Risk-Taker | "Trust the AI and ship" | You trust the AI output and ship — tests and docs will catch up later. |
 
 ## 5. Visual Design Direction
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, ChevronDown } from "lucide-react";
@@ -51,6 +51,17 @@ export default function VibesClient({ repos }: VibesClientProps) {
       .map((j) => j.repoId)
       .filter((id): id is string => id !== null)
   );
+
+  // Refresh server data when an active job transitions to completed
+  const prevActiveRef = useRef<Set<string>>(activeJobRepoIds);
+  useEffect(() => {
+    const prev = prevActiveRef.current;
+    const jobJustCompleted = [...prev].some((id) => !activeJobRepoIds.has(id));
+    prevActiveRef.current = activeJobRepoIds;
+    if (jobJustCompleted) {
+      router.refresh();
+    }
+  }, [activeJobRepoIds, router]);
 
   const toggleExpanded = (repoId: string) => {
     setExpandedRepos((prev) => {
@@ -136,16 +147,11 @@ export default function VibesClient({ repos }: VibesClientProps) {
                   type="button"
                   onClick={() => toggleExpanded(repo.repoId)}
                   className="flex h-6 w-6 items-center justify-center rounded text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-                  disabled={repo.versions.length === 0}
                 >
-                  {repo.versions.length > 0 ? (
-                    isExpanded ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
                   ) : (
-                    <span className="h-4 w-4" />
+                    <ChevronRight className="h-4 w-4" />
                   )}
                 </button>
 
@@ -201,7 +207,7 @@ export default function VibesClient({ repos }: VibesClientProps) {
               </div>
 
               {/* Expanded version history */}
-              {isExpanded && repo.versions.length > 0 && (
+              {isExpanded && (
                 <div className="border-t border-black/5 bg-zinc-50/50 px-4 py-3">
                   <table className="w-full text-sm">
                     <thead>
@@ -214,24 +220,35 @@ export default function VibesClient({ repos }: VibesClientProps) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black/5">
-                      {repo.versions.map((version, idx) => (
-                        <tr key={version.jobId} className="text-zinc-700">
-                          <td className="py-2 pl-10">v{repo.versions.length - idx}</td>
-                          <td className="py-2">{formatDate(version.generatedAt)}</td>
-                          <td className="py-2 font-medium text-zinc-900">
-                            {version.personaLabel ?? "—"}
-                          </td>
-                          <td className="py-2">{version.personaConfidence ?? "—"}</td>
-                          <td className="py-2 text-right">
-                            <Link
-                              href={`/analysis/${version.jobId}`}
-                              className="text-indigo-600 hover:text-indigo-800"
-                            >
-                              View
-                            </Link>
+                      {repo.versions.length > 0 ? (
+                        repo.versions.map((version, idx) => (
+                          <tr key={version.jobId} className="text-zinc-700">
+                            <td className="py-2 pl-10">v{repo.versions.length - idx}</td>
+                            <td className="py-2">{formatDate(version.generatedAt)}</td>
+                            <td className="py-2 font-medium text-zinc-900">
+                              {version.personaLabel ?? "—"}
+                            </td>
+                            <td className="py-2">{version.personaConfidence ?? "—"}</td>
+                            <td className="py-2 text-right">
+                              <Link
+                                href={`/analysis/${version.jobId}`}
+                                className="text-indigo-600 hover:text-indigo-800"
+                              >
+                                View
+                              </Link>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="py-6 text-center text-zinc-500">
+                            <p>No analysis runs yet.</p>
+                            <p className="mt-1 text-xs text-zinc-400">
+                              Click &ldquo;Get Vibe&rdquo; to analyze this repo and discover your coding profile.
+                            </p>
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>

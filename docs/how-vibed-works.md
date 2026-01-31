@@ -76,25 +76,25 @@ Six deterministic axes (0-100 scores) capture your workflow style:
 
 | Axis | What It Measures |
 |------|------------------|
-| **Automation Heaviness** | How "agentic" your workflow looks: large commits, chunky PRs |
-| **Guardrail Strength** | How much you stabilize with tests, CI, docs early |
-| **Iteration Loop Intensity** | How often you do rapid fix cycles |
-| **Planning Signal** | Structured commits, issue linking, docs-first patterns |
-| **Surface Area per Change** | How many subsystems you touch per work session |
-| **Shipping Rhythm** | Bursty vs steady shipping patterns |
+| **Automation Heaviness** | How much you rely on AI agents and tools for generating code |
+| **Guardrail Strength** | How closely tests, CI, and docs follow your AI-generated changes |
+| **Iteration Loop Intensity** | How often you run prompt-fix-run loops to refine AI output |
+| **Planning Signal** | How much structure you define before prompting AI to generate code |
+| **Surface Area per Change** | How many parts of the codebase your typical prompt or change touches |
+| **Shipping Rhythm** | Your coding session pattern — steady output vs intense vibe sessions |
 
 ### Step 5: Detect Persona
 Based on your axes, we match you to one of 7 Vibe Personas:
 
-| Persona | Signature Pattern |
-|---------|-------------------|
-| **Vibe Prototyper** | High automation, rapid iteration, minimal guardrails |
-| **Test-First Validator** | Strong guardrails with automation |
-| **Spec-Driven Architect** | High planning signal, early guardrails |
-| **Agent Orchestrator** | Wide surface area, high automation |
-| **Hands-On Debugger** | Intense fix loops, fast shipping |
-| **Rapid Risk-Taker** | High automation, low guardrails, fast shipping |
-| **Reflective Balancer** | Balanced across all axes (fallback) |
+| Persona | Signature Pattern | Tagline |
+|---------|-------------------|---------|
+| **Vibe Prototyper** | High automation, rapid iteration, minimal guardrails | "You prompt fast, ship fast, and let the code evolve" |
+| **Test-First Validator** | Strong guardrails with automation | "You give AI the wheel but keep tests and CI in the passenger seat" |
+| **Spec-Driven Architect** | High planning signal, early guardrails | "You write the spec before the prompt — AI follows your blueprint" |
+| **Agent Orchestrator** | Wide surface area, high automation | "You orchestrate agents across the stack" |
+| **Hands-On Debugger** | Intense fix loops, fast shipping | "You prompt, run, fix, repeat — tight feedback loops" |
+| **Rapid Risk-Taker** | High automation, low guardrails, fast shipping | "You trust the AI output and ship" |
+| **Reflective Balancer** | Balanced across all axes (fallback) | "You blend AI-assisted speed with manual craft" |
 
 ### Step 6: Generate Insights
 Deterministic insights are computed server-side:
@@ -107,7 +107,7 @@ Deterministic insights are computed server-side:
 - **AI Tool Metrics:** Per-tool usage breakdown from Co-Authored-By trailers (see below)
 
 ### Step 7: LLM Narrative (Optional)
-If LLM is configured, we generate a human-readable narrative about your *engineering patterns*, never about what you built, only how you built it.
+If LLM is configured, we generate a human-readable narrative about your *AI-assisted coding patterns*, never about what you built, only how you built it and how AI tools shaped your workflow.
 
 **Privacy:** The LLM only sees metadata (timestamps, categories, metrics), never commit message content or code.
 

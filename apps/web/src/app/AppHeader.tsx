@@ -2,8 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Settings, LogOut, User } from "lucide-react";
 import { wrappedTheme } from "@/lib/theme";
 import { NotificationDropdown } from "@/components/notifications";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 function isActiveLink(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -15,6 +24,7 @@ function isActiveLink(pathname: string, href: string): boolean {
 export default function AppHeader(props: {
   isAuthed: boolean;
   isAdmin?: boolean;
+  userEmail?: string;
   signOut: () => Promise<void>;
 }) {
   const pathname = usePathname();
@@ -25,9 +35,6 @@ export default function AppHeader(props: {
     ? [
         { href: "/", label: "My VCP" },
         { href: "/vibes", label: "Repo VCPs" },
-        { href: "/settings/repos", label: "Settings" },
-        { href: "/methodology", label: "Methodology" },
-        { href: "/security", label: "Security" },
       ]
     : [
         { href: "/", label: "Home" },
@@ -80,13 +87,54 @@ export default function AppHeader(props: {
           {props.isAuthed ? (
             <>
               <NotificationDropdown />
-              <form action={props.signOut}>
-                <button
-                  type="submit"
-                  className="rounded-full border border-zinc-300/80 bg-white/70 px-4 py-1.5 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur transition hover:border-zinc-400 hover:bg-white"
-                >
-                  Sign out
-                </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1.5 text-sm font-semibold text-zinc-950 shadow-sm backdrop-blur transition hover:border-zinc-400 hover:bg-white"
+                  >
+                    <User className="h-4 w-4 text-zinc-600" />
+                    <span className="hidden max-w-[150px] truncate sm:inline">
+                      {props.userEmail ?? "Account"}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" sideOffset={8}>
+                  <DropdownMenuLabel>
+                    {props.userEmail ?? "Signed in"}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/settings/repos"
+                      className="flex items-center gap-2"
+                    >
+                      <Settings className="h-4 w-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      const form = document.getElementById(
+                        "sign-out-form"
+                      ) as HTMLFormElement | null;
+                      form?.requestSubmit();
+                    }}
+                    className="flex items-center gap-2 text-red-600 hover:bg-red-50 focus:bg-red-50"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <form
+                id="sign-out-form"
+                action={props.signOut}
+                className="hidden"
+              >
+                <button type="submit" />
               </form>
             </>
           ) : (

@@ -105,14 +105,14 @@ describe("computeStrongestAxis", () => {
 // =============================================================================
 
 describe("formatStrongestAxis", () => {
-  it("formats as 'Name Score'", () => {
+  it("formats as 'HighLabel Name'", () => {
     const axes = createMockAxes({
       automation_heaviness: { score: 78, level: "high" },
     });
 
     const result = formatStrongestAxis(axes);
 
-    expect(result).toBe("Automation 78");
+    expect(result).toBe("AI-Heavy Automation");
   });
 
   it("formats different axes correctly", () => {
@@ -122,7 +122,7 @@ describe("formatStrongestAxis", () => {
 
     const result = formatStrongestAxis(axes);
 
-    expect(result).toBe("Rhythm 85");
+    expect(result).toBe("Bursty Rhythm");
   });
 });
 
@@ -266,8 +266,8 @@ describe("computePeakLabel", () => {
     expect(computePeakLabel("late_nights")).toBe("Late Nights");
   });
 
-  it("returns 'Varied' for null", () => {
-    expect(computePeakLabel(null)).toBe("Varied");
+  it("returns 'All Hours' for null", () => {
+    expect(computePeakLabel(null)).toBe("All Hours");
   });
 });
 
@@ -349,19 +349,19 @@ describe("computeShareCardMetrics", () => {
     const result = computeShareCardMetrics(axes, "afternoons");
 
     expect(result).toEqual({
-      strongest: "Automation 78",
+      strongest: "AI-Heavy Automation",
       style: "Fast Builder",
       rhythm: "Mixed",
       peak: "Afternoons",
     });
   });
 
-  it("uses 'Varied' for peak when no peakWindow provided", () => {
+  it("uses 'All Hours' for peak when no peakWindow provided", () => {
     const axes = createMockAxes();
 
     const result = computeShareCardMetrics(axes);
 
-    expect(result.peak).toBe("Varied");
+    expect(result.peak).toBe("All Hours");
   });
 
   it("handles null peakWindow explicitly", () => {
@@ -369,7 +369,7 @@ describe("computeShareCardMetrics", () => {
 
     const result = computeShareCardMetrics(axes, null);
 
-    expect(result.peak).toBe("Varied");
+    expect(result.peak).toBe("All Hours");
   });
 });
 

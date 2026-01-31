@@ -117,7 +117,7 @@ The ShareCard displays **computed metrics** derived from the 6 vibe axes, design
 
 | Metric | Description | Example Values |
 |--------|-------------|----------------|
-| **Strongest** | Highest-scoring axis + score | "Automation 78", "Planning 85" |
+| **Strongest** | Highest-scoring axis (highLabel + name) | "AI-Heavy Automation", "Structured Planning" |
 | **Style** | 2-word descriptor from axis combo | "Fast Builder", "Careful Planner" |
 | **Rhythm** | Shipping pattern from bursty/steady | "Bursty", "Steady", "Mixed" |
 | **Peak** | Most active time of day | "Mornings", "Afternoons", "Evenings", "Night Owl" |
@@ -130,16 +130,16 @@ The ShareCard displays **computed metrics** derived from the 6 vibe axes, design
 │  │  MY VIBE CODING STYLE                                   │    │
 │  │                                                         │    │
 │  │  🎭 The Vibe Prototyper                                │    │
-│  │  "You build to think — code is your sketchpad"         │    │
+│  │  "You prompt fast, ship fast, and let the code evolve"         │    │
 │  │                                                         │    │
 │  │  ┌─────────────────────────────────────────────────┐   │    │
 │  │  │ [LLM-generated tagline if available]            │   │    │
 │  │  └─────────────────────────────────────────────────┘   │    │
 │  │                                                         │    │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │    │
-│  │  │Automation│ │   Fast   │ │  Bursty  │ │Afternoons│   │    │
-│  │  │    78    │ │ Builder  │ │          │ │          │   │    │
-│  │  │ STRONGEST│ │  STYLE   │ │  RHYTHM  │ │   PEAK   │   │    │
+│  │  │ AI-Heavy │ │   Fast   │ │  Bursty  │ │Afternoons│   │    │
+│  │  │Automaton│ │ Builder  │ │          │ │          │   │    │
+│  │  │STRONGEST │ │  STYLE   │ │  RHYTHM  │ │   PEAK   │   │    │
 │  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘   │    │
 │  │                                                         │    │
 │  │  vibed.dev                  3 repos · 1,245 commits    │    │
@@ -234,7 +234,7 @@ The profile page should have a share card that aggregates across all repos.
 │  │  MY UNIFIED VCP                                         │    │
 │  │                                                         │    │
 │  │  🎭 The Vibe Prototyper                                │    │
-│  │  "You build to think — code is your sketchpad"         │    │
+│  │  "You prompt fast, ship fast, and let the code evolve"         │    │
 │  │  High confidence                                        │    │
 │  │                                                         │    │
 │  │  ┌─────────────────────────────────────────────────┐   │    │
@@ -242,9 +242,9 @@ The profile page should have a share card that aggregates across all repos.
 │  │  └─────────────────────────────────────────────────┘   │    │
 │  │                                                         │    │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │    │
-│  │  │Automation│ │   Fast   │ │  Bursty  │ │Afternoons│   │    │
-│  │  │    78    │ │ Builder  │ │          │ │          │   │    │
-│  │  │ STRONGEST│ │  STYLE   │ │  RHYTHM  │ │   PEAK   │   │    │
+│  │  │ AI-Heavy │ │   Fast   │ │  Bursty  │ │Afternoons│   │    │
+│  │  │Automaton│ │ Builder  │ │          │ │          │   │    │
+│  │  │STRONGEST │ │  STYLE   │ │  RHYTHM  │ │   PEAK   │   │    │
 │  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘   │    │
 │  │                                                         │    │
 │  │  vibed.dev                  5 repos · 2,341 commits    │    │
@@ -400,7 +400,7 @@ interface ProfileShareTemplate {
   };
   headline: string;      // "My Unified VCP"
   personaLabel: string;  // "The Vibe Prototyper"
-  tagline: string;       // "You build to think..."
+  tagline: string;       // "You prompt fast, ship fast..."
   confidence: string;    // "High confidence"
   stats: {
     repos: number;
@@ -500,7 +500,7 @@ function createShareSvg(
 │  │  MY VIBE CODING STYLE            [avatar if available]   │  │
 │  │                                                           │  │
 │  │  🎭 The Vibe Prototyper                                  │  │
-│  │  "You build to think — code is your sketchpad"           │  │
+│  │  "You prompt fast, ship fast, and let the code evolve"           │  │
 │  │  78% confidence                                           │  │
 │  │                                                           │  │
 │  │  [Optional LLM tagline row]                              │  │
@@ -551,15 +551,15 @@ function createShareSvg(
 │  │  MY UNIFIED VCP                                  │  │
 │  │                                                           │  │
 │  │  🎭 The Vibe Prototyper                                  │  │
-│  │  "You build to think — code is your sketchpad"           │  │
+│  │  "You prompt fast, ship fast, and let the code evolve"           │  │
 │  │  High confidence                                          │  │
 │  │                                                           │  │
 │  │  [Optional LLM tagline row]                              │  │
 │  │                                                           │  │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐    │  │
-│  │  │Automation│ │   Fast   │ │  Bursty  │ │Afternoons│    │  │
+│  │  │ AI-Heavy │ │   Fast   │ │  Bursty  │ │Afternoons│    │  │
 │  │  │    72    │ │ Builder  │ │          │ │          │    │  │
-│  │  │ STRONGEST│ │  STYLE   │ │  RHYTHM  │ │   PEAK   │    │  │
+│  │  │STRONGEST │ │  STYLE   │ │  RHYTHM  │ │   PEAK   │    │  │
 │  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘    │  │
 │  │                                                           │  │
 │  │  vibed.dev                  5 repos · 2,341 commits      │  │
@@ -650,7 +650,7 @@ The ShareCard displays **4 computed metrics** derived from the 6 vibe axes. Thes
 
 | Metric | Label | Computation | Example Output |
 |--------|-------|-------------|----------------|
-| **Strongest** | `STRONGEST` | Highest-scoring axis name + score | "Automation 78" |
+| **Strongest** | `STRONGEST` | Highest-scoring axis (highLabel + name) | "AI-Heavy Automation" |
 | **Style** | `STYLE` | 2-word descriptor from axis combo | "Fast Builder" |
 | **Rhythm** | `RHYTHM` | Shipping pattern from `shipping_rhythm` axis | "Bursty", "Steady", "Mixed" |
 | **Peak** | `PEAK` | Most active time of day (from commit timing) | "Mornings", "Afternoons", "Evenings", "Night Owl" |
@@ -694,7 +694,7 @@ These metrics are computed in `apps/web/src/lib/vcp/metrics.ts`:
 import { computeShareCardMetrics } from "@/lib/vcp/metrics";
 
 const metrics = computeShareCardMetrics(axes);
-// Returns: { strongest: "Automation 78", style: "Fast Builder", rhythm: "Bursty", peak: "Afternoons" }
+// Returns: { strongest: "AI-Heavy Automation", style: "Fast Builder", rhythm: "Bursty", peak: "Afternoons" }
 ```
 
 ### Footer Content

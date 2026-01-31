@@ -2,7 +2,8 @@ import { ImageResponse } from "@vercel/og";
 import { createClient } from "@supabase/supabase-js";
 import { getPersonaAura } from "@/lib/persona-auras";
 
-export const runtime = 'edge';
+// Node.js runtime: edge can't reliably fetch self-origin images for aura backgrounds
+export const runtime = "nodejs";
 
 export async function GET(
   request: Request,
@@ -84,6 +85,23 @@ export async function GET(
     const personaConfidence = profile.persona_confidence || "High";
     const aura = getPersonaAura(profile.persona_id);
 
+    // Persona-based gradient colors (matches STORY_THEMES in story route)
+    const PERSONA_COLORS: Record<string, { primary: string; accent: string }> = {
+      prompt_sprinter: { primary: "#7c3aed", accent: "#6366f1" },
+      rapid_risk_taker: { primary: "#8b5cf6", accent: "#6366f1" },
+      fix_loop_hacker: { primary: "#7c3aed", accent: "#818cf8" },
+      guardrailed_viber: { primary: "#6366f1", accent: "#7c3aed" },
+      spec_first_director: { primary: "#4f46e5", accent: "#7c3aed" },
+      balanced_builder: { primary: "#6366f1", accent: "#8b5cf6" },
+      reflective_balancer: { primary: "#6366f1", accent: "#8b5cf6" },
+      methodical_architect: { primary: "#4f46e5", accent: "#7c3aed" },
+      vertical_slice_shipper: { primary: "#6366f1", accent: "#818cf8" },
+      toolsmith_viber: { primary: "#4f46e5", accent: "#6366f1" },
+      infra_weaver: { primary: "#4338ca", accent: "#6366f1" },
+    };
+    const DEFAULT_COLORS = { primary: "#7c3aed", accent: "#6366f1" };
+    const colors = PERSONA_COLORS[profile.persona_id] ?? DEFAULT_COLORS;
+
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:8108";
     const displayUrl = new URL(baseUrl).host;
 
@@ -105,29 +123,37 @@ export async function GET(
       strongest: "N/A",
       style: "Balanced",
       rhythm: "Mixed",
-      peak: "Varied"
+      peak: "All Hours"
     };
 
     if (axes) {
       // 1. Strongest
       let maxScore = -1;
-      let maxName = "";
+      let maxKey = "";
       const AXIS_NAMES: Record<string, string> = {
         automation_heaviness: "Automation",
         guardrail_strength: "Guardrails",
-        iteration_loop_intensity: "Loops",
+        iteration_loop_intensity: "Iteration",
         planning_signal: "Planning",
-        surface_area_per_change: "Scope",
+        surface_area_per_change: "Surface Area",
         shipping_rhythm: "Rhythm",
+      };
+      const AXIS_HIGH_LABELS: Record<string, string> = {
+        automation_heaviness: "AI-Heavy",
+        guardrail_strength: "Rigorous",
+        iteration_loop_intensity: "Rapid",
+        planning_signal: "Structured",
+        surface_area_per_change: "Wide",
+        shipping_rhythm: "Bursty",
       };
       for (const [key, val] of Object.entries(axes)) {
         const axis = val as { score: number };
         if (axis.score > maxScore && AXIS_NAMES[key]) {
           maxScore = axis.score;
-          maxName = AXIS_NAMES[key];
+          maxKey = key;
         }
       }
-      const strongest = maxName ? `${maxName} ${maxScore}` : "N/A";
+      const strongest = maxKey ? `${AXIS_HIGH_LABELS[maxKey]} ${AXIS_NAMES[maxKey]}` : "N/A";
 
       // 2. Style
       let style = "Mixed"; // Default
@@ -182,20 +208,32 @@ export async function GET(
             display: "flex",
             flexDirection: "column",
             position: "relative",
-            backgroundColor: "#111",
-            backgroundImage: `url(${bgUrl})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
+            background: `linear-gradient(180deg, ${colors.primary}, ${colors.accent})`,
             fontFamily: '"Space Grotesk", sans-serif',
             fontSize: 24 * scale,
+            overflow: "hidden",
           }}
         >
-          {/* Overlay */}
+          {/* Aura background overlay */}
+          {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
+          <img
+            src={bgUrl}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              opacity: 0.25,
+            }}
+          />
+          {/* Readability overlay */}
           <div
             style={{
               position: "absolute",
               inset: 0,
-              backgroundColor: "rgba(0,0,0,0.4)",
+              backgroundColor: "rgba(0,0,0,0.15)",
             }}
           />
 
