@@ -36,7 +36,7 @@ interface AnalysisListClientProps {
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
   pending: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400" },
-  running: { bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-400 animate-pulse" },
+  running: { bg: "bg-indigo-50", text: "text-indigo-700", dot: "bg-indigo-400 animate-pulse" },
   done: { bg: "bg-green-50", text: "text-green-700", dot: "bg-green-500" },
   failed: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500" },
 };
@@ -128,8 +128,8 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
         >
           Jobs
           {activeJobsCount > 0 && (
-            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
+            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500" />
               {activeJobsCount}
             </span>
           )}
@@ -223,7 +223,7 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
             <p className="text-sm text-zinc-600">
               {isPolling ? (
                 <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-500" />
                   Watching for updates...
                 </span>
               ) : (
@@ -254,7 +254,7 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
                   key={job.id}
                   className={`rounded-xl border p-4 transition-colors ${
                     job.status === "running"
-                      ? "border-blue-200 bg-blue-50/50"
+                      ? "border-indigo-200 bg-indigo-50/50"
                       : job.status === "failed"
                       ? "border-red-200 bg-red-50/50"
                       : "border-black/5 bg-white/70"
@@ -289,7 +289,7 @@ export default function AnalysisListClient({ initialReports, initialJobs }: Anal
                       </Link>
                     )}
                     {job.status === "running" && (
-                      <div className="flex items-center gap-2 text-xs text-blue-600">
+                      <div className="flex items-center gap-2 text-xs text-indigo-600">
                         <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />

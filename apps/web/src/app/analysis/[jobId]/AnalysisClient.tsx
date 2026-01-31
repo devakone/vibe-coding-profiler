@@ -715,7 +715,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
   if (job.status === "queued" || job.status === "running") {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-fuchsia-500" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-violet-500" />
         <p className="text-sm text-zinc-600">
           {job.status === "queued" ? "Waiting to analyze…" : "Analyzing your commits…"}
         </p>
@@ -779,14 +779,14 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
               ? "border-red-200 bg-red-50"
               : profileRebuildStatus === "success"
                 ? "border-green-200 bg-green-50"
-                : "border-fuchsia-200 bg-fuchsia-50"
+                : "border-violet-200 bg-violet-50"
           }`}
         >
           <div className="flex items-center gap-3">
             {rebuildingProfile ? (
               <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-fuchsia-200 border-t-fuchsia-500" />
-                <p className="text-sm font-medium text-fuchsia-800">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-violet-200 border-t-violet-500" />
+                <p className="text-sm font-medium text-violet-800">
                   Rebuilding your Unified VCP with latest analysis...
                 </p>
               </>
@@ -857,7 +857,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-zinc-500">Version:</span>
                 <select
-                  className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+                  className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
                   value={jobId}
                   onChange={(e) => {
                     if (e.target.value !== jobId) {
@@ -942,7 +942,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         wrapped.artifact_traceability.workflow_style === "orchestrator"
-                          ? "bg-cyan-100 text-cyan-800"
+                          ? "bg-indigo-100 text-indigo-800"
                           : wrapped.artifact_traceability.workflow_style === "conductor"
                             ? "bg-amber-100 text-amber-800"
                             : "bg-violet-100 text-violet-800"
@@ -999,7 +999,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                   {wrapped.artifact_traceability.scores ? (
                     <div className="mt-4 flex items-center justify-center gap-4 text-xs text-zinc-500">
                       <span>
-                        Orchestrator: <span className="font-semibold text-cyan-700">{wrapped.artifact_traceability.scores.orchestrator_score}</span>
+                        Orchestrator: <span className="font-semibold text-indigo-700">{wrapped.artifact_traceability.scores.orchestrator_score}</span>
                       </span>
                       <span>vs</span>
                       <span>

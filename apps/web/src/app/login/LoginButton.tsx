@@ -78,7 +78,7 @@ export default function LoginButton({ provider = "github" }: LoginButtonProps) {
     <div className="flex flex-col gap-3">
       <button
         type="button"
-        className="flex items-center justify-center gap-2 rounded-md bg-black px-4 py-2 text-white disabled:opacity-60"
+        className="montoya-slash flex items-center justify-center gap-2 rounded-md bg-black px-4 py-2 text-white disabled:opacity-60"
         onClick={signIn}
         disabled={isLoading}
       >

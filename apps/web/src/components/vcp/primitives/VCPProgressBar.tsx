@@ -23,7 +23,7 @@ export function VCPProgressBar({
   };
 
   const variantClasses = {
-    default: "from-blue-500 to-purple-500",
+    default: "from-violet-500 to-indigo-500",
     success: "from-green-500 to-emerald-400",
     warning: "from-yellow-500 to-orange-400",
     danger: "from-red-500 to-pink-500",

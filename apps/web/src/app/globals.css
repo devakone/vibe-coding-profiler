@@ -131,3 +131,28 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Montoya slash — signature diagonal accent */
+.montoya-slash {
+  position: relative;
+  overflow: hidden;
+}
+
+.montoya-slash::after {
+  content: "";
+  position: absolute;
+  top: -10%;
+  right: 8%;
+  width: 1.5px;
+  height: 40%;
+  background: linear-gradient(to bottom, #7c3aed, #6366f1);
+  transform: rotate(-35deg);
+  transform-origin: top center;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+
+.montoya-slash:hover::after {
+  opacity: 0.9;
+}
