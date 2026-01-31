@@ -148,8 +148,8 @@ body {
   background: linear-gradient(
     225deg,
     transparent calc(50% - 2px),
-    #7c3aed calc(50% - 2px),
-    #6366f1 calc(50% + 2px),
+    #6366f1 calc(50% - 2px),
+    #4f46e5 calc(50% + 2px),
     transparent calc(50% + 2px)
   );
   pointer-events: none;
