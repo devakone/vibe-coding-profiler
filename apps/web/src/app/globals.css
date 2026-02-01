@@ -132,42 +132,76 @@ body {
   }
 }
 
-/* Vibe echo — cards that look like they're vibrating */
+/* Vibe echo — subtle radiating pulse on hover */
+@keyframes echo-ring-1 {
+  0% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(1.015);
+    opacity: 0;
+  }
+}
+
+@keyframes echo-ring-2 {
+  0% {
+    transform: scale(1);
+    opacity: 0.1;
+  }
+  100% {
+    transform: scale(1.03);
+    opacity: 0;
+  }
+}
+
 .vibe-echo {
   position: relative;
+  transition: border-color 0.5s ease;
 }
 
 .vibe-echo::before,
 .vibe-echo::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -1px;
   border-radius: inherit;
-  border: 1px solid;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.4s, transform 0.4s;
 }
 
 .vibe-echo::before {
-  border-color: #7c3aed;
+  border: 1px solid #7c3aed;
 }
 
 .vibe-echo::after {
-  border-color: #6366f1;
+  border: 1px solid #6366f1;
+}
+
+.vibe-echo:hover {
+  border-color: rgba(124, 58, 237, 0.1);
 }
 
 .vibe-echo:hover::before {
-  opacity: 0.25;
-  transform: translate(-3px, -2px);
+  animation: echo-ring-1 3s ease-out infinite;
 }
 
 .vibe-echo:hover::after {
-  opacity: 0.15;
-  transform: translate(3px, 2px);
+  animation: echo-ring-2 3s ease-out 1s infinite;
 }
 
 /* Smaller echo for buttons */
+@keyframes echo-ring-sm {
+  0% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(1.06);
+    opacity: 0;
+  }
+}
+
 .vibe-echo-sm {
   position: relative;
 }
@@ -175,15 +209,13 @@ body {
 .vibe-echo-sm::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -1px;
   border-radius: inherit;
   border: 1px solid #6366f1;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.3s, transform 0.3s;
 }
 
 .vibe-echo-sm:hover::after {
-  opacity: 0.3;
-  transform: translate(2px, 1px);
+  animation: echo-ring-sm 2.5s ease-out infinite;
 }

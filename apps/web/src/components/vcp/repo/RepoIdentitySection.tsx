@@ -37,7 +37,7 @@ export function RepoIdentitySection({
   className,
 }: RepoIdentitySectionProps) {
   return (
-    <div className={cn("relative overflow-hidden rounded-[2rem] border border-black/5 bg-white shadow-sm", className)}>
+    <div className={cn("relative rounded-[2rem] border border-black/5 bg-white shadow-sm", className)}>
       <div className="absolute inset-0 bg-gradient-to-br from-violet-500/8 via-transparent to-indigo-500/8" />
       <div className="relative p-8">
         <div className="max-w-2xl">

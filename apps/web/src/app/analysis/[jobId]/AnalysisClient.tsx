@@ -908,7 +908,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
           </div>
 
           {/* Detailed Analysis Card */}
-          <div className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-white shadow-sm">
+          <div className="vibe-echo relative rounded-[2rem] border border-black/5 bg-white shadow-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-violet-500/8 via-transparent to-indigo-500/8" />
             <div className="relative p-8">
               <RepoIdentitySection
@@ -1113,7 +1113,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
             </div>
           </div>
 
-          <details className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+          <details className="vibe-echo rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
             <summary className="cursor-pointer text-sm font-semibold text-zinc-900">
               Timeline and details
             </summary>
