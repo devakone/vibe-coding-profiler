@@ -909,7 +909,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
 
           {/* Detailed Analysis Card */}
           <div className="vibe-echo relative rounded-[2rem] border border-black/5 bg-white shadow-sm">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/8 via-transparent to-indigo-500/8" />
+            <div className="absolute inset-0 rounded-[inherit] bg-gradient-to-br from-violet-500/8 via-transparent to-indigo-500/8" />
             <div className="relative p-8">
               <RepoIdentitySection
                 persona={persona}
