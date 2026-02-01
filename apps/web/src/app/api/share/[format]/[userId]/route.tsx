@@ -11,7 +11,8 @@ export async function GET(
 ) {
   try {
     const { format, userId } = await params;
-    
+    const jobId = new URL(request.url).searchParams.get("jobId");
+
     if (!["og", "square", "story"].includes(format)) {
       return new Response("Invalid format", { status: 400 });
     }
@@ -60,21 +61,73 @@ export async function GET(
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch Profile
-    const { data: profile, error } = await supabase
-      .from("user_profiles")
-      .select("persona_id, persona_name, persona_tagline, persona_confidence, total_repos, total_commits, axes_json, narrative_json")
-      .eq("user_id", userId)
-      .single();
+    // Fetch data: job-specific or unified profile
+    let profile: {
+      persona_id: string;
+      persona_name: string | null;
+      persona_tagline: string | null;
+      persona_confidence: string | null;
+      total_repos: number | null;
+      total_commits: number | null;
+      axes_json: Record<string, { score: number }> | null;
+      narrative_json: { insight?: string; summary?: string } | null;
+    } | null = null;
 
-    if (error) {
-      console.error("Supabase error:", error);
-      throw new Error(`Profile fetch failed: ${error.message}`);
+    if (jobId) {
+      // Job-specific share: fetch from vibe_insights + analysis_jobs
+      const [vibeResult, jobResult, insightsResult] = await Promise.all([
+        supabase
+          .from("vibe_insights")
+          .select("persona_id, persona_name, persona_tagline, persona_confidence, axes_json")
+          .eq("job_id", jobId)
+          .maybeSingle(),
+        supabase
+          .from("analysis_jobs")
+          .select("commit_count")
+          .eq("id", jobId)
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabase
+          .from("analysis_insights")
+          .select("persona_label, persona_confidence, persona_id, narrative_json")
+          .eq("job_id", jobId)
+          .maybeSingle(),
+      ]);
+
+      const vibe = vibeResult.data;
+      const job = jobResult.data;
+      const insights = insightsResult.data;
+
+      if (vibe || insights) {
+        profile = {
+          persona_id: vibe?.persona_id ?? insights?.persona_id ?? "balanced_builder",
+          persona_name: vibe?.persona_name ?? insights?.persona_label ?? null,
+          persona_tagline: vibe?.persona_tagline ?? null,
+          persona_confidence: vibe?.persona_confidence ?? insights?.persona_confidence ?? null,
+          total_repos: 1,
+          total_commits: job?.commit_count ?? null,
+          axes_json: vibe?.axes_json ?? null,
+          narrative_json: insights?.narrative_json ?? null,
+        };
+      }
+    } else {
+      // Unified profile share
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("persona_id, persona_name, persona_tagline, persona_confidence, total_repos, total_commits, axes_json, narrative_json")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Supabase error:", error);
+        throw new Error(`Profile fetch failed: ${error.message}`);
+      }
+      profile = data;
     }
-    
+
     if (!profile) {
-      console.error(`Profile not found for userId: ${userId}`);
-      return new Response("Profile not found - check if userId is correct or if RLS policies prevent access (Service Role Key required for private profiles)", { status: 404 });
+      console.error(`Profile not found for userId: ${userId}${jobId ? `, jobId: ${jobId}` : ""}`);
+      return new Response("Profile not found", { status: 404 });
     }
 
     // Prepare Data

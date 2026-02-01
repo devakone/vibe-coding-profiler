@@ -93,7 +93,7 @@ export function UsernameEditor() {
         <div className="flex-1">
           <div className="flex rounded-lg border border-zinc-200 bg-white focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100">
             <span className="flex items-center pl-3 text-sm text-zinc-400">
-              {appUrl ? `${new URL(appUrl).host}/u/` : "vibed.dev/u/"}
+              {appUrl ? `${new URL(appUrl).host}/u/` : "localhost/u/"}
             </span>
             <input
               type="text"
@@ -126,7 +126,7 @@ export function UsernameEditor() {
         <p className="text-xs text-zinc-500">
           Your profile URL:{" "}
           <span className="font-mono text-violet-600">
-            {appUrl ? `${new URL(appUrl).host}` : "vibed.dev"}/u/{currentUsername}
+            {appUrl ? `${new URL(appUrl).host}` : "localhost"}/u/{currentUsername}
           </span>
         </p>
       ) : null}

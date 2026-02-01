@@ -145,7 +145,7 @@ async function buildProfileStory(
   const topAxes = axes ? formatAxesList(axes) : [];
 
   return {
-    headline: "My Vibed Profile",
+    headline: "My Vibe Coding Profile",
     subhead,
     personaName: profileRow.persona_name ?? "Vibe Coder",
     personaTagline: subhead,

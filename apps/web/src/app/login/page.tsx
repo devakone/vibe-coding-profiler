@@ -5,12 +5,12 @@ import { wrappedTheme } from "@/lib/theme";
 export default function LoginPage() {
   return (
     <div className={`flex min-h-screen items-center justify-center ${wrappedTheme.container}`}>
-      <div className={`w-full max-w-md p-6 ${wrappedTheme.card}`}>
+      <div className={`w-full max-w-md p-6 text-center ${wrappedTheme.card}`}>
         <h1 className={`text-2xl font-semibold tracking-tight ${wrappedTheme.gradientText}`}>
           Vibe Coding Profiler
         </h1>
         <p className="mt-2 text-sm text-zinc-600">
-          Sign in to analyze your build patterns from git history.
+          Sign in to discover your vibe coding persona from your commit history.
         </p>
         <div className="mt-6 space-y-3">
           <LoginButton provider="github" />

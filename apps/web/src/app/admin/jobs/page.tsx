@@ -115,8 +115,8 @@ export default async function AdminJobsPage({
                   </td>
                   <td className="px-4 py-3">
                     {job.profile_updated ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-fuchsia-100 px-2 py-1 text-xs font-medium text-fuchsia-700">
-                        <span className="text-fuchsia-500">✓</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-1 text-xs font-medium text-violet-700">
+                        <span className="text-violet-500">✓</span>
                         {job.profile_persona ? (
                           <span title={job.profile_persona}>Updated</span>
                         ) : (
@@ -182,7 +182,7 @@ function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     done: "bg-emerald-100 text-emerald-700",
     queued: "bg-amber-100 text-amber-700",
-    running: "bg-blue-100 text-blue-700",
+    running: "bg-indigo-100 text-indigo-700",
     failed: "bg-red-100 text-red-700",
   };
 

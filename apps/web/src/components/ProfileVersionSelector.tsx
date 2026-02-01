@@ -98,7 +98,7 @@ export function ProfileVersionSelector({ currentUpdatedAt }: ProfileVersionSelec
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-zinc-500">View version:</span>
                 <select
-                  className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+                  className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
                   value={selectedVersion?.id ?? ""}
                   onChange={(e) => {
                     const version = versions.find((v) => v.id === e.target.value);
@@ -129,7 +129,7 @@ export function ProfileVersionSelector({ currentUpdatedAt }: ProfileVersionSelec
                       ) : null}
                     </div>
                     {selectedVersion.llmModel ? (
-                      <span className="rounded-full bg-fuchsia-100 px-2 py-0.5 text-[10px] font-medium text-fuchsia-700">
+                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700">
                         AI: {selectedVersion.llmModel}
                       </span>
                     ) : (

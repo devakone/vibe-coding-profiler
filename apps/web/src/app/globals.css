@@ -131,3 +131,91 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Vibe echo — subtle radiating pulse on hover */
+@keyframes echo-ring-1 {
+  0% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(1.015);
+    opacity: 0;
+  }
+}
+
+@keyframes echo-ring-2 {
+  0% {
+    transform: scale(1);
+    opacity: 0.1;
+  }
+  100% {
+    transform: scale(1.03);
+    opacity: 0;
+  }
+}
+
+.vibe-echo {
+  position: relative;
+  transition: border-color 0.5s ease;
+}
+
+.vibe-echo::before,
+.vibe-echo::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.vibe-echo::before {
+  border: 1px solid #7c3aed;
+}
+
+.vibe-echo::after {
+  border: 1px solid #6366f1;
+}
+
+.vibe-echo:hover {
+  border-color: rgba(124, 58, 237, 0.1);
+}
+
+.vibe-echo:hover::before {
+  animation: echo-ring-1 6s ease-out infinite;
+}
+
+.vibe-echo:hover::after {
+  animation: echo-ring-2 6s ease-out 2s infinite;
+}
+
+/* Smaller echo for buttons */
+@keyframes echo-ring-sm {
+  0% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(1.06);
+    opacity: 0;
+  }
+}
+
+.vibe-echo-sm {
+  position: relative;
+}
+
+.vibe-echo-sm::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 1px solid #6366f1;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.vibe-echo-sm:hover::after {
+  animation: echo-ring-sm 5s ease-out infinite;
+}

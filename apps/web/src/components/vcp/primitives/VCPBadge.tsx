@@ -16,7 +16,7 @@ export function VCPBadge({
     default: "bg-white/10 text-white/70",
     success: "bg-green-500/20 text-green-400",
     warning: "bg-yellow-500/20 text-yellow-400",
-    info: "bg-blue-500/20 text-blue-400",
+    info: "bg-indigo-500/20 text-indigo-400",
     muted: "bg-white/5 text-white/50",
   };
 

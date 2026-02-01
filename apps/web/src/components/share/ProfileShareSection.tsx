@@ -167,7 +167,7 @@ export function ProfileShareSection({
         footer={{
           left: process.env.NEXT_PUBLIC_APP_URL
             ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname
-            : "vibed.dev",
+            : "Vibe Coding Profiler",
           right: `${totalRepos} repos · ${totalCommits.toLocaleString()} commits`,
         }}
         colors={colors}

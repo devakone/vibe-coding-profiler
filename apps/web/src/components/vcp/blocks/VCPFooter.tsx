@@ -4,7 +4,7 @@ import type { VCPFooterProps } from "../types";
 /**
  * VCPFooter - Card footer with left/right content
  *
- * Used for branding (vibed.dev) and context (repos/commits).
+ * Used for branding and context (repos/commits).
  */
 export function VCPFooter({ left, right, className }: VCPFooterProps) {
   return (

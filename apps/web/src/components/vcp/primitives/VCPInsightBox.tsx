@@ -16,7 +16,7 @@ export function VCPInsightBox({
   const typeClasses = {
     default: "border-l-4 border-white/20 bg-white/5",
     ai: "border-l-4 border-purple-400/50 bg-purple-500/10",
-    highlight: "border-l-4 border-blue-400/50 bg-blue-500/10",
+    highlight: "border-l-4 border-indigo-400/50 bg-indigo-500/10",
   };
 
   return (
