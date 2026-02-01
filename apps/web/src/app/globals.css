@@ -183,11 +183,11 @@ body {
 }
 
 .vibe-echo:hover::before {
-  animation: echo-ring-1 3s ease-out infinite;
+  animation: echo-ring-1 6s ease-out infinite;
 }
 
 .vibe-echo:hover::after {
-  animation: echo-ring-2 3s ease-out 1s infinite;
+  animation: echo-ring-2 6s ease-out 2s infinite;
 }
 
 /* Smaller echo for buttons */
@@ -217,5 +217,5 @@ body {
 }
 
 .vibe-echo-sm:hover::after {
-  animation: echo-ring-sm 2.5s ease-out infinite;
+  animation: echo-ring-sm 5s ease-out infinite;
 }
