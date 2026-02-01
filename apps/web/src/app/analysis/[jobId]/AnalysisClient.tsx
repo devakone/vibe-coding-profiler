@@ -846,6 +846,7 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                 shareHeadline={shareTemplate.headline}
                 shareTemplate={shareImageTemplate}
                 entityId={jobId}
+                userId={data?.userId ?? undefined}
                 storyEndpoint={storyEndpoint}
               />
             </div>

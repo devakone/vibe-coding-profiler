@@ -46,9 +46,13 @@ export function ShareActions({
   shareHeadline,
   shareTemplate,
   entityId,
+  userId,
   disabled = false,
   shareJson,
 }: ShareActionsProps) {
+  // When userId is provided, use it as the path param and append jobId query
+  const shareApiId = userId ?? entityId;
+  const shareApiQuery = userId ? `?jobId=${entityId}` : "";
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [shareFormat, setShareFormat] = useState<ShareFormat>("og");
@@ -134,7 +138,7 @@ export function ShareActions({
 
     try {
       // 2. Fetch the image blob
-      const url = `/api/share/${shareFormat}/${entityId}`;
+      const url = `/api/share/${shareFormat}/${shareApiId}${shareApiQuery}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("generation_failed");
       const blob = await res.blob();
@@ -182,7 +186,7 @@ export function ShareActions({
     setDownloading(true);
     try {
       // Use the new backend API for consistent image generation
-      const url = `/api/share/${shareFormat}/${entityId}`;
+      const url = `/api/share/${shareFormat}/${shareApiId}${shareApiQuery}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("generation_failed");
       const blob = await res.blob();
@@ -202,7 +206,7 @@ export function ShareActions({
     setStoryDownloading(true);
     try {
       // Use the new backend API for story generation
-      const url = `/api/share/story/${entityId}`;
+      const url = `/api/share/story/${shareApiId}${shareApiQuery}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("story_failed");
       const blob = await res.blob();

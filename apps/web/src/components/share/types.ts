@@ -57,6 +57,8 @@ export interface ShareActionsProps {
   shareTemplate: ShareImageTemplate | null;
   /** Job ID or profile ID for filename */
   entityId: string;
+  /** User ID for share API routes (when entityId is a jobId) */
+  userId?: string;
   /** Whether share is disabled */
   disabled?: boolean;
   /** Optional story download endpoint */
