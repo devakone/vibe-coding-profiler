@@ -292,8 +292,8 @@ const PERSONA_DESCRIPTORS: Record<PersonaId, PersonaDescriptor> = {
     label: "Rapid Risk-Taker",
     description: "Dives into hotfixes with urgency; loves hands-on debugging.",
     archetypes: ["Riri Williams / Ironheart", "Okoye", "Nakoma"],
-    color: "#EF4444",
-    accent: "#FCA5A5",
+    color: "#7B2D3B",
+    accent: "#C9798E",
   },
   "reflective-balancer": {
     label: "Reflective Balancer",
