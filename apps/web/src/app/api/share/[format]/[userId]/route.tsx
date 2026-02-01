@@ -65,7 +65,7 @@ export async function GET(
       .from("user_profiles")
       .select("persona_id, persona_name, persona_tagline, persona_confidence, total_repos, total_commits, axes_json, narrative_json")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Supabase error:", error);
