@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.0-alpha.11](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.10...vibe-coding-profiler-v0.1.0-alpha.11) (2026-02-01)
+
+
+### Features
+
+* replace Montoya slash with vibe echo effect ([f3d869d](https://github.com/devakone/vibe-coding-profiler/commit/f3d869d7d1a5565736948ea80e507a9b476c9018))
+* unify brand colors and add Montoya slash flourish ([e699083](https://github.com/devakone/vibe-coding-profiler/commit/e699083367370545957ff0d0f9cf428166c113df))
+
+
+### Bug Fixes
+
+* enable share image generation for repo analysis pages ([01a4d0c](https://github.com/devakone/vibe-coding-profiler/commit/01a4d0ce920a057e551255fdfbde96969000f2a1))
+* remove old vibed.dev fallbacks and update branding references ([0954d0b](https://github.com/devakone/vibe-coding-profiler/commit/0954d0b9bb7c42cd83cfde00df015c86a094852e))
+* restore rounded corners on analysis cards after overflow-hidden removal ([6416a65](https://github.com/devakone/vibe-coding-profiler/commit/6416a654b20907ed24dbac574a579c729ce8fdde))
+* use maybeSingle for profile share route to avoid PGRST116 crash ([6193cea](https://github.com/devakone/vibe-coding-profiler/commit/6193cea160fd8a130b67ee8e7fa18a735e8e4f7f))
+
 ## [0.1.0-alpha.10](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.9...vibe-coding-profiler-v0.1.0-alpha.10) (2026-01-31)
 
 
