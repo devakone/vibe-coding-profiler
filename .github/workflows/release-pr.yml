@@ -22,16 +22,11 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}
           DEFAULT_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_TITLE: "Release: develop → main"
-          PR_TEMPLATE: .github/PULL_REQUEST_TEMPLATE.md
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
 
           export GH_TOKEN="${GH_TOKEN:-$DEFAULT_GH_TOKEN}"
-
-          if [ ! -f "$PR_TEMPLATE" ]; then
-            echo "Pull request template not found at $PR_TEMPLATE"
-            exit 1
-          fi
 
           git fetch origin main --prune
 
@@ -46,11 +41,10 @@ jobs:
 
           python3 - <<'PY'
           import os
-          import re
           import subprocess
 
-          template_path = os.environ["PR_TEMPLATE"]
           body_file_path = os.environ["BODY_FILE"]
+          repository = os.environ["GITHUB_REPOSITORY"]
 
           # Get commits that are in develop but not in main
           log = subprocess.check_output(
@@ -68,51 +62,29 @@ jobs:
           if items:
               bullets = [f"- {line}" for line in items]
               if extra:
-                  bullets.append(f"- …and {extra} more commits")
+                  bullets.append(f"- ...and {extra} more commits")
           else:
               bullets = ["- No new changes since last release"]
 
-          with open(template_path, "r", encoding="utf-8") as f:
-              content = f.read()
-              lines = content.splitlines()
+          summary_lines = [
+              "This PR syncs `develop` into `main` for the next production release.",
+              f"It includes **{len(log)}** commit(s) ahead of `main`.",
+          ]
 
-          # Find the Changes section and replace the placeholder
-          if "## Changes" in lines:
-              header_index = lines.index("## Changes")
-              
-              # Find the next section header
-              end_index = len(lines)
-              for i in range(header_index + 1, len(lines)):
-                  if lines[i].startswith("## "):
-                      end_index = i
-                      break
-
-              # Extract section content
-              section = lines[header_index + 1 : end_index]
-              
-              # Find and replace the placeholder bullet point
-              replaced = False
-              for idx, line in enumerate(section):
-                  # Match empty bullet point (with optional whitespace)
-                  if re.fullmatch(r"-\s*", line.strip()) or line.strip() == "-":
-                      section = section[:idx] + bullets + section[idx + 1 :]
-                      replaced = True
-                      break
-
-              if not replaced:
-                  # If no placeholder found, insert bullets after empty lines/comments
-                  insert_idx = 0
-                  for idx, line in enumerate(section):
-                      if line.strip() and not line.strip().startswith("<!--"):
-                          insert_idx = idx
-                          break
-                      insert_idx = idx + 1
-                  section = section[:insert_idx] + bullets + section[insert_idx:]
-
-              final_lines = lines[: header_index + 1] + section + lines[end_index:]
-          else:
-              # If no Changes section exists, append one
-              final_lines = lines + ["", "## Changes", ""] + bullets
+          compare_url = f"https://github.com/{repository}/compare/main...develop"
+          final_lines = [
+              "## Release Notes",
+              "",
+              *summary_lines,
+              "",
+              "## Changes",
+              "",
+              *bullets,
+              "",
+              "## Compare",
+              "",
+              f"- Full diff: {compare_url}",
+          ]
 
           with open(body_file_path, "w", encoding="utf-8") as f:
               f.write("\n".join(final_lines).rstrip() + "\n")

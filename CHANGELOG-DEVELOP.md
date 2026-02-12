@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.0-alpha.21](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.20...vibe-coding-profiler-v0.1.0-alpha.21) (2026-02-12)
+
+
+### Features
+
+* add analytics tracking for key user actions ([1b0c994](https://github.com/devakone/vibe-coding-profiler/commit/1b0c994de0f0663979c115b4ab94957a61088b32))
+* track LLM usage events ([229bfd2](https://github.com/devakone/vibe-coding-profiler/commit/229bfd2f2920109e3c412d001abd7017aaac5820))
+
+## [0.1.0-alpha.20](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.19...vibe-coding-profiler-v0.1.0-alpha.20) (2026-02-12)
+
+
+### Features
+
+* configure Plausible analytics integration ([ced53ab](https://github.com/devakone/vibe-coding-profiler/commit/ced53ab610d9fb66be919c5909d3e7c2b6e3633d))
+* track page views on Next.js route changes ([80f23d3](https://github.com/devakone/vibe-coding-profiler/commit/80f23d3038524a60fa555e20eccf6d5dfcbbe6bb))
+
 ## [0.1.0-alpha.19](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.18...vibe-coding-profiler-v0.1.0-alpha.19) (2026-02-12)
 
 

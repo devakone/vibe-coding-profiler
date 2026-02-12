@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { wrappedTheme } from "@/lib/theme";
+import { trackEvent, AnalyticsEvents } from "@/lib/analytics";
 
 interface LLMKey {
   id: string;
@@ -84,6 +85,7 @@ export default function LLMKeysClient() {
       });
       if (res.ok) {
         setLlmOptIn(newValue);
+        trackEvent(newValue ? AnalyticsEvents.LLM_OPT_IN_ENABLED : AnalyticsEvents.LLM_OPT_IN_DISABLED);
       }
     } catch {
       // Revert on error
@@ -137,6 +139,7 @@ export default function LLMKeysClient() {
 
       // Success - refresh keys and reset form
       await fetchKeys();
+      trackEvent(AnalyticsEvents.LLM_KEY_ADDED, { provider: addProvider });
       setShowAddForm(false);
       setAddApiKey("");
       setAddLabel("");
@@ -150,6 +153,7 @@ export default function LLMKeysClient() {
   async function handleDelete(id: string) {
     if (!confirm("Remove this API key? You can add it again later.")) return;
 
+    const keyToDelete = keys.find((k) => k.id === id);
     setDeletingId(id);
     try {
       const res = await fetch(`/api/settings/llm-keys/${id}`, {
@@ -158,6 +162,7 @@ export default function LLMKeysClient() {
       if (!res.ok) {
         throw new Error("Failed to delete key");
       }
+      trackEvent(AnalyticsEvents.LLM_KEY_REMOVED, { provider: keyToDelete?.provider ?? "unknown" });
       setKeys((prev) => prev.filter((k) => k.id !== id));
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete");
