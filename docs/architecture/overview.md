@@ -3,7 +3,7 @@
 This document explains how the Vibe Coding Profile stack fits together, how data flows from a logged-in user through Supabase, the worker, and the UI, and which pieces of the codebase (web, worker, packages) own each responsibility. The diagrams use Mermaid syntax so you can paste them into any renderer, but the textual explanations also narrate every interaction.
 
 > **Related Documentation:**
-> - [How Vibe Coding Profile Works](../how-vibed-works.md) — Product-friendly explanation
+> - [How Vibe Coding Profile Works](../how-vibe-coding-profile-works.md) — Product-friendly explanation
 > - [Vibe Coding Profile Analysis Pipeline](./vibed-analysis-pipeline.md) — Detailed analysis algorithms and data flow
 > - [Inngest Integration](./inngest-integration.md) — Background job processing
 

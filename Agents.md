@@ -18,7 +18,7 @@ This document provides instructions for AI agents working on the Vibed Coding co
 See `docs/PRD.md` for full product requirements and `docs/architecture/inngest-integration.md` for job processing details.
 
 **Key Reference Docs:**
-- [How Vibed Works](docs/how-vibed-works.md) — Product-friendly explanation of analysis
+- [How Vibe Coding Profile Works](docs/how-vibe-coding-profile-works.md) — Product-friendly explanation of analysis
 - [Vibed Analysis Pipeline](docs/architecture/vibed-analysis-pipeline.md) — Technical architecture with algorithms and data flow
 
 ---

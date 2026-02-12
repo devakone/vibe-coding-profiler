@@ -5,7 +5,7 @@
 **Status:** Mostly Implemented — See `docs/implementation-trackers/vibed.md` for details
 
 > **Reference Documentation:** For technical details on how analysis works, see:
-> - [How Vibe Coding Profile Works](./how-vibed-works.md) — Product-friendly overview
+> - [How Vibe Coding Profile Works](../../how-vibe-coding-profile-works.md) — Product-friendly overview
 > - [Vibe Coding Profile Analysis Pipeline](./architecture/vibed-analysis-pipeline.md) — Technical architecture
 
 ## 1. Context & Vision

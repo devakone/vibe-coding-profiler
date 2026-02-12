@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronsUpDown, RefreshCw } from "lucide-react";
+import { ChevronsUpDown, RefreshCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { wrappedTheme } from "@/lib/theme";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -204,6 +204,39 @@ export default function ReposClient({
     }
   }
 
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+
+  async function disconnectRepo(repoId: string, repoName: string) {
+    if (!confirm(`Disconnect "${repoName}"? This will remove it from your profile but won't delete any analysis data.`)) {
+      return;
+    }
+
+    setDisconnecting(repoId);
+    try {
+      const response = await fetch("/api/repos/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo_id: repoId }),
+      });
+
+      if (!response.ok) {
+        const body = await response.json();
+        throw new Error(body.error || "Could not disconnect repo");
+      }
+
+      toast({ title: "Repo disconnected", description: `${repoName} has been removed.` });
+      router.refresh();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Disconnect failed",
+        description: error instanceof Error ? error.message : "Please try again",
+      });
+    } finally {
+      setDisconnecting(null);
+    }
+  }
+
   const connectedRepos = initialConnected.map((repo) => ({
     ...repo,
     latestJobId: latestJobByRepoId[repo.repo_id] ?? null,
@@ -300,27 +333,40 @@ export default function ReposClient({
                   <span className="text-sm font-semibold text-zinc-900">{repo.full_name}</span>
                   {repo.latestJobId && <span className="text-[11px] text-zinc-500">Analyzed</span>}
                 </div>
-                {/* Only show action buttons in vibes mode */}
-                {mode === "vibes" && (
-                  <div className="flex items-center gap-2">
-                    {repo.latestJobId ? (
+                {/* Action buttons differ by mode */}
+                <div className="flex items-center gap-2">
+                  {mode === "vibes" && (
+                    <>
+                      {repo.latestJobId ? (
+                        <button
+                          type="button"
+                          className={cn(wrappedTheme.secondaryButton, "px-3 py-1 text-sm font-semibold")}
+                          onClick={() => router.push(`/analysis/${repo.latestJobId}`)}
+                        >
+                          View vibe
+                        </button>
+                      ) : null}
                       <button
                         type="button"
-                        className={cn(wrappedTheme.secondaryButton, "px-3 py-1 text-sm font-semibold")}
-                        onClick={() => router.push(`/analysis/${repo.latestJobId}`)}
+                        className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm hover:bg-white"
+                        onClick={() => startAnalysis(repo.repo_id, repo.full_name)}
                       >
-                        View vibe
+                        {repo.latestJobId ? "Re-run" : "Start vibe"}
                       </button>
-                    ) : null}
+                    </>
+                  )}
+                  {mode === "settings" && (
                     <button
                       type="button"
-                      className="rounded-full border border-zinc-300/80 bg-white/70 px-3 py-1 text-sm font-semibold text-zinc-950 shadow-sm hover:bg-white"
-                      onClick={() => startAnalysis(repo.repo_id, repo.full_name)}
+                      className="flex items-center gap-1.5 rounded-full border border-red-200 bg-white px-3 py-1 text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:border-red-300 disabled:opacity-50"
+                      onClick={() => disconnectRepo(repo.repo_id, repo.full_name)}
+                      disabled={disconnecting === repo.repo_id}
                     >
-                      {repo.latestJobId ? "Re-run" : "Start vibe"}
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {disconnecting === repo.repo_id ? "Removing…" : "Remove"}
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ))}
           </div>

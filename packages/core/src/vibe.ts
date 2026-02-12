@@ -603,9 +603,51 @@ export function computeVibeAxes(input: ComputeVibeAxesInput): ComputeVibeAxesOut
   const episodes = input.episodes ?? [];
 
   // --- Axis A: Automation Heaviness ---
-  const totalCommits = metrics.total_commits ?? input.commits?.length ?? 1;
+  // We dampen the impact of initial/bulk commits to avoid skewing results for small repos.
+  // - First commit: weight = 0.25 (often includes project scaffolding)
+  // - Bulk commits (>50% of max files, when max > 20): weight = 0.5
+  // - Normal commits: weight = 1.0
+  const commits = input.commits ?? [];
+  const totalCommits = metrics.total_commits ?? commits.length ?? 1;
   const totalFilesChanged = metrics.total_files_changed ?? 0;
-  const avgFiles = totalFilesChanged / Math.max(1, totalCommits);
+
+  const avgFiles = (() => {
+    if (commits.length === 0) {
+      return totalFilesChanged / Math.max(1, totalCommits);
+    }
+
+    // Sort by date to identify first commit
+    const sortedCommits = [...commits].sort(
+      (a, b) => new Date(a.committer_date).getTime() - new Date(b.committer_date).getTime()
+    );
+
+    // Find max files changed to detect bulk commits
+    const maxFilesChanged = Math.max(...commits.map((c) => c.files_changed), 1);
+    const bulkThreshold = maxFilesChanged * 0.5;
+
+    let weightedFilesSum = 0;
+    let totalWeight = 0;
+
+    for (let i = 0; i < sortedCommits.length; i++) {
+      const commit = sortedCommits[i];
+      let weight = 1.0;
+
+      // First commit gets dampened weight (likely project scaffolding)
+      if (i === 0) {
+        weight = 0.25;
+      }
+      // Bulk commits (>50% of max files) get reduced weight, but only if max is substantial
+      else if (commit.files_changed > bulkThreshold && maxFilesChanged > 20) {
+        weight = 0.5;
+      }
+
+      weightedFilesSum += commit.files_changed * weight;
+      totalWeight += weight;
+    }
+
+    return totalWeight > 0 ? weightedFilesSum / totalWeight : totalFilesChanged / Math.max(1, totalCommits);
+  })();
+
   const p90Commit = Number(metrics.commit_size_p90 ?? 0);
 
   const prChangedFiles = prs

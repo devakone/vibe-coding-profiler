@@ -8,7 +8,7 @@
 > **Terminology Note:** This PRD uses the original "Bolokono" terminology. In the codebase and user-facing product, this has been rebranded to **Vibe Coding Profile**. "Bolokono types" are now called **Vibe Personas**, and "Bolokono profiles" are now **Vibe Coding Profiles (VCP)**. See [`PRD-vibed-ux.md`](../ux/PRD-vibed-ux.md) for the current UX direction.
 
 > **Reference Documentation:** For a complete explanation of how analysis works, see:
-> - [How Vibe Coding Profile Works](../../how-vibed-works.md) — Product-friendly overview
+> - [How Vibe Coding Profile Works](../../how-vibe-coding-profile-works.md) — Product-friendly overview
 > - [Vibe Coding Profile Analysis Pipeline](../../architecture/vibed-analysis-pipeline.md) — Technical architecture with diagrams
 
 ---

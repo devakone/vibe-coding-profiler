@@ -54,7 +54,7 @@ export default async function MethodologyPage() {
                 id: "A",
                 name: "Automation",
                 description:
-                  "Large, wide changes: high files-changed per commit, big commits, big PRs.",
+                  "Large, wide changes: high files-changed per commit, big commits, big PRs. Initial/bulk commits are dampened to avoid skewing small repos.",
               },
               {
                 id: "B",
@@ -186,8 +186,12 @@ export default async function MethodologyPage() {
               copy/paste, refactors between commits), so we infer from what lands in Git.
             </li>
             <li>
-              Different projects can pull you into different modes; aggregation may “average you
-              out”.
+              Different projects can pull you into different modes; aggregation may "average you
+              out".
+            </li>
+            <li>
+              We dampen initial and bulk commits in the Automation axis, but repos with very few
+              commits (&lt;10) may still show unusual scores.
             </li>
           </ul>
         </section>
