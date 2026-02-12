@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.4](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.2.3...web-v0.2.4) (2026-02-12)
+
+
+### Features
+
+* add Sentry error tracking ([71d09da](https://github.com/devakone/vibe-coding-profiler/commit/71d09da398280deb2198635e2a21e050e0624552))
+* **analysis:** dampen initial/bulk commits in Automation axis ([2c2cf47](https://github.com/devakone/vibe-coding-profiler/commit/2c2cf472c31e24e3ce7e1c6fa5e6b389a4c16a5e))
+
+
+### Bug Fixes
+
+* add disconnect button to repos settings page ([a349c67](https://github.com/devakone/vibe-coding-profiler/commit/a349c67e5b53aa78fee86bb13f83f2eab22253fa))
+
 ## [0.2.3](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.2.2...web-v0.2.3) (2026-02-01)
 
 
