@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { wrappedTheme } from "@/lib/theme";
 import { Toaster } from "@/components/ui/toaster";
 import { JobsProvider } from "@/contexts/JobsContext";
+import { Analytics } from "@vercel/analytics/next";
 import { PlausibleProvider } from "@/components/PlausibleProvider";
 import AppHeader from "./AppHeader";
 import AppFooter from "./AppFooter";
@@ -113,6 +114,7 @@ export default async function RootLayout({
         </div>
         <Toaster />
         <PlausibleProvider />
+        <Analytics />
       </body>
     </html>
   );
