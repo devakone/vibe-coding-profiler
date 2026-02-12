@@ -1,7 +1,15 @@
 import { ImageResponse } from "@vercel/og";
 import { createClient } from "@supabase/supabase-js";
-import * as Sentry from "@sentry/nextjs";
 import { getPersonaAura } from "@/lib/persona-auras";
+
+// Sentry import moved to lazy load to avoid issues
+const getSentry = async () => {
+  try {
+    return await import("@sentry/nextjs");
+  } catch {
+    return null;
+  }
+};
 
 // Node.js runtime: edge can't reliably fetch self-origin images for aura backgrounds
 export const runtime = "nodejs";
@@ -504,26 +512,32 @@ export async function GET(
     );
     } catch (imageError: unknown) {
       console.error("ImageResponse generation failed:", imageError);
-      Sentry.captureException(imageError, {
-        tags: { api: "share-image", stage: "image-response" },
-        extra: {
-          url: request.url,
-          format,
-          userId,
-          personaId: profile.persona_id,
-          bgUrl,
-          iconUrl,
-        },
-      });
+      const Sentry = await getSentry();
+      if (Sentry) {
+        Sentry.captureException(imageError, {
+          tags: { api: "share-image", stage: "image-response" },
+          extra: {
+            url: request.url,
+            format,
+            userId,
+            personaId: profile.persona_id,
+            bgUrl,
+            iconUrl,
+          },
+        });
+      }
       const message = imageError instanceof Error ? imageError.message : "Image generation failed";
       return new Response(`ImageResponse Error: ${message}`, { status: 500 });
     }
   } catch (e: unknown) {
     console.error("Share image generation error:", e);
-    Sentry.captureException(e, {
-      tags: { api: "share-image", stage: "outer" },
-      extra: { url: request.url },
-    });
+    const Sentry = await getSentry();
+    if (Sentry) {
+      Sentry.captureException(e, {
+        tags: { api: "share-image", stage: "outer" },
+        extra: { url: request.url },
+      });
+    }
     const message = e instanceof Error ? e.message : "Unknown error";
     return new Response(`Server Error: ${message}`, { status: 500 });
   }
