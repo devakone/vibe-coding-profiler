@@ -70,3 +70,6 @@ coverage/
 *.pid
 *.seed
 *.pem
+
+# Sentry Config File
+.env.sentry-build-plugin
