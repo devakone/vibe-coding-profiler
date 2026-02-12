@@ -1,5 +1,6 @@
 import { ImageResponse } from "@vercel/og";
 import { createClient } from "@supabase/supabase-js";
+import * as Sentry from "@sentry/nextjs";
 import { getPersonaAura } from "@/lib/persona-auras";
 
 // Node.js runtime: edge can't reliably fetch self-origin images for aura backgrounds
@@ -488,9 +489,12 @@ export async function GET(
       }
     );
   } catch (e: unknown) {
-    console.error("API Error detailed:", e);
+    console.error("Share image generation error:", e);
+    Sentry.captureException(e, {
+      tags: { api: "share-image" },
+      extra: { url: request.url },
+    });
     const message = e instanceof Error ? e.message : "Unknown error";
-    const stack = e instanceof Error ? e.stack : "";
-    return new Response(`Server Error: ${message}\n${stack}`, { status: 500 });
+    return new Response(`Server Error: ${message}`, { status: 500 });
   }
 }
