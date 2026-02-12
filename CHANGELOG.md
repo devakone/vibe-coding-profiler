@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.8](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.7...vibe-coding-profiler-v0.3.8) (2026-02-12)
+
+
+### Features
+
+* add analytics tracking for key user actions ([1b0c994](https://github.com/devakone/vibe-coding-profiler/commit/1b0c994de0f0663979c115b4ab94957a61088b32))
+* track LLM usage events ([229bfd2](https://github.com/devakone/vibe-coding-profiler/commit/229bfd2f2920109e3c412d001abd7017aaac5820))
+
 ## [0.3.7](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.6...vibe-coding-profiler-v0.3.7) (2026-02-12)
 
 
