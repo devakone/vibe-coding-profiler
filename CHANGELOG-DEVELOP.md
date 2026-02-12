@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-alpha.14](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.13...vibe-coding-profiler-v0.1.0-alpha.14) (2026-02-12)
+
+
+### Bug Fixes
+
+* improve PNG share error handling and add Sentry tracking ([583d733](https://github.com/devakone/vibe-coding-profiler/commit/583d733a43fb5a43e187ee9f3afafe2cea7efa1a))
+
 ## [0.1.0-alpha.13](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.12...vibe-coding-profiler-v0.1.0-alpha.13) (2026-02-12)
 
 

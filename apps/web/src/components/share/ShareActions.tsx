@@ -140,7 +140,11 @@ export function ShareActions({
       // 2. Fetch the image blob
       const url = `/api/share/${shareFormat}/${shareApiId}${shareApiQuery}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error("generation_failed");
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => "");
+        console.error(`PNG generation failed: ${res.status} ${res.statusText}`, errorText);
+        throw new Error(res.status === 404 ? "Profile not found" : `Server error (${res.status})`);
+      }
       const blob = await res.blob();
       
       // 3. Create File object
@@ -188,7 +192,12 @@ export function ShareActions({
       // Use the new backend API for consistent image generation
       const url = `/api/share/${shareFormat}/${shareApiId}${shareApiQuery}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error("generation_failed");
+      if (!res.ok) {
+        // Try to get the actual error message from the response
+        const errorText = await res.text().catch(() => "");
+        console.error(`PNG generation failed: ${res.status} ${res.statusText}`, errorText);
+        throw new Error(res.status === 404 ? "Profile not found" : `Server error (${res.status})`);
+      }
       const blob = await res.blob();
       downloadBlob(blob, `vcp-${entityId}-${shareFormat}.png`);
       console.log("PNG download complete");
