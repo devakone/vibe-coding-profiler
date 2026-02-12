@@ -186,8 +186,8 @@ export default async function MethodologyPage() {
               copy/paste, refactors between commits), so we infer from what lands in Git.
             </li>
             <li>
-              Different projects can pull you into different modes; aggregation may "average you
-              out".
+              Different projects can pull you into different modes; aggregation may &ldquo;average you
+              out&rdquo;.
             </li>
             <li>
               We dampen initial and bulk commits in the Automation axis, but repos with very few

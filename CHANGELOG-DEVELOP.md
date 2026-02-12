@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.0-alpha.16](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.15...vibe-coding-profiler-v0.1.0-alpha.16) (2026-02-12)
+
+
+### Bug Fixes
+
+* rename share-debug route to .tsx for JSX support ([30f7b43](https://github.com/devakone/vibe-coding-profiler/commit/30f7b4370a77f199633e16b53db40682fb176469))
+
+## [0.1.0-alpha.15](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.14...vibe-coding-profiler-v0.1.0-alpha.15) (2026-02-12)
+
+
+### Bug Fixes
+
+* lazy-load Sentry in share route to prevent module errors ([11d29fd](https://github.com/devakone/vibe-coding-profiler/commit/11d29fd0e354c5b3f848817ddc3c2b34b4a2774f))
+
 ## [0.1.0-alpha.14](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.13...vibe-coding-profiler-v0.1.0-alpha.14) (2026-02-12)
 
 
