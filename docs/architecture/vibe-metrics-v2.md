@@ -41,10 +41,25 @@ How "agentic" the workflow looks.
 
 **Score formula:**
 ```
-40% - Commit chunkiness (avg_files_changed, commit_size_p90)
-40% - PR chunkiness (pr_files_changed_p90, commits_per_pr_p90)
-20% - Text templating score
+50% - Commit chunkiness (weighted_avg_files_changed, commit_size_p90)
+30% - p90 commit size
+20% - PR chunkiness (pr_files_changed_p90)
 ```
+
+**Initial/Bulk Commit Dampening:**
+
+To prevent initial project commits and bulk operations from skewing the Automation score, we apply weight dampening when calculating `weighted_avg_files_changed`:
+
+```typescript
+// Weight assignment per commit:
+weight = 1.0;  // default
+if (isFirstCommit) weight = 0.25;  // scaffolding likely
+else if (files_changed > maxFiles * 0.5 && maxFiles > 20) weight = 0.5;  // bulk op
+
+// Then: weighted_avg = sum(files * weight) / sum(weight)
+```
+
+This ensures small repos with large initial commits (e.g., committing an entire create-react-app scaffold) don't get marked as "AI-heavy" based on that single data point.
 
 **Evidence examples:**
 - "Top 10% PRs change 40+ files"

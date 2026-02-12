@@ -76,12 +76,26 @@ Six deterministic axes (0-100 scores) capture your workflow style:
 
 | Axis | What It Measures |
 |------|------------------|
-| **Automation Heaviness** | How much you rely on AI agents and tools for generating code |
+| **Automation Heaviness** | How much you rely on AI agents and tools for generating code (initial/bulk commits dampened) |
 | **Guardrail Strength** | How closely tests, CI, and docs follow your AI-generated changes |
 | **Iteration Loop Intensity** | How often you run prompt-fix-run loops to refine AI output |
 | **Planning Signal** | How much structure you define before prompting AI to generate code |
 | **Surface Area per Change** | How many parts of the codebase your typical prompt or change touches |
 | **Shipping Rhythm** | Your coding session pattern — steady output vs intense vibe sessions |
+
+#### Automation Axis: Initial Commit Dampening
+
+The Automation Heaviness axis measures how "agentic" your workflow looks based on commit size and breadth. However, initial project commits (scaffolding an entire codebase at once) and bulk operations can skew this metric, especially for small repos.
+
+To address this, we apply **commit weight dampening**:
+
+| Commit Type | Weight | Rationale |
+|-------------|--------|-----------|
+| First commit | 0.25 | Often includes project scaffolding, framework setup |
+| Bulk commits (>50% of max files, when max > 20) | 0.5 | Large refactors, dependency updates |
+| Normal commits | 1.0 | Typical development work |
+
+This means a repo with 7 commits where the first commit touched 800 files won't be marked as "AI-heavy" just because of the initial setup. The weighted average better reflects actual day-to-day patterns.
 
 ### Step 5: Detect Persona
 Based on your axes, we match you to one of 7 Vibe Personas:
