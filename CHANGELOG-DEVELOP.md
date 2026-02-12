@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-alpha.15](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.14...vibe-coding-profiler-v0.1.0-alpha.15) (2026-02-12)
+
+
+### Bug Fixes
+
+* lazy-load Sentry in share route to prevent module errors ([11d29fd](https://github.com/devakone/vibe-coding-profiler/commit/11d29fd0e354c5b3f848817ddc3c2b34b4a2774f))
+
 ## [0.1.0-alpha.14](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.13...vibe-coding-profiler-v0.1.0-alpha.14) (2026-02-12)
 
 
