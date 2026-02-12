@@ -1,4 +1,4 @@
-import { ImageResponse } from "@vercel/og";
+import { ImageResponse } from "next/og";
 import QRCode from "qrcode";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { computeShareCardMetrics } from "@/lib/vcp/metrics";

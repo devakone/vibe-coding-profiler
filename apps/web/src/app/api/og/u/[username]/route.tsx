@@ -1,4 +1,4 @@
-import { ImageResponse } from "@vercel/og";
+import { ImageResponse } from "next/og";
 import { createClient } from "@supabase/supabase-js";
 import { getPersonaAura } from "@/lib/persona-auras";
 
