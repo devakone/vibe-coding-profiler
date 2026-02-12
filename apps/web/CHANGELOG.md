@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.5](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.2.4...web-v0.2.5) (2026-02-12)
+
+
+### Bug Fixes
+
+* lazy-load Sentry in share route to prevent module errors ([11d29fd](https://github.com/devakone/vibe-coding-profiler/commit/11d29fd0e354c5b3f848817ddc3c2b34b4a2774f))
+* use next/og instead of @vercel/og for ImageResponse ([44ee5e2](https://github.com/devakone/vibe-coding-profiler/commit/44ee5e2a6f13e3b5e59c214c289f84b5416d132a))
+
 ## [0.2.4](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.2.3...web-v0.2.4) (2026-02-12)
 
 
