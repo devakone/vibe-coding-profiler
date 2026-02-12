@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-alpha.19](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.18...vibe-coding-profiler-v0.1.0-alpha.19) (2026-02-12)
+
+
+### Bug Fixes
+
+* **ci:** stabilize release PR workflow create path ([be28004](https://github.com/devakone/vibe-coding-profiler/commit/be2800431d7e3469c65194724cea561872faa9c7))
+
 ## [0.1.0-alpha.18](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.17...vibe-coding-profiler-v0.1.0-alpha.18) (2026-02-12)
 
 

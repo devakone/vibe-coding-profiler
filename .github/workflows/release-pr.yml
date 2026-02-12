@@ -19,11 +19,14 @@ jobs:
 
       - name: Open or update release PR
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}
+          DEFAULT_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_TITLE: "Release: develop → main"
           PR_TEMPLATE: .github/PULL_REQUEST_TEMPLATE.md
         run: |
           set -euo pipefail
+
+          export GH_TOKEN="${GH_TOKEN:-$DEFAULT_GH_TOKEN}"
 
           if [ ! -f "$PR_TEMPLATE" ]; then
             echo "Pull request template not found at $PR_TEMPLATE"
@@ -31,6 +34,12 @@ jobs:
           fi
 
           git fetch origin main --prune
+
+          COMMIT_COUNT="$(git rev-list --count origin/main..HEAD)"
+          if [ "$COMMIT_COUNT" -eq 0 ]; then
+            echo "No commits to merge from develop into main. Skipping release PR sync."
+            exit 0
+          fi
 
           BODY_FILE="$(mktemp)"
           export BODY_FILE
