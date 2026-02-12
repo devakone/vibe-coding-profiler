@@ -239,9 +239,9 @@ Returns `null` when `!detected || tools.length === 0`.
 ## Related Documentation
 
 - [Multi-Agent Detection PRD](../prd/analysis/multi-agent-detection.md) — Signal extraction phases
-- [Vibe Metrics v2](./vibe-metrics-v2.md) — Core axis computation
+- [Vibe Coding Profile Metrics v2](./vibe-coding-profile-metrics-v2.md) — Core axis computation
 - [Analysis Pipeline](./vibed-analysis-pipeline.md) — End-to-end architecture
-- [How VCP Works](../how-vibed-works.md) — Product-facing overview
+- [How Vibe Coding Profile Works](../how-vibe-coding-profile-works.md) — Product-facing overview
 
 ---
 

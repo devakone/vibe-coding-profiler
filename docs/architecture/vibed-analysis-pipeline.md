@@ -828,8 +828,8 @@ erDiagram
 
 ## Related Documentation
 
-- [How Vibe Coding Profile Works (Product Overview)](../how-vibed-works.md)
-- [Vibe Metrics v2](./vibe-metrics-v2.md) — Original axis design
+- [How Vibe Coding Profile Works (Product Overview)](../how-vibe-coding-profile-works.md)
+- [Vibe Coding Profile Metrics v2](./vibe-coding-profile-metrics-v2.md) — Original axis design
 - [Inngest Integration](./inngest-integration.md) — Job processing details
 - [Architecture Overview](./overview.md) — System components
 - [AI Tool Metrics](./ai-tool-metrics.md) — Tool detection pipeline and registry

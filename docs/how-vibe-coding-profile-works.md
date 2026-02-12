@@ -231,7 +231,7 @@ Our internal research documents are available in [docs/research/](./research/).
 ## Related Documentation
 
 - [Technical Architecture](./architecture/vibed-analysis-pipeline.md): Deep dive with Mermaid diagrams
-- [Vibe Metrics v2](./architecture/vibe-metrics-v2.md): Axis computation details
+- [Vibe Coding Profile Metrics v2](./architecture/vibe-coding-profile-metrics-v2.md): Axis computation details
 - [AI Tool Metrics](./architecture/ai-tool-metrics.md): Tool detection pipeline and registry
 - [PRD: Vibe Coding Profile Narrative Layer](./PRD-vibed.md): Product requirements
 - [PRD: Profile Aggregation](./PRD-profile-aggregation.md): Multi-repo aggregation

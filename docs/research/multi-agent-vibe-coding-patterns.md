@@ -48,7 +48,7 @@ Implementation: [computeVibeFromCommits](file:///Users/devakone/Projects/vibed-c
 
 The architecture doc explicitly calls for PR metadata and commit→PR mapping, but the current worker/pipeline does not populate those tables yet.
 
-Reference: [vibe-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/docs/architecture/vibe-metrics-v2.md#L13-L122)
+Reference: [vibe-coding-profile-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/docs/architecture/vibe-coding-profile-metrics-v2.md#L13-L122)
 
 ---
 
@@ -134,7 +134,7 @@ Multi-agent orchestration often shows up as:
 - consistent PR templates/checklists
 - high squash-merge rate (agentic PR hygiene)
 
-We have a clear target schema in [vibe-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/docs/architecture/vibe-metrics-v2.md#L173-L265), but it’s not currently populated.
+We have a clear target schema in [vibe-coding-profile-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/docs/architecture/vibe-coding-profile-metrics-v2.md#L173-L265), but it’s not currently populated.
 
 ### B) Branch topology / parallelism (medium signal)
 
@@ -152,7 +152,7 @@ Mapping commits to PRs enables:
 - “how many commits are squash merges”
 - “how chunkiness differs inside PRs vs direct-to-main”
 
-Reference architecture: [vibe-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/docs/architecture/vibe-metrics-v2.md#L141-L191)
+Reference architecture: [vibe-coding-profile-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/docs/architecture/vibe-coding-profile-metrics-v2.md#L141-L191)
 
 ---
 
@@ -191,7 +191,7 @@ These are “emerging or consolidating” Git-visible patterns that align with v
 - [analyze-repo.ts](file:///Users/devakone/Projects/vibed-codingn/apps/web/src/inngest/functions/analyze-repo.ts)
 - [packages/core/src/index.ts](file:///Users/devakone/Projects/vibed-codingn/packages/core/src/index.ts)
 - [packages/core/src/vibe.ts](file:///Users/devakone/Projects/vibed-codingn/packages/core/src/vibe.ts)
-- [vibe-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/docs/architecture/vibe-metrics-v2.md)
+- [vibe-coding-profile-metrics-v2.md](file:///Users/devakone/Projects/vibed-codingn/docs/architecture/vibe-coding-profile-metrics-v2.md)
 
 ## Appendix: Sources
 

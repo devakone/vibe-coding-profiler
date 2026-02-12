@@ -258,7 +258,7 @@ These are documented but out of scope for this PRD:
 2. **Branch topology** - parallel branches, naming conventions
 3. **Commit-to-PR mapping** - squash detection, PR hygiene signals
 
-See architecture spec: [vibe-metrics-v2.md](../../architecture/vibe-metrics-v2.md)
+See architecture spec: [vibe-coding-profile-metrics-v2.md](../../architecture/vibe-coding-profile-metrics-v2.md)
 
 ---
 
@@ -289,7 +289,7 @@ Ingest enough pull request metadata to strengthen multi-agent orchestration dete
 ### Proposed Schema
 **Primary tables**
 - `pull_requests`
-  - Align with architecture sketch in [vibe-metrics-v2.md](../../architecture/vibe-metrics-v2.md)
+  - Align with architecture sketch in [vibe-coding-profile-metrics-v2.md](../../architecture/vibe-coding-profile-metrics-v2.md)
   - Key columns: `repo_id`, `github_pr_number`, `title`, `body`, `state`, `merged`, `merged_at`, `created_at`, `closed_at`, size and collaboration counts, `merge_method`
 
 **Optional tables**
@@ -309,7 +309,7 @@ See: [PR Metadata Ingestion Tracker](../../implementation-trackers/multi-agent-p
 ## References
 
 - [Research: Multi-Agent Vibe Coding Patterns](../../research/multi-agent-vibe-coding-patterns.md)
-- [Architecture: Vibe Metrics v2](../../architecture/vibe-metrics-v2.md)
+- [Architecture: Vibe Metrics v2](../../architecture/vibe-coding-profile-metrics-v2.md)
 - [Addy Osmani: The future of agentic coding (conductors to orchestrators)](https://addyosmani.com/blog/future-agentic-coding/)
 - [GitHub Copilot Coding Agent](https://docs.github.com/en/copilot/concepts/coding-agent/coding-agent)
 - [Git Worktrees for AI Agents](https://nx.dev/blog/git-worktrees-ai-agents)
