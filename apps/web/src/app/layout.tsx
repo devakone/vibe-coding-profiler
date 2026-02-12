@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { wrappedTheme } from "@/lib/theme";
 import { Toaster } from "@/components/ui/toaster";
 import { JobsProvider } from "@/contexts/JobsContext";
+import { PlausibleProvider } from "@/components/PlausibleProvider";
 import AppHeader from "./AppHeader";
 import AppFooter from "./AppFooter";
 import "./globals.css";
@@ -111,6 +112,7 @@ export default async function RootLayout({
           <AppFooter />
         </div>
         <Toaster />
+        <PlausibleProvider />
       </body>
     </html>
   );
