@@ -11,8 +11,8 @@ const getSentry = async () => {
   }
 };
 
-// Node.js runtime: edge can't reliably fetch self-origin images for aura backgrounds
-export const runtime = "nodejs";
+// Use edge runtime - the officially supported configuration for ImageResponse
+export const runtime = "edge";
 
 export async function GET(
   request: Request,
