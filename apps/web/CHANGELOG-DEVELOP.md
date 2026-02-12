@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-alpha.18](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.17...web-v0.1.0-alpha.18) (2026-02-12)
+
+
+### Bug Fixes
+
+* correct LLM config column names to match DB schema ([1c5411a](https://github.com/devakone/vibe-coding-profiler/commit/1c5411a0557edbcdfe81c9792966c8705611847d))
+
 ## [0.1.0-alpha.17](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.16...web-v0.1.0-alpha.17) (2026-02-12)
 
 
