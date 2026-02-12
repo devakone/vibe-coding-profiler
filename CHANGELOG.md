@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.5](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.4...vibe-coding-profiler-v0.3.5) (2026-02-12)
+
+
+### Bug Fixes
+
+* escape quotes in methodology page and add footer attribution ([c51c1b9](https://github.com/devakone/vibe-coding-profiler/commit/c51c1b96e35314f1f5a6c220e8f46e533cd45df4))
+* rename share-debug route to .tsx for JSX support ([30f7b43](https://github.com/devakone/vibe-coding-profiler/commit/30f7b4370a77f199633e16b53db40682fb176469))
+
 ## [0.3.4](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.3...vibe-coding-profiler-v0.3.4) (2026-02-12)
 
 
