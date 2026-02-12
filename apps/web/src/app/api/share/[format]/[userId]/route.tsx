@@ -253,7 +253,21 @@ export async function GET(
     const paddingX = 60 * scale;
     const paddingY = 60 * scale;
 
-    return new ImageResponse(
+    // Debug logging for production
+    console.log("Share image generation starting", {
+      format,
+      userId,
+      personaId: profile.persona_id,
+      personaName,
+      hasAxes: !!axes,
+      hasFonts: fonts.length,
+      bgUrl,
+      iconUrl,
+      dimensions: { width, height },
+    });
+
+    try {
+      return new ImageResponse(
       (
         <div
           style={{
@@ -488,10 +502,26 @@ export async function GET(
         fonts: fonts.length > 0 ? fonts : undefined,
       }
     );
+    } catch (imageError: unknown) {
+      console.error("ImageResponse generation failed:", imageError);
+      Sentry.captureException(imageError, {
+        tags: { api: "share-image", stage: "image-response" },
+        extra: {
+          url: request.url,
+          format,
+          userId,
+          personaId: profile.persona_id,
+          bgUrl,
+          iconUrl,
+        },
+      });
+      const message = imageError instanceof Error ? imageError.message : "Image generation failed";
+      return new Response(`ImageResponse Error: ${message}`, { status: 500 });
+    }
   } catch (e: unknown) {
     console.error("Share image generation error:", e);
     Sentry.captureException(e, {
-      tags: { api: "share-image" },
+      tags: { api: "share-image", stage: "outer" },
       extra: { url: request.url },
     });
     const message = e instanceof Error ? e.message : "Unknown error";
