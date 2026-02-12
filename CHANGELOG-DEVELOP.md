@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-alpha.12](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.11...vibe-coding-profiler-v0.1.0-alpha.12) (2026-02-12)
+
+
+### Features
+
+* add Sentry error tracking ([71d09da](https://github.com/devakone/vibe-coding-profiler/commit/71d09da398280deb2198635e2a21e050e0624552))
+
 ## [0.1.0-alpha.11](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.10...vibe-coding-profiler-v0.1.0-alpha.11) (2026-02-01)
 
 
