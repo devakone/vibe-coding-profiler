@@ -55,6 +55,8 @@ export const AnalyticsEvents = {
   PUBLIC_PROFILE_DISABLED: "public_profile_disabled",
   LLM_KEY_ADDED: "llm_key_added",
   LLM_KEY_REMOVED: "llm_key_removed",
+  LLM_OPT_IN_ENABLED: "llm_opt_in_enabled",
+  LLM_OPT_IN_DISABLED: "llm_opt_in_disabled",
 } as const;
 
 export type AnalyticsEvent = (typeof AnalyticsEvents)[keyof typeof AnalyticsEvents];
