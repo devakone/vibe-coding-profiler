@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-alpha.22](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.21...vibe-coding-profiler-v0.1.0-alpha.22) (2026-02-12)
+
+
+### Features
+
+* add Vercel Analytics ([7e8b1ab](https://github.com/devakone/vibe-coding-profiler/commit/7e8b1ab31232672199495a03816d6cc812a12344))
+
 ## [0.1.0-alpha.21](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.20...vibe-coding-profiler-v0.1.0-alpha.21) (2026-02-12)
 
 
