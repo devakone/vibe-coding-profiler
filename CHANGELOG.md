@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.6](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.5...vibe-coding-profiler-v0.3.6) (2026-02-12)
+
+
+### Bug Fixes
+
+* correct LLM config column names to match DB schema ([1c5411a](https://github.com/devakone/vibe-coding-profiler/commit/1c5411a0557edbcdfe81c9792966c8705611847d))
+
 ## [0.3.5](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.4...vibe-coding-profiler-v0.3.5) (2026-02-12)
 
 
