@@ -32,6 +32,8 @@ function PlausibleTracker() {
         outboundLinks: true,
         // Track file downloads
         fileDownloads: true,
+        // Track form submissions
+        formSubmissions: true,
         // Disable auto capture - we handle it manually for Next.js App Router
         autoCapturePageviews: false,
       });

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronsUpDown, RefreshCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { wrappedTheme } from "@/lib/theme";
+import { trackEvent, AnalyticsEvents } from "@/lib/analytics";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ToastAction } from "@/components/ui/toast";
@@ -158,6 +159,7 @@ export default function ReposClient({
       }
 
       toast({ title: "Repo added", description: `${repo.fullName} is now connected.` });
+      trackEvent(AnalyticsEvents.REPO_CONNECT, { platform: repo.platform });
       if (options?.startVibe && body.repo_id) {
         await startAnalysis(body.repo_id, repo.fullName);
       }
@@ -195,6 +197,7 @@ export default function ReposClient({
         </ToastAction>
       ),
     });
+    trackEvent(AnalyticsEvents.REPO_ANALYZE);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -225,6 +228,7 @@ export default function ReposClient({
       }
 
       toast({ title: "Repo disconnected", description: `${repoName} has been removed.` });
+      trackEvent(AnalyticsEvents.REPO_DISCONNECT);
       router.refresh();
     } catch (error) {
       toast({

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Copy, Check, Link2, Share2, Download, FileText } from "lucide-react";
 import { SHARE_FORMATS, downloadBlob } from "./share-image";
+import { trackEvent, AnalyticsEvents } from "@/lib/analytics";
 import type { ShareActionsProps, ShareFormat } from "./types";
 
 // Brand icons (Lucide doesn't include these)
@@ -70,6 +71,7 @@ export function ShareActions({
     try {
       await navigator.clipboard.writeText(shareText);
       setCopied(true);
+      trackEvent(AnalyticsEvents.PROFILE_SHARE, { method: "copy_text" });
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
@@ -81,6 +83,7 @@ export function ShareActions({
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopiedLink(true);
+      trackEvent(AnalyticsEvents.PROFILE_SHARE, { method: "copy_link" });
       setTimeout(() => setCopiedLink(false), 2000);
     } catch {
       setCopiedLink(false);
@@ -96,6 +99,7 @@ export function ShareActions({
     const u = new URL("https://twitter.com/intent/tweet");
     u.searchParams.set("text", shareCaption);
     u.searchParams.set("url", shareUrl);
+    trackEvent(AnalyticsEvents.PROFILE_SHARE, { method: "twitter" });
     openSharePopup(u.toString());
   };
 
@@ -104,6 +108,7 @@ export function ShareActions({
     const u = new URL("https://www.facebook.com/sharer/sharer.php");
     u.searchParams.set("u", shareUrl);
     if (shareCaption) u.searchParams.set("quote", shareCaption);
+    trackEvent(AnalyticsEvents.PROFILE_SHARE, { method: "facebook" });
     openSharePopup(u.toString());
   };
 
@@ -111,6 +116,7 @@ export function ShareActions({
     if (!shareUrl) return;
     const u = new URL("https://www.linkedin.com/sharing/share-offsite/");
     u.searchParams.set("url", shareUrl);
+    trackEvent(AnalyticsEvents.PROFILE_SHARE, { method: "linkedin" });
     openSharePopup(u.toString());
   };
 
@@ -119,6 +125,7 @@ export function ShareActions({
     const u = new URL("https://www.reddit.com/submit");
     u.searchParams.set("url", shareUrl);
     if (shareHeadline) u.searchParams.set("title", shareHeadline);
+    trackEvent(AnalyticsEvents.PROFILE_SHARE, { method: "reddit" });
     openSharePopup(u.toString());
   };
 
@@ -126,6 +133,7 @@ export function ShareActions({
     if (!shareUrl) return;
     const u = new URL("https://wa.me/");
     u.searchParams.set("text", `${shareCaption}\n${shareUrl}`.trim());
+    trackEvent(AnalyticsEvents.PROFILE_SHARE, { method: "whatsapp" });
     openSharePopup(u.toString());
   };
 
@@ -158,12 +166,13 @@ export function ShareActions({
           files: [file],
           title: shareHeadline,
           // Some platforms ignore text if files are present, but good to include
-          text: shareCaption, 
+          text: shareCaption,
           // Note: Including URL with files is often flaky on Android/iOS (sometimes creates a link card instead of image).
           // We prioritize the IMAGE here as per user request ("share that [the image]").
           // If you really need the URL, append it to text.
-          // url: shareUrl, 
+          // url: shareUrl,
         });
+        trackEvent(AnalyticsEvents.PROFILE_SHARE, { method: "native_share" });
       } else {
         // Fallback if file sharing not supported
         await navigator.share({
@@ -200,6 +209,7 @@ export function ShareActions({
       }
       const blob = await res.blob();
       downloadBlob(blob, `vcp-${entityId}-${shareFormat}.png`);
+      trackEvent(AnalyticsEvents.PROFILE_DOWNLOAD_IMAGE, { format: shareFormat });
       console.log("PNG download complete");
     } catch (e) {
       console.error("PNG download failed:", e);
@@ -220,6 +230,7 @@ export function ShareActions({
       if (!res.ok) throw new Error("story_failed");
       const blob = await res.blob();
       downloadBlob(blob, `vcp-${entityId}-story.png`);
+      trackEvent(AnalyticsEvents.PROFILE_DOWNLOAD_IMAGE, { format: "story" });
     } catch (e) {
       console.error("Story download failed:", e);
       setDownloadError(e instanceof Error ? e.message : "story_download_failed");

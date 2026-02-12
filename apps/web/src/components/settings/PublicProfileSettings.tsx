@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import type { PublicProfileSettings } from "@/types/public-profile";
 import { DEFAULT_PUBLIC_PROFILE_SETTINGS } from "@/types/public-profile";
+import { trackEvent, AnalyticsEvents } from "@/lib/analytics";
 
 interface ToggleItem {
   key: keyof PublicProfileSettings;
@@ -93,6 +94,12 @@ export function PublicProfileSettingsPanel() {
       if (res.ok) {
         setSuccess("Settings saved!");
         setDirty(false);
+        // Track profile visibility change
+        if (settings.profile_enabled) {
+          trackEvent(AnalyticsEvents.PUBLIC_PROFILE_ENABLED);
+        } else {
+          trackEvent(AnalyticsEvents.PUBLIC_PROFILE_DISABLED);
+        }
         setTimeout(() => setSuccess(null), 3000);
       } else {
         const data = await res.json();
