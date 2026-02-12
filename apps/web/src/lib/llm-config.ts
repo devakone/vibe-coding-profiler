@@ -74,9 +74,8 @@ interface PlatformLLMConfigRecord {
   api_key_encrypted: string;
   model: string | null;
   is_active: boolean;
-  platform_limit: number | null;
+  free_tier_limit: number | null;
   llm_disabled: boolean | null;
-  profile_llm_repo_limit: number | null;
 }
 
 // Type for llm_configs queries (until DB types regenerated)
@@ -242,7 +241,7 @@ async function getPlatformLLMConfigFromDB(): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (service as any)
     .from("llm_configs")
-    .select("id, provider, api_key_encrypted, model, is_active, platform_limit, llm_disabled, profile_llm_repo_limit")
+    .select("id, provider, api_key_encrypted, model, is_active, free_tier_limit, llm_disabled")
     .eq("scope", "platform")
     .maybeSingle();
 
@@ -251,9 +250,10 @@ async function getPlatformLLMConfigFromDB(): Promise<{
   }
 
   const record = data as PlatformLLMConfigRecord;
-  const perRepoLimit = record.platform_limit ?? DEFAULT_LLM_ANALYSES_PER_REPO;
+  const perRepoLimit = record.free_tier_limit ?? DEFAULT_LLM_ANALYSES_PER_REPO;
   const llmDisabled = record.llm_disabled ?? false;
-  const profileLlmRepoLimit = record.profile_llm_repo_limit ?? DEFAULT_PROFILE_LLM_REPO_LIMIT;
+  // profile_llm_repo_limit not in DB schema yet, use default
+  const profileLlmRepoLimit = DEFAULT_PROFILE_LLM_REPO_LIMIT;
 
   if (llmDisabled || !record.api_key_encrypted) {
     return { config: null, perRepoLimit, llmDisabled, profileLlmRepoLimit };
