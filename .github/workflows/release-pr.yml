@@ -106,9 +106,33 @@ jobs:
               --body-file "$BODY_FILE"
           else
             echo "Creating new release PR"
-            gh pr create \
-              --base main \
-              --head develop \
-              --title "$PR_TITLE" \
-              --body-file "$BODY_FILE"
+            set +e
+            CREATE_OUTPUT="$(
+              gh pr create \
+                --base main \
+                --head develop \
+                --title "$PR_TITLE" \
+                --body-file "$BODY_FILE" 2>&1
+            )"
+            CREATE_EXIT=$?
+            set -e
+
+            if [ "$CREATE_EXIT" -eq 0 ]; then
+              echo "$CREATE_OUTPUT"
+              exit 0
+            fi
+
+            if echo "$CREATE_OUTPUT" | grep -q "No commits between main and develop"; then
+              echo "No commits between main and develop. Skipping PR creation."
+              exit 0
+            fi
+
+            if echo "$CREATE_OUTPUT" | grep -q "Resource not accessible by integration"; then
+              echo "::warning::Unable to create release PR with GitHub Actions token. Add RELEASE_PR_TOKEN secret (PAT with repo scope) to enable automatic creation."
+              echo "$CREATE_OUTPUT"
+              exit 0
+            fi
+
+            echo "$CREATE_OUTPUT"
+            exit "$CREATE_EXIT"
           fi
