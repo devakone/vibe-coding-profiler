@@ -101,9 +101,31 @@ jobs:
 
           if [ -n "$PR_NUMBER" ]; then
             echo "Updating existing PR #$PR_NUMBER"
-            gh pr edit "$PR_NUMBER" \
-              --title "$PR_TITLE" \
-              --body-file "$BODY_FILE"
+            set +e
+            EDIT_OUTPUT="$(
+              gh pr edit "$PR_NUMBER" \
+                --title "$PR_TITLE" \
+                --body-file "$BODY_FILE" 2>&1
+            )"
+            EDIT_EXIT=$?
+            set -e
+
+            if [ "$EDIT_EXIT" -eq 0 ]; then
+              echo "$EDIT_OUTPUT"
+              exit 0
+            fi
+
+            if echo "$EDIT_OUTPUT" | grep -q "Resource not accessible by personal access token"; then
+              echo "::warning::RELEASE_PR_TOKEN could not edit PR. Falling back to GITHUB_TOKEN."
+              export GH_TOKEN="$DEFAULT_GH_TOKEN"
+              gh pr edit "$PR_NUMBER" \
+                --title "$PR_TITLE" \
+                --body-file "$BODY_FILE"
+              exit 0
+            fi
+
+            echo "$EDIT_OUTPUT"
+            exit "$EDIT_EXIT"
           else
             echo "Creating new release PR"
             set +e
@@ -131,6 +153,35 @@ jobs:
               echo "::warning::Unable to create release PR with GitHub Actions token. Add RELEASE_PR_TOKEN secret (PAT with repo scope) to enable automatic creation."
               echo "$CREATE_OUTPUT"
               exit 0
+            fi
+
+            if echo "$CREATE_OUTPUT" | grep -q "Resource not accessible by personal access token"; then
+              echo "::warning::RELEASE_PR_TOKEN could not create PR. Falling back to GITHUB_TOKEN."
+              export GH_TOKEN="$DEFAULT_GH_TOKEN"
+              set +e
+              CREATE_OUTPUT_FALLBACK="$(
+                gh pr create \
+                  --base main \
+                  --head develop \
+                  --title "$PR_TITLE" \
+                  --body-file "$BODY_FILE" 2>&1
+              )"
+              CREATE_EXIT_FALLBACK=$?
+              set -e
+
+              if [ "$CREATE_EXIT_FALLBACK" -eq 0 ]; then
+                echo "$CREATE_OUTPUT_FALLBACK"
+                exit 0
+              fi
+
+              if echo "$CREATE_OUTPUT_FALLBACK" | grep -q "Resource not accessible by integration"; then
+                echo "::warning::Unable to create release PR with fallback GITHUB_TOKEN."
+                echo "$CREATE_OUTPUT_FALLBACK"
+                exit 0
+              fi
+
+              echo "$CREATE_OUTPUT_FALLBACK"
+              exit "$CREATE_EXIT_FALLBACK"
             fi
 
             echo "$CREATE_OUTPUT"
