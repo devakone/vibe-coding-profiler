@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.9](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.8...vibe-coding-profiler-v0.3.9) (2026-02-15)
+
+
+### Bug Fixes
+
+* **ci:** handle release PR create permission fallback ([310e6ec](https://github.com/devakone/vibe-coding-profiler/commit/310e6ec23b0d34181a4a75c14dfb07625e6a8e43))
+
 ## [0.3.8](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.7...vibe-coding-profiler-v0.3.8) (2026-02-12)
 
 
