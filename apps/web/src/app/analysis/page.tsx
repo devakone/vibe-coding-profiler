@@ -15,7 +15,14 @@ type JobRow = {
   error_message: string | null;
 };
 
-type InsightRow = {
+type VibeInsightRow = {
+  job_id: string;
+  persona_name: string | null;
+  persona_confidence: string | null;
+  generated_at: string | null;
+};
+
+type LegacyInsightRow = {
   job_id: string;
   persona_label: string | null;
   persona_confidence: string | null;
@@ -54,33 +61,55 @@ export default async function AnalysisIndexPage() {
     repoNameById.set(row.id, row.full_name);
   }
 
-  // Get insights for completed jobs
+  // Get vibe insights (v2) for completed jobs
   const jobIds = jobs.map((j) => j.id);
-  const insightsResult =
+  const vibeInsightsResult =
     jobIds.length > 0
       ? await supabase
-          .from("analysis_insights")
-          .select("job_id, persona_label, persona_confidence, generated_at")
+          .from("vibe_insights")
+          .select("job_id, persona_name, persona_confidence, generated_at")
           .in("job_id", jobIds)
       : null;
 
-  const insightByJobId = new Map<string, InsightRow>();
-  for (const row of (insightsResult?.data ?? []) as InsightRow[]) {
-    insightByJobId.set(row.job_id, row);
+  const vibeInsightByJobId = new Map<string, VibeInsightRow>();
+  for (const row of (vibeInsightsResult?.data ?? []) as VibeInsightRow[]) {
+    vibeInsightByJobId.set(row.job_id, row);
+  }
+
+  // Find jobs missing from vibe_insights and fetch from legacy analysis_insights
+  const missingJobIds = jobIds.filter((id) => !vibeInsightByJobId.has(id));
+  const legacyInsightsResult =
+    missingJobIds.length > 0
+      ? await supabase
+          .from("analysis_insights")
+          .select("job_id, persona_label, persona_confidence, generated_at")
+          .in("job_id", missingJobIds)
+      : null;
+
+  const legacyInsightByJobId = new Map<string, LegacyInsightRow>();
+  for (const row of (legacyInsightsResult?.data ?? []) as LegacyInsightRow[]) {
+    legacyInsightByJobId.set(row.job_id, row);
   }
 
   // Build reports list (completed jobs, with insight data when available)
   const reports = jobs
     .filter((j) => j.status === "done")
     .map((j) => {
-      const insight = insightByJobId.get(j.id);
+      const vibeInsight = vibeInsightByJobId.get(j.id);
+      const legacyInsight = legacyInsightByJobId.get(j.id);
+
+      // Use vibe_insights (v2) if available, fall back to analysis_insights (legacy)
+      const personaLabel = vibeInsight?.persona_name ?? legacyInsight?.persona_label ?? null;
+      const personaConfidence = vibeInsight?.persona_confidence ?? legacyInsight?.persona_confidence ?? null;
+      const generatedAt = vibeInsight?.generated_at ?? legacyInsight?.generated_at ?? j.created_at;
+
       return {
         jobId: j.id,
         repoId: j.repo_id,
         repoName: repoNameById.get(j.repo_id) ?? null,
-        personaLabel: insight?.persona_label ?? null,
-        personaConfidence: insight?.persona_confidence ?? null,
-        generatedAt: insight?.generated_at ?? j.created_at,
+        personaLabel,
+        personaConfidence,
+        generatedAt,
         status: j.status,
       };
     });
