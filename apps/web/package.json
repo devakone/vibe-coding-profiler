@@ -18,7 +18,7 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@sentry/nextjs": "^10.38.0",
-    "@supabase/ssr": "^0.5.2",
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.47.14",
     "@vercel/analytics": "^1.6.1",
     "@vercel/og": "^0.8.6",
