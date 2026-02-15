@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useSyncExternalStore } from "react";
+import { ExternalLink } from "lucide-react";
 import { computeShareCardMetrics } from "@/lib/vcp/metrics";
 import type { VibeAxes } from "@vibe-coding-profiler/core";
 import { ShareCard, ShareActions } from "./index";
@@ -181,6 +183,23 @@ export function ProfileShareSection({
         entityId={userId}
         shareJson={shareJson}
       />
+      {/* CTA to enable public profile when disabled */}
+      {!profileEnabled && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-zinc-600">
+          <span>
+            {username
+              ? "Enable your public profile to share on social media."
+              : "Claim a username to share your VCP publicly."}
+          </span>
+          <Link
+            href="/settings/public-profile"
+            className="inline-flex items-center gap-1 font-medium text-violet-600 hover:text-violet-800"
+          >
+            {username ? "Enable" : "Set up"} public profile
+            <ExternalLink size={12} />
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

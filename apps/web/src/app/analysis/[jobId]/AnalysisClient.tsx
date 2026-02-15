@@ -16,6 +16,7 @@ import {
   ProfileContributionCard,
 } from "@/components/vcp/repo";
 import { VCPAIToolsSection } from "@/components/vcp/blocks";
+import { PublicProfileCTABanner } from "@/components/public-profile/PublicProfileCTABanner";
 
 type Job = {
   id: string;
@@ -35,6 +36,8 @@ type ApiResponse = {
   profileContribution?: unknown | null;
   userAvatarUrl?: string | null;
   userId?: string | null;
+  username?: string | null;
+  profileEnabled?: boolean;
   vibeInsights?: VibeInsightsRow | null;
 };
 
@@ -491,10 +494,23 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
     return `${shareTemplate.headline}\n${taglineLine}\n${metricsLine}\n#VCP`;
   }, [shareTemplate]);
 
+  // Build share URL - use public profile URL when available
   const shareUrl = useMemo(() => {
     if (!shareOrigin) return "";
+
+    // If user has public profile enabled and we have a repo name, share the public URL
+    const username = data?.username;
+    const profileEnabled = data?.profileEnabled;
+    const repoName = profileContribution?.repoName;
+
+    if (username && profileEnabled && repoName) {
+      const repoSlug = repoName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+      return `${shareOrigin}/u/${username}/repo/${repoSlug}`;
+    }
+
+    // Fall back to the analysis URL
     return `${shareOrigin}/analysis/${jobId}`;
-  }, [jobId, shareOrigin]);
+  }, [jobId, shareOrigin, data?.username, data?.profileEnabled, profileContribution?.repoName]);
 
   const shareCaption = useMemo(() => {
     if (!shareTemplate) return "";
@@ -849,6 +865,15 @@ export default function AnalysisClient({ jobId }: { jobId: string }) {
                 userId={data?.userId ?? undefined}
                 storyEndpoint={storyEndpoint}
               />
+              {/* CTA to enable public profile when disabled */}
+              {!data?.profileEnabled && (
+                <div className="mt-4">
+                  <PublicProfileCTABanner
+                    hasUsername={Boolean(data?.username)}
+                    variant="inline"
+                  />
+                </div>
+              )}
             </div>
           ) : null}
 

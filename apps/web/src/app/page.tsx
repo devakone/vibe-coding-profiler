@@ -23,6 +23,7 @@ import {
   UnifiedMethodologySection,
 } from "@/components/vcp/unified";
 import { VCPAIToolsSection } from "@/components/vcp/blocks";
+import { FirstTimePublicProfileBanner } from "@/components/public-profile/FirstTimePublicProfileBanner";
 
 const heroFeatures = [
   "A Vibe Coding Profile (VCP) built from AI-assisted engineering signals in your commit history",
@@ -1219,6 +1220,14 @@ function AuthenticatedDashboard({
             userId={userId}
             username={username}
             profileEnabled={profileEnabled}
+          />
+        ) : null}
+
+        {/* First-time onboarding banner for public profile */}
+        {stats.userProfile ? (
+          <FirstTimePublicProfileBanner
+            profileEnabled={profileEnabled}
+            hasUsername={Boolean(username)}
           />
         ) : null}
 

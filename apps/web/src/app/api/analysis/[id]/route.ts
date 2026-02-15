@@ -289,17 +289,27 @@ export async function GET(
   let insights = null;
   let profileContribution: unknown | null = null;
   let userAvatarUrl: string | null = null;
+  let username: string | null = null;
+  let profileEnabled = false;
 
-  // Fetch user avatar from users table
+  // Fetch user avatar, username, and public profile settings from users table
   const { data: userData } = await (supabase as unknown as SupabaseQueryLike)
     .from("users")
-    .select("avatar_url")
+    .select("avatar_url, username, public_profile_settings")
     .eq("id", user.id)
     .single();
 
   if (userData && typeof userData === "object") {
-    const avatarUrl = (userData as { avatar_url?: unknown }).avatar_url;
-    userAvatarUrl = typeof avatarUrl === "string" ? avatarUrl : null;
+    const userRow = userData as {
+      avatar_url?: unknown;
+      username?: unknown;
+      public_profile_settings?: Record<string, unknown> | null;
+    };
+    userAvatarUrl = typeof userRow.avatar_url === "string" ? userRow.avatar_url : null;
+    username = typeof userRow.username === "string" ? userRow.username : null;
+    profileEnabled =
+      username !== null &&
+      userRow.public_profile_settings?.profile_enabled === true;
   }
 
   if (job.status === "done") {
@@ -416,6 +426,8 @@ export async function GET(
       profileContribution,
       userAvatarUrl,
       userId: user.id,
+      username,
+      profileEnabled,
       vibeInsights: computedVibeInsights,
     });
   }
@@ -428,6 +440,8 @@ export async function GET(
     profileContribution,
     userAvatarUrl,
     userId: user.id,
+    username,
+    profileEnabled,
     vibeInsights: null,
   });
 }
