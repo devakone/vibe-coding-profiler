@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-alpha.22](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.21...web-v0.1.0-alpha.22) (2026-02-15)
+
+
+### Bug Fixes
+
+* use vibe_insights (v2) for repo VCP pages to match unified profile ([227044c](https://github.com/devakone/vibe-coding-profiler/commit/227044cc284f3ec3afdae66cd17de5108e688cc9))
+
 ## [0.1.0-alpha.21](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.20...web-v0.1.0-alpha.21) (2026-02-12)
 
 
