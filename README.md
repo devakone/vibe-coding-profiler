@@ -27,6 +27,7 @@ Vibe Coding Profiler is an open-source “Vibe Coding Profile” experience that
 
 ## Documentation
 
+- `docs/contributor-orientation.md`: onboarding map for new contributors (where to edit, how to validate, release flow)
 - `docs/security/open-source-preparedness.md`: release readiness + remaining hardening steps
 - `docs/PRD.md`: product requirements driving the interface
 - `docs/architecture/`: pipeline, LLM, share experiences

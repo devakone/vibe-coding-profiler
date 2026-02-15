@@ -7,6 +7,7 @@ Thanks for helping improve Vibe Coding Profiler! We welcome new contributors—h
 - **Bug/issue:** Open an issue describing the behaviour, steps to reproduce, and expected outcome.
 - **New feature:** Link to the relevant PRD or tracker under `docs/prd/` and coordinate in `docs/implementation-trackers/`.
 - **Docs or security improvements:** Target the `docs/` tree (architecture, security readiness, workflow notes).
+- **Need orientation first:** Read `docs/contributor-orientation.md` for a practical map of where to make changes.
 
 Before working, confirm nobody else is already tackling it (add a comment or label the issue). If you’re unsure, open a discussion issue and tag `@devakone`.
 
