@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.10](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.9...vibe-coding-profiler-v0.3.10) (2026-02-16)
+
+
+### Features
+
+* improve public profile discoverability with CTAs and smart sharing ([10e12fa](https://github.com/devakone/vibe-coding-profiler/commit/10e12fa47c13a1f08546842349e042f5730c7598))
+
+
+### Bug Fixes
+
+* resolve lint error in FirstTimePublicProfileBanner with useSyncExternalStore ([156fc13](https://github.com/devakone/vibe-coding-profiler/commit/156fc133f8e77ea11418cf1ca9cea02515fae8bb))
+* use vibe_insights (v2) for repo VCP pages to match unified profile ([227044c](https://github.com/devakone/vibe-coding-profiler/commit/227044cc284f3ec3afdae66cd17de5108e688cc9))
+
 ## [0.3.9](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.8...vibe-coding-profiler-v0.3.9) (2026-02-15)
 
 
