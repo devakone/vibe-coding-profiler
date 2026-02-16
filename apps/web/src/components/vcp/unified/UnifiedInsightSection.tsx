@@ -18,6 +18,8 @@ interface UnifiedInsightSectionProps {
   isLLMGenerated?: boolean;
   /** LLM model used */
   llmModel?: string | null;
+  /** Source of LLM key used for this narrative */
+  llmKeySource?: string | null;
   /** Additional class names */
   className?: string;
 }
@@ -48,8 +50,30 @@ export function UnifiedInsightSection({
   highlights = [],
   isLLMGenerated = false,
   llmModel,
+  llmKeySource,
   className,
 }: UnifiedInsightSectionProps) {
+  const modelLabel = llmModel?.trim() || null;
+  const providerLabel = modelLabel?.startsWith("gpt-")
+    ? "OpenAI"
+    : modelLabel?.startsWith("claude-")
+      ? "Anthropic"
+      : modelLabel?.startsWith("gemini-")
+        ? "Google"
+        : null;
+  const sourceLabel =
+    llmKeySource === "user"
+      ? "User key"
+      : llmKeySource === "platform"
+        ? "Platform key"
+        : llmKeySource === "sponsor"
+          ? "Sponsor key"
+          : "Deterministic fallback";
+  const generatedWithLabel =
+    isLLMGenerated && modelLabel
+      ? `${providerLabel ? `${providerLabel} ` : ""}${modelLabel}`
+      : null;
+
   return (
     <div className={cn("border-t border-black/5 px-8 py-6 sm:px-10", className)}>
       <div className="rounded-xl border-l-4 border-l-violet-500 bg-violet-50 px-5 py-4">
@@ -85,6 +109,10 @@ export function UnifiedInsightSection({
             ))}
           </ul>
         ) : null}
+        <p className="mt-4 text-xs text-slate-500">
+          Narrative source: {sourceLabel}
+          {generatedWithLabel ? ` (${generatedWithLabel})` : ""}
+        </p>
       </div>
     </div>
   );

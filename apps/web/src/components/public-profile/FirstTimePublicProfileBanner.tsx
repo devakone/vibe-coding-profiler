@@ -1,10 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore, useCallback } from "react";
 import Link from "next/link";
 import { X, Sparkles } from "lucide-react";
 
 const STORAGE_KEY = "vcp_public_profile_intro_seen";
+
+// Subscribe to localStorage changes (for cross-tab sync if needed)
+function subscribe(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
+function getSnapshot(): boolean {
+  return localStorage.getItem(STORAGE_KEY) === "1";
+}
+
+function getServerSnapshot(): boolean {
+  return true; // On server, assume dismissed to avoid hydration mismatch
+}
 
 interface FirstTimePublicProfileBannerProps {
   /** Whether user's public profile is already enabled */
@@ -22,22 +36,23 @@ export function FirstTimePublicProfileBanner({
   profileEnabled,
   hasUsername,
 }: FirstTimePublicProfileBannerProps) {
-  const [dismissed, setDismissed] = useState(true); // Start true to avoid flash
-  const [mounted, setMounted] = useState(false);
+  // Use useSyncExternalStore to safely read from localStorage
+  const dismissedFromStorage = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot
+  );
 
-  useEffect(() => {
-    setMounted(true);
-    const seen = localStorage.getItem(STORAGE_KEY) === "1";
-    setDismissed(seen);
+  const [localDismissed, setLocalDismissed] = useState(false);
+  const dismissed = dismissedFromStorage || localDismissed;
+
+  const dismiss = useCallback(() => {
+    localStorage.setItem(STORAGE_KEY, "1");
+    setLocalDismissed(true);
   }, []);
 
-  const dismiss = () => {
-    localStorage.setItem(STORAGE_KEY, "1");
-    setDismissed(true);
-  };
-
-  // Don't render during SSR or if dismissed or if profile already enabled
-  if (!mounted || dismissed || profileEnabled) {
+  // Don't render if dismissed or if profile already enabled
+  if (dismissed || profileEnabled) {
     return null;
   }
 

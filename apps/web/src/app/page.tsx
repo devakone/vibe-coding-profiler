@@ -1260,6 +1260,7 @@ function AuthenticatedDashboard({
               highlights={narrativeHighlights}
               isLLMGenerated={hasLLMNarrative}
               llmModel={stats.userProfile.llmModel}
+              llmKeySource={stats.userProfile.llmKeySource}
             />
           ) : null}
 
