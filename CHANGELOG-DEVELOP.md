@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-alpha.26](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.25...vibe-coding-profiler-v0.1.0-alpha.26) (2026-02-16)
+
+
+### Bug Fixes
+
+* resolve lint error in FirstTimePublicProfileBanner with useSyncExternalStore ([156fc13](https://github.com/devakone/vibe-coding-profiler/commit/156fc133f8e77ea11418cf1ca9cea02515fae8bb))
+
 ## [0.1.0-alpha.25](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.24...vibe-coding-profiler-v0.1.0-alpha.25) (2026-02-15)
 
 

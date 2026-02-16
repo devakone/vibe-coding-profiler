@@ -1,5 +1,5 @@
 {
-  ".": "0.1.0-alpha.25",
-  "apps/web": "0.1.0-alpha.23",
+  ".": "0.1.0-alpha.26",
+  "apps/web": "0.1.0-alpha.24",
   "apps/worker": "0.1.0-alpha.3"
 }
