@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-alpha.25](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.24...vibe-coding-profiler-v0.1.0-alpha.25) (2026-02-15)
+
+
+### Features
+
+* improve public profile discoverability with CTAs and smart sharing ([10e12fa](https://github.com/devakone/vibe-coding-profiler/commit/10e12fa47c13a1f08546842349e042f5730c7598))
+
 ## [0.1.0-alpha.24](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.23...vibe-coding-profiler-v0.1.0-alpha.24) (2026-02-15)
 
 
