@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.0-alpha.25](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.24...vibe-coding-profiler-v0.1.0-alpha.25) (2026-02-15)
+
+
+### Features
+
+* improve public profile discoverability with CTAs and smart sharing ([10e12fa](https://github.com/devakone/vibe-coding-profiler/commit/10e12fa47c13a1f08546842349e042f5730c7598))
+
+## [0.1.0-alpha.24](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.23...vibe-coding-profiler-v0.1.0-alpha.24) (2026-02-15)
+
+
+### Bug Fixes
+
+* **ci:** fallback to github token when PAT PR edit fails ([64a957f](https://github.com/devakone/vibe-coding-profiler/commit/64a957f5d3c9a2159150efcda769b514bdda1cd4))
+* use vibe_insights (v2) for repo VCP pages to match unified profile ([227044c](https://github.com/devakone/vibe-coding-profiler/commit/227044cc284f3ec3afdae66cd17de5108e688cc9))
+
 ## [0.1.0-alpha.23](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.1.0-alpha.22...vibe-coding-profiler-v0.1.0-alpha.23) (2026-02-15)
 
 

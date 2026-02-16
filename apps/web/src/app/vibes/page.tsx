@@ -18,7 +18,14 @@ type JobRow = {
   created_at: string;
 };
 
-type InsightRow = {
+type VibeInsightRow = {
+  job_id: string;
+  persona_name: string | null;
+  persona_confidence: string | null;
+  generated_at: string | null;
+};
+
+type LegacyInsightRow = {
   job_id: string;
   persona_label: string | null;
   persona_confidence: string | null;
@@ -74,18 +81,33 @@ export default async function VibesPage() {
   const jobs = (jobsData ?? []) as JobRow[];
   const jobIds = jobs.map((j) => j.id);
 
-  // Fetch insights for completed jobs
-  const { data: insightsData } =
+  // Fetch vibe insights (v2) for completed jobs
+  const { data: vibeInsightsData } =
     jobIds.length > 0
       ? await supabase
-          .from("analysis_insights")
-          .select("job_id, persona_label, persona_confidence, generated_at")
+          .from("vibe_insights")
+          .select("job_id, persona_name, persona_confidence, generated_at")
           .in("job_id", jobIds)
       : { data: [] };
 
-  const insightByJobId = new Map<string, InsightRow>();
-  for (const row of (insightsData ?? []) as InsightRow[]) {
-    insightByJobId.set(row.job_id, row);
+  const vibeInsightByJobId = new Map<string, VibeInsightRow>();
+  for (const row of (vibeInsightsData ?? []) as VibeInsightRow[]) {
+    vibeInsightByJobId.set(row.job_id, row);
+  }
+
+  // Find jobs missing from vibe_insights and fetch from legacy analysis_insights
+  const missingJobIds = jobIds.filter((id) => !vibeInsightByJobId.has(id));
+  const { data: legacyInsightsData } =
+    missingJobIds.length > 0
+      ? await supabase
+          .from("analysis_insights")
+          .select("job_id, persona_label, persona_confidence, generated_at")
+          .in("job_id", missingJobIds)
+      : { data: [] };
+
+  const legacyInsightByJobId = new Map<string, LegacyInsightRow>();
+  for (const row of (legacyInsightsData ?? []) as LegacyInsightRow[]) {
+    legacyInsightByJobId.set(row.job_id, row);
   }
 
   // Fetch metrics for commit counts
@@ -114,14 +136,21 @@ export default async function VibesPage() {
   const repos = connectedRepos.map((repo) => {
     const repoJobs = jobsByRepoId.get(repo.repoId) ?? [];
     const versions = repoJobs.map((job) => {
-      const insight = insightByJobId.get(job.id);
+      const vibeInsight = vibeInsightByJobId.get(job.id);
+      const legacyInsight = legacyInsightByJobId.get(job.id);
       const metrics = metricsByJobId.get(job.id);
+
+      // Use vibe_insights (v2) if available, fall back to analysis_insights (legacy)
+      const personaLabel = vibeInsight?.persona_name ?? legacyInsight?.persona_label ?? null;
+      const personaConfidence = vibeInsight?.persona_confidence ?? legacyInsight?.persona_confidence ?? null;
+      const generatedAt = vibeInsight?.generated_at ?? legacyInsight?.generated_at ?? job.created_at;
+
       return {
         jobId: job.id,
-        personaLabel: insight?.persona_label ?? null,
-        personaConfidence: insight?.persona_confidence ?? null,
+        personaLabel,
+        personaConfidence,
         commitCount: metrics?.commit_count ?? null,
-        generatedAt: insight?.generated_at ?? job.created_at,
+        generatedAt,
       };
     });
 
