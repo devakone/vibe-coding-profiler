@@ -1,6 +1,6 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/inngest/client";
-import { analyzeRepo } from "@/inngest/functions";
+import { analyzeRepo, computeCommunityRollupFn } from "@/inngest/functions";
 
 /**
  * Inngest API route
@@ -15,5 +15,5 @@ import { analyzeRepo } from "@/inngest/functions";
  */
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [analyzeRepo],
+  functions: [analyzeRepo, computeCommunityRollupFn],
 });
