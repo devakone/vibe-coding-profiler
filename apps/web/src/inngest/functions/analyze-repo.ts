@@ -1402,6 +1402,7 @@ export const analyzeRepo = inngest.createFunction(
           persona_score: profile.persona.score,
           repo_personas_json: profile.repoBreakdown,
           cards_json: profile.cards,
+          ai_tools_json: profile.aiTools,
           narrative_json: finalNarrative,
           llm_model: profileLlmModelUsed,
           llm_key_source: profileLlmKeySource,
