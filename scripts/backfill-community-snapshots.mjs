@@ -5,7 +5,7 @@
  *   node scripts/backfill-community-snapshots.mjs
  *
  * Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in env
- * (loaded from apps/web/.env.local if present).
+ * (loaded from apps/web/.env, with fallback to apps/web/.env.local).
  */
 
 import fs from "node:fs";
@@ -17,7 +17,7 @@ const ELIGIBLE_MIN_COMMITS = 80;
 const ANALYZER_VERSION = "backfill-v1";
 
 // ---------------------------------------------------------------------------
-// Load env from .env.local (same pattern as scripts/supabase.mjs)
+// Load env: .env first (production), then .env.local as fallback
 // ---------------------------------------------------------------------------
 function loadDotEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -42,8 +42,8 @@ function loadDotEnvFile(filePath) {
 }
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-loadDotEnvFile(path.join(repoRoot, "apps/web/.env.local"));
 loadDotEnvFile(path.join(repoRoot, "apps/web/.env"));
+loadDotEnvFile(path.join(repoRoot, "apps/web/.env.local"));
 
 // ---------------------------------------------------------------------------
 // Main
