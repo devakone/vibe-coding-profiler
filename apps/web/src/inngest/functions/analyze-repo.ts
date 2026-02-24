@@ -10,6 +10,7 @@ import {
   detectVibePersona,
   decryptString,
   filterAutomationCommits,
+  isEligibleForCommunityStats,
   classifyCommit,
   createLLMClient,
   getModelCandidates,
@@ -1402,6 +1403,7 @@ export const analyzeRepo = inngest.createFunction(
           persona_score: profile.persona.score,
           repo_personas_json: profile.repoBreakdown,
           cards_json: profile.cards,
+          ai_tools_json: profile.aiTools,
           narrative_json: finalNarrative,
           llm_model: profileLlmModelUsed,
           llm_key_source: profileLlmKeySource,
@@ -1413,6 +1415,38 @@ export const analyzeRepo = inngest.createFunction(
       // Don't fail if user_profiles table doesn't exist yet
       if (profileError && !profileError.message.includes("does not exist")) {
         console.warn("Failed to save user profile:", profileError.message);
+      }
+
+      // Upsert community stats snapshot
+      const { error: snapshotError } = await supabase
+        .from("community_profile_snapshots")
+        .upsert(
+          {
+            user_id: userId,
+            snapshot_date: new Date().toISOString().split("T")[0],
+            is_eligible: isEligibleForCommunityStats(profile.totalCommits),
+            total_commits: profile.totalCommits,
+            total_repos: profile.totalRepos,
+            persona_id: profile.persona.id,
+            persona_confidence: profile.persona.confidence,
+            persona_score: profile.persona.score,
+            automation_heaviness: profile.axes.automation_heaviness.score,
+            guardrail_strength: profile.axes.guardrail_strength.score,
+            iteration_loop_intensity: profile.axes.iteration_loop_intensity.score,
+            planning_signal: profile.axes.planning_signal.score,
+            surface_area_per_change: profile.axes.surface_area_per_change.score,
+            shipping_rhythm: profile.axes.shipping_rhythm.score,
+            ai_collaboration_rate: profile.aiTools?.ai_collaboration_rate ?? null,
+            ai_tool_diversity: profile.aiTools?.tool_diversity ?? null,
+            ai_tools_detected: profile.aiTools?.detected ?? null,
+            source_version: ANALYZER_VERSION,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+
+      if (snapshotError && !snapshotError.message.includes("does not exist")) {
+        console.warn("Failed to save community snapshot:", snapshotError.message);
       }
 
       // Include narrative in the snapshot for history
