@@ -2,6 +2,7 @@ version: 2
 updates:
   - package-ecosystem: "npm"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
@@ -11,6 +12,7 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/apps/web"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
@@ -20,6 +22,7 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/packages/core"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
@@ -29,6 +32,7 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/packages/db"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
@@ -38,6 +42,7 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/apps/worker"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
