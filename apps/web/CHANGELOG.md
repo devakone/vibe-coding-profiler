@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.10](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.2.9...web-v0.2.10) (2026-02-24)
+
+
+### Features
+
+* **community:** add community stats pipeline and public page ([15d8325](https://github.com/devakone/vibe-coding-profiler/commit/15d8325e86c9983a3c269da2bea124fd747017f0))
+* **community:** add data foundation for community stats ([4abd13f](https://github.com/devakone/vibe-coding-profiler/commit/4abd13f9f7d7593248eb58866300e90cc3360169))
+* **community:** add public /community page with aggregated stats UI ([0c8549d](https://github.com/devakone/vibe-coding-profiler/commit/0c8549d2c9d26154e6ae898efe29bf446ce197a2))
+* **community:** add rollup computation and stats API endpoint ([00a5027](https://github.com/devakone/vibe-coding-profiler/commit/00a5027809667d10f9ae7cf799c2e4784f30764a))
+* **db:** persist ai_tools_json to user_profiles ([56a4096](https://github.com/devakone/vibe-coding-profiler/commit/56a4096441b2ea96801f24460621b6a4b54047e5))
+
+
+### Bug Fixes
+
+* **db:** rename reserved word 'window' to 'rollup_window' in community_rollups ([c7fce4d](https://github.com/devakone/vibe-coding-profiler/commit/c7fce4dbef79071a5271ec4f11ca86e0cddf6d8a))
+
 ## [0.2.9](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.2.8...web-v0.2.9) (2026-02-16)
 
 
