@@ -34,7 +34,7 @@ ALTER TABLE public.community_profile_snapshots ENABLE ROW LEVEL SECURITY;
 --------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.community_rollups (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  window TEXT NOT NULL,
+  rollup_window TEXT NOT NULL,
   as_of_date DATE NOT NULL,
   payload_json JSONB NOT NULL,
   eligible_profiles INTEGER NOT NULL DEFAULT 0,
@@ -47,4 +47,4 @@ ALTER TABLE public.community_rollups ENABLE ROW LEVEL SECURITY;
 
 -- Fast lookup: latest rollup by window type.
 CREATE INDEX idx_community_rollups_window_date
-  ON public.community_rollups (window, as_of_date DESC);
+  ON public.community_rollups (rollup_window, as_of_date DESC);

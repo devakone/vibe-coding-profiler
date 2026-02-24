@@ -26,7 +26,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("community_rollups")
     .select("payload_json")
-    .eq("window", "30d")
+    .eq("rollup_window", "30d")
     .order("as_of_date", { ascending: false })
     .limit(1)
     .maybeSingle();

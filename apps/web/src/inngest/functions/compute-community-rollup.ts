@@ -47,7 +47,7 @@ export const computeCommunityRollupFn = inngest.createFunction(
       const asOfDate = new Date().toISOString().split("T")[0];
 
       const { error } = await supabase.from("community_rollups").insert({
-        window: "30d",
+        rollup_window: "30d",
         as_of_date: asOfDate,
         payload_json: payload,
         eligible_profiles: snapshots.length,
