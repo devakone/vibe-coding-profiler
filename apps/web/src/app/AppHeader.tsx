@@ -35,11 +35,13 @@ export default function AppHeader(props: {
     ? [
         { href: "/", label: "My VCP" },
         { href: "/vibes", label: "Repo VCPs" },
+        { href: "/community", label: "Community" },
       ]
     : [
         { href: "/", label: "Home" },
         { href: "/methodology", label: "Methodology" },
         { href: "/security", label: "Security" },
+        { href: "/community", label: "Community" },
       ];
 
   const links = props.isAdmin
