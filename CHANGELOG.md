@@ -1,5 +1,92 @@
 # Changelog
 
+## [0.3.10](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.9...vibe-coding-profiler-v0.3.10) (2026-02-16)
+
+
+### Features
+
+* improve public profile discoverability with CTAs and smart sharing ([10e12fa](https://github.com/devakone/vibe-coding-profiler/commit/10e12fa47c13a1f08546842349e042f5730c7598))
+
+
+### Bug Fixes
+
+* resolve lint error in FirstTimePublicProfileBanner with useSyncExternalStore ([156fc13](https://github.com/devakone/vibe-coding-profiler/commit/156fc133f8e77ea11418cf1ca9cea02515fae8bb))
+* use vibe_insights (v2) for repo VCP pages to match unified profile ([227044c](https://github.com/devakone/vibe-coding-profiler/commit/227044cc284f3ec3afdae66cd17de5108e688cc9))
+
+## [0.3.9](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.8...vibe-coding-profiler-v0.3.9) (2026-02-15)
+
+
+### Bug Fixes
+
+* **ci:** handle release PR create permission fallback ([310e6ec](https://github.com/devakone/vibe-coding-profiler/commit/310e6ec23b0d34181a4a75c14dfb07625e6a8e43))
+
+## [0.3.8](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.7...vibe-coding-profiler-v0.3.8) (2026-02-12)
+
+
+### Features
+
+* add analytics tracking for key user actions ([1b0c994](https://github.com/devakone/vibe-coding-profiler/commit/1b0c994de0f0663979c115b4ab94957a61088b32))
+* track LLM usage events ([229bfd2](https://github.com/devakone/vibe-coding-profiler/commit/229bfd2f2920109e3c412d001abd7017aaac5820))
+
+## [0.3.7](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.6...vibe-coding-profiler-v0.3.7) (2026-02-12)
+
+
+### Bug Fixes
+
+* **ci:** stabilize release PR workflow create path ([be28004](https://github.com/devakone/vibe-coding-profiler/commit/be2800431d7e3469c65194724cea561872faa9c7))
+
+## [0.3.6](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.5...vibe-coding-profiler-v0.3.6) (2026-02-12)
+
+
+### Bug Fixes
+
+* correct LLM config column names to match DB schema ([1c5411a](https://github.com/devakone/vibe-coding-profiler/commit/1c5411a0557edbcdfe81c9792966c8705611847d))
+
+## [0.3.5](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.4...vibe-coding-profiler-v0.3.5) (2026-02-12)
+
+
+### Bug Fixes
+
+* escape quotes in methodology page and add footer attribution ([c51c1b9](https://github.com/devakone/vibe-coding-profiler/commit/c51c1b96e35314f1f5a6c220e8f46e533cd45df4))
+* rename share-debug route to .tsx for JSX support ([30f7b43](https://github.com/devakone/vibe-coding-profiler/commit/30f7b4370a77f199633e16b53db40682fb176469))
+
+## [0.3.4](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.3...vibe-coding-profiler-v0.3.4) (2026-02-12)
+
+
+### Bug Fixes
+
+* lazy-load Sentry in share route to prevent module errors ([11d29fd](https://github.com/devakone/vibe-coding-profiler/commit/11d29fd0e354c5b3f848817ddc3c2b34b4a2774f))
+* use next/og instead of @vercel/og for ImageResponse ([44ee5e2](https://github.com/devakone/vibe-coding-profiler/commit/44ee5e2a6f13e3b5e59c214c289f84b5416d132a))
+
+## [0.3.3](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.2...vibe-coding-profiler-v0.3.3) (2026-02-12)
+
+
+### Features
+
+* add Sentry error tracking ([71d09da](https://github.com/devakone/vibe-coding-profiler/commit/71d09da398280deb2198635e2a21e050e0624552))
+* **analysis:** dampen initial/bulk commits in Automation axis ([2c2cf47](https://github.com/devakone/vibe-coding-profiler/commit/2c2cf472c31e24e3ce7e1c6fa5e6b389a4c16a5e))
+
+
+### Bug Fixes
+
+* add disconnect button to repos settings page ([a349c67](https://github.com/devakone/vibe-coding-profiler/commit/a349c67e5b53aa78fee86bb13f83f2eab22253fa))
+
+## [0.3.2](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.1...vibe-coding-profiler-v0.3.2) (2026-02-01)
+
+
+### Features
+
+* replace Montoya slash with vibe echo effect ([f3d869d](https://github.com/devakone/vibe-coding-profiler/commit/f3d869d7d1a5565736948ea80e507a9b476c9018))
+* unify brand colors and add Montoya slash flourish ([e699083](https://github.com/devakone/vibe-coding-profiler/commit/e699083367370545957ff0d0f9cf428166c113df))
+
+
+### Bug Fixes
+
+* enable share image generation for repo analysis pages ([01a4d0c](https://github.com/devakone/vibe-coding-profiler/commit/01a4d0ce920a057e551255fdfbde96969000f2a1))
+* remove old vibed.dev fallbacks and update branding references ([0954d0b](https://github.com/devakone/vibe-coding-profiler/commit/0954d0b9bb7c42cd83cfde00df015c86a094852e))
+* restore rounded corners on analysis cards after overflow-hidden removal ([6416a65](https://github.com/devakone/vibe-coding-profiler/commit/6416a654b20907ed24dbac574a579c729ce8fdde))
+* use maybeSingle for profile share route to avoid PGRST116 crash ([6193cea](https://github.com/devakone/vibe-coding-profiler/commit/6193cea160fd8a130b67ee8e7fa18a735e8e4f7f))
+
 ## [0.3.1](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.0...vibe-coding-profiler-v0.3.1) (2026-01-30)
 
 
