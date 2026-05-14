@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.11](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.2.10...web-v0.2.11) (2026-05-14)
+
+
+### Bug Fixes
+
+* **web:** upgrade inngest sdk ([e3a4dde](https://github.com/devakone/vibe-coding-profiler/commit/e3a4ddebbdff6edc0fe73dcdc88997ac75f927ba))
+
 ## [0.2.10](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.2.9...web-v0.2.10) (2026-03-16)
 
 
