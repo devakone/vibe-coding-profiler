@@ -51,13 +51,14 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsSL --retry 3 --retry-delay 2 \
-            -o /tmp/trufflehog.tgz \
+            -o "/tmp/${TRUFFLEHOG_ARCHIVE}" \
             "https://github.com/trufflesecurity/trufflehog/releases/download/${TRUFFLEHOG_VERSION}/${TRUFFLEHOG_ARCHIVE}"
           curl -fsSL --retry 3 --retry-delay 2 \
             -o /tmp/trufflehog_checksums.txt \
             "https://github.com/trufflesecurity/trufflehog/releases/download/${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION#v}_checksums.txt"
-          grep " ${TRUFFLEHOG_ARCHIVE}\$" /tmp/trufflehog_checksums.txt | sha256sum --check -
-          tar -xzf /tmp/trufflehog.tgz -C /tmp trufflehog
+          cd /tmp
+          grep " ${TRUFFLEHOG_ARCHIVE}\$" trufflehog_checksums.txt | sha256sum --check -
+          tar -xzf "${TRUFFLEHOG_ARCHIVE}" trufflehog
           sudo install /tmp/trufflehog /usr/local/bin/trufflehog
           trufflehog --version
 
