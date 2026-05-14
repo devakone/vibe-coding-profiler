@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.1.0-alpha.26](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.25...web-v0.1.0-alpha.26) (2026-05-12)
+## [0.1.0-alpha.26](https://github.com/devakone/vibe-coding-profiler/compare/web-v0.1.0-alpha.25...web-v0.1.0-alpha.26) (2026-05-14)
 
 
 ### Bug Fixes
