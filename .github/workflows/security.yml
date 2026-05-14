@@ -44,7 +44,54 @@ jobs:
         if: github.event_name == 'push'
         run: npm audit --audit-level=critical
 
-      - name: Trufflehog git history scan
-        uses: trufflesecurity/trufflehog@main
-        with:
-          extra_args: --only-verified
+      - name: Install TruffleHog
+        env:
+          TRUFFLEHOG_VERSION: v3.95.3
+          TRUFFLEHOG_ARCHIVE: trufflehog_3.95.3_linux_amd64.tar.gz
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 --retry-delay 2 \
+            -o "/tmp/${TRUFFLEHOG_ARCHIVE}" \
+            "https://github.com/trufflesecurity/trufflehog/releases/download/${TRUFFLEHOG_VERSION}/${TRUFFLEHOG_ARCHIVE}"
+          curl -fsSL --retry 3 --retry-delay 2 \
+            -o /tmp/trufflehog_checksums.txt \
+            "https://github.com/trufflesecurity/trufflehog/releases/download/${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION#v}_checksums.txt"
+          cd /tmp
+          grep " ${TRUFFLEHOG_ARCHIVE}\$" trufflehog_checksums.txt | sha256sum --check -
+          tar -xzf "${TRUFFLEHOG_ARCHIVE}" trufflehog
+          sudo install /tmp/trufflehog /usr/local/bin/trufflehog
+          trufflehog --version
+
+      - name: TruffleHog git history scan
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          PUSH_AFTER_SHA: ${{ github.event.after }}
+        run: |
+          set -euo pipefail
+
+          BASE=""
+          HEAD=""
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="$PR_BASE_SHA"
+            HEAD="$PR_HEAD_SHA"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            HEAD="$PUSH_AFTER_SHA"
+            if [ "$PUSH_BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+              BASE="$PUSH_BEFORE_SHA"
+            fi
+          fi
+
+          args=(git "file://${GITHUB_WORKSPACE}" --fail --no-update --github-actions --only-verified)
+
+          if [ -n "$BASE" ]; then
+            args+=(--since-commit "$BASE")
+          fi
+
+          if [ -n "$HEAD" ]; then
+            args+=(--branch "$HEAD")
+          fi
+
+          trufflehog "${args[@]}"
