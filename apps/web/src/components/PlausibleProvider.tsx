@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { init, track } from "@plausible-analytics/tracker";
 
 /**
  * Inner component that uses useSearchParams (requires Suspense boundary).
@@ -11,6 +10,7 @@ function PlausibleTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isInitialized = useRef(false);
+  const initialization = useRef<Promise<void> | null>(null);
 
   // Initialize Plausible once
   useEffect(() => {
@@ -23,27 +23,24 @@ function PlausibleTracker() {
       return;
     }
 
-    if (!isInitialized.current) {
-      init({
-        domain,
-        // Don't track localhost unless explicitly enabled
-        captureOnLocalhost: process.env.NEXT_PUBLIC_PLAUSIBLE_CAPTURE_LOCALHOST === "true",
-        // Track outbound link clicks
-        outboundLinks: true,
-        // Track file downloads
-        fileDownloads: true,
-        // Track form submissions
-        formSubmissions: true,
-        // Disable auto capture - we handle it manually for Next.js App Router
-        autoCapturePageviews: false,
-      });
-      isInitialized.current = true;
-    }
+    initialization.current = import("@plausible-analytics/tracker").then(({ init }) => {
+      if (!isInitialized.current) {
+        init({
+          domain,
+          captureOnLocalhost: process.env.NEXT_PUBLIC_PLAUSIBLE_CAPTURE_LOCALHOST === "true",
+          outboundLinks: true,
+          fileDownloads: true,
+          formSubmissions: true,
+          autoCapturePageviews: false,
+        });
+        isInitialized.current = true;
+      }
+    });
   }, []);
 
   // Track page views on route changes
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || !isInitialized.current) {
+    if (!process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || !initialization.current) {
       return;
     }
 
@@ -53,7 +50,10 @@ function PlausibleTracker() {
       : pathname;
 
     // Track pageview with the current URL
-    track("pageview", { url });
+    void initialization.current.then(async () => {
+      const { track } = await import("@plausible-analytics/tracker");
+      track("pageview", { url });
+    });
   }, [pathname, searchParams]);
 
   return null;
