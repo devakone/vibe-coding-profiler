@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.13](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.12...vibe-coding-profiler-v0.3.13) (2026-06-22)
+
+
+### Bug Fixes
+
+* **web:** prevent Plausible SSR crash ([9c058cf](https://github.com/devakone/vibe-coding-profiler/commit/9c058cf81dc773745d7d9f2597cde090360c97ed))
+* **web:** prevent Plausible SSR crash ([3775bae](https://github.com/devakone/vibe-coding-profiler/commit/3775baea5a1f577492a8aa2b966344be9fc7f7b4))
+* **web:** prevent recurring analytics errors ([e2cc055](https://github.com/devakone/vibe-coding-profiler/commit/e2cc05571e51d6f4a28ec12ef627e84510249994))
+* **web:** prevent recurring analytics errors ([249d06d](https://github.com/devakone/vibe-coding-profiler/commit/249d06dc8c2bf5c292cfd3c97a1cefe8297d51ae))
+* **web:** restore Sentry error reporting ([82a51df](https://github.com/devakone/vibe-coding-profiler/commit/82a51df0afe61494edd4cb070417d1d4bdd7d7bd))
+* **web:** restore Sentry error reporting ([def1199](https://github.com/devakone/vibe-coding-profiler/commit/def11994800a3534e2d69686a7c53bb624b83ad6))
+
 ## [0.3.12](https://github.com/devakone/vibe-coding-profiler/compare/vibe-coding-profiler-v0.3.11...vibe-coding-profiler-v0.3.12) (2026-05-14)
 
 
