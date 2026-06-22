@@ -88,7 +88,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="en" translate="no">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased ${wrappedTheme.background}`}
       >

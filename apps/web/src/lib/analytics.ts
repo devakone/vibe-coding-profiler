@@ -22,12 +22,10 @@ export function trackEvent(
     return;
   }
 
-  void import("@plausible-analytics/tracker").then(({ track }) => {
-    track(eventName, {
-      props,
-      interactive: options?.interactive,
-      revenue: options?.revenue,
-    });
+  void trackPlausible(eventName, {
+    props,
+    interactive: options?.interactive,
+    revenue: options?.revenue,
   });
 }
 
@@ -64,3 +62,4 @@ export const AnalyticsEvents = {
 } as const;
 
 export type AnalyticsEvent = (typeof AnalyticsEvents)[keyof typeof AnalyticsEvents];
+import { trackPlausible } from "./plausible";
