@@ -32,6 +32,9 @@
     "sharp": "^0.34.5"
   },
   "overrides": {
-    "next": ">=16.1.5"
+    "next": ">=16.1.5",
+    "@grpc/proto-loader": {
+      "protobufjs": "7.6.4"
+    }
   }
 }

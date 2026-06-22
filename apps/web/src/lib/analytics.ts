@@ -1,5 +1,3 @@
-import { track } from "@plausible-analytics/tracker";
-
 /**
  * Track a custom event in Plausible Analytics.
  *
@@ -20,10 +18,16 @@ export function trackEvent(
     return;
   }
 
-  track(eventName, {
-    props,
-    interactive: options?.interactive,
-    revenue: options?.revenue,
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  void import("@plausible-analytics/tracker").then(({ track }) => {
+    track(eventName, {
+      props,
+      interactive: options?.interactive,
+      revenue: options?.revenue,
+    });
   });
 }
 
